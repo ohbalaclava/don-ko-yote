@@ -1,0 +1,178 @@
+[
+    {
+        "sound": "DON",
+        "dot-not": "1000"
+    },
+    {
+        "sound": "SUKO",
+        "dot-not": "0010"
+    },
+    {
+        "sound": "DOKO",
+        "dot-not": "1010"
+    },
+    {
+        "sound": "UN",
+        "dot-not": "0000"
+    },
+    {
+        "sound": "KA",
+        "dot-not": "2000"
+    },
+    {
+        "sound": "SUKA",
+        "dot-not": "0020"
+    },
+    {
+        "sound": "KARA",
+        "dot-not": "2020"
+    },
+    {
+        "sound": "KI",
+        "dot-not": "3000"
+    },
+    {
+        "sound": "SUKI",
+        "dot-not": "0030"
+    },
+    {
+        "sound": "KIKI",
+        "dot-not": "3030"
+    },
+    {
+        "sound": "ki'koro",
+        "dot-not": "3011"
+    },
+    {
+        "sound": "do'koro",
+        "dot-not": "1011"
+    },
+    {
+        "sound": "korodon",
+        "dot-not": "1110",
+        "duplicate": "dokodon"
+    },
+    {
+        "sound": "ka'kara",
+        "dot-not": "2022"
+    },
+    {
+        "sound": "karaka",
+        "dot-not": "2220"
+    },
+    {
+        "sound": "do'kara",
+        "dot-not": "1022"
+    },
+    {
+        "sound": "karadon",
+        "dot-not": "2210"
+    },
+    {
+        "sound": "ka'doro",
+        "dot-not": "2011"
+    },
+    {
+        "sound": "doroka",
+        "dot-not": "1120"
+    },
+    {
+        "sound": "su'koro",
+        "dot-not": "0011"
+    },
+    {
+        "sound": "koro un",
+        "dot-not": "1100",
+        "duplicate": "dokon"
+    },
+    {
+        "sound": "su'kara",
+        "dot-not": "0022"
+    },
+    {
+        "sound": "kara un",
+        "dot-not": "2200"
+    },
+    {
+        "sound": "dorororo",
+        "dot-not": "1111"
+    },
+    {
+        "sound": "kararara",
+        "dot-not": "2222"
+    },
+    {
+        "sound": "sudororo",
+        "dot-not": "0111"
+    },
+    {
+        "sound": "sukarara",
+        "dot-not": "0222"
+    },
+    {
+        "sound": "dorakako",
+        "dot-not": "1221"
+    },
+    {
+        "sound": "kakodora",
+        "dot-not": "2112"
+    },
+    {
+        "sound": "dokadoka",
+        "dot-not": "1212"
+    },
+    {
+        "sound": "kadokado",
+        "dot-not": "2121"
+    },
+    {
+        "sound": "dokarara",
+        "dot-not": "1222"
+    },
+    {
+        "sound": "kadororo",
+        "dot-not": "2111"
+    },
+    {
+        "sound": "dorokara",
+        "dot-not": "1122"
+    },
+    {
+        "sound": "karadoro",
+        "dot-not": "2211"
+    },
+    {
+        "sound": "doraka",
+        "dot-not": "1220"
+    },
+    {
+        "sound": "dokodon",
+        "dot-not": "1110",
+        "duplicate": "korodon"
+    },
+    {
+        "sound": "suka",
+        "dot-not": "0200"
+    },
+    {
+        "sound": "sukon",
+        "dot-not": "0100"
+    },
+    {
+        "sound": "suraka",
+        "dot-not": "0220"
+    },
+    {
+        "sound": "sukodon",
+        "dot-not": "0110"
+    },
+    {
+        "sound": "doka",
+        "dot-not": "1200"
+    },
+    {
+        "sound": "dokon",
+        "dot-not": "1100",
+        "duplicate": "koro un"
+    }
+]
