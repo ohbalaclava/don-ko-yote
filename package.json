@@ -12,6 +12,8 @@
     "vite": "^7.0.4"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "@tailwindplus/elements": "^1.0.0",
     "mithril": "^2.3.3",
     "tailwindcss": "^4.1.11"
   }
