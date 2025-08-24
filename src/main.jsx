@@ -1,7 +1,6 @@
 import './app.css'
 
 import { JiuchiChooser } from './modules/JiuchiChooser'
-import { MeterChooser } from './modules/MeterChooser'
 
 import m from "mithril";
 
@@ -10,7 +9,6 @@ function DonKoYoteApp () {
     view: () => (
       <main class="relative" id="app">
         <JiuchiChooser/>
-        <MeterChooser/>
       </main>
     )
   }

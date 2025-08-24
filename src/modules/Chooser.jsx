@@ -19,15 +19,15 @@ export function Chooser(initialVnode) {
                     <el-menu anchor="bottom end" popover class="jorigin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
                         <div class="py-1">
                             {
-                                vnode.attrs.items.map(element => (
+                                vnode.attrs.items.map(item => (
                                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:text-gray-900 focus:outline-hidden"
                                         onclick={
                                             e => {
-                                                selection = element;
-                                                if (e.action) e.action(e); else if (vnode.attrs.action) vnode.attrs.action(e);
+                                                selection = item;
+                                                if (e.action) e.action(item); else if (vnode.attrs.action) vnode.attrs.action(item);
                                             }
                                         }>
-                                            {element.name}
+                                            {item.name}
                                     </a>
                                 ))
                             }
