@@ -13,7 +13,7 @@ export function JiuchiChooser(initialVnode) {
             data: jiuchi
         };
 
-        if (jiuchi.name == model.jiuchi) {
+        if (jiuchi.name == model.jiuchi.name) {
             item.default = true;
         }
 

@@ -2,7 +2,7 @@ import gobugobu from './gobu-gobu';
 import shichisan from './shichisan';
 
 const model = {
-    jiuchi: shichisan.name,
+    jiuchi: shichisan,
     jiuchis: [gobugobu, shichisan]
 };
 
