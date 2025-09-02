@@ -1,5 +1,6 @@
 import '@tailwindplus/elements';
 
+// required but hidden by use of jsx
 import m from "mithril";
 
 export function Chooser(initialVnode) {
