@@ -1,6 +1,6 @@
 const jiuchi = {
   name: "Gobu-gobu",
-  meter: 4,
+  meter: 2,
   data: [
     {
       sound: "DON",
