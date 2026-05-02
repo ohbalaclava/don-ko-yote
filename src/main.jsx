@@ -1,19 +1,21 @@
-import './app.css'
+import './app.css';
+import m from 'mithril';
+import { Header } from './components/Header.jsx';
+import { Score } from './components/Score.jsx';
+import { Palette } from './components/Palette.jsx';
 
-import {JiuchiChooser} from './modules/JiuchiChooser'
-import {Score} from './modules/Score'
-
-import m from "mithril";
-
-function DonKoYoteApp() {
-    return {
-        view: () => (
-            <main class="relative" id="app">
-                <JiuchiChooser/>
-                <Score/>
-            </main>
-        )
+function App() {
+  return {
+    view() {
+      return (
+        <div class="flex flex-col h-dvh">
+          <Header />
+          <Score />
+          <Palette />
+        </div>
+      );
     }
+  };
 }
 
-m.mount(document.body, DonKoYoteApp)
+m.mount(document.body, App);

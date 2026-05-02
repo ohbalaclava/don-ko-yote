@@ -9,12 +9,14 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^7.0.4"
+    "vite": "8.0.5"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.11",
+    "@tailwindcss/vite": "^4.2.4",
     "@tailwindplus/elements": "^1.0.0",
+    "jspdf": "^4.2.1",
     "mithril": "^2.3.7",
+    "sortablejs": "^1.15.7",
     "tailwindcss": "^4.1.11"
   }
 }
