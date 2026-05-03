@@ -38,10 +38,17 @@ export function Line() {
         >
           <span class={`text-xs w-6 pt-2 shrink-0 text-right ${selected ? 'text-indigo-500 font-bold' : 'text-gray-400'}`}>{index + 1}</span>
           <div
-            class="sounds-container flex flex-wrap gap-1 flex-1 min-h-[3.5rem]"
+            class="sounds-container flex flex-wrap gap-1 flex-1 min-h-[3.5rem] pt-3"
             data-line-id={line.id}
           >
-            {line.sounds.map(s => <SoundTile key={s.id} sound={s} lineId={line.id} />)}
+            {(() => {
+              let pos = 0;
+              return line.sounds.map(s => {
+                const isHeadBeat = Math.abs(pos - Math.round(pos)) < 1e-9;
+                pos += s.duration;
+                return <SoundTile key={s.id} sound={s} lineId={line.id} isHeadBeat={isHeadBeat} />;
+              });
+            })()}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400">{+beats.toFixed(2)}b</span>
