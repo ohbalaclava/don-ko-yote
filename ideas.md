@@ -38,3 +38,4 @@
 ## Non-functional
 1. Unit tests
 2. Selenium tests?
+3. code formatter
