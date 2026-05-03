@@ -39,7 +39,7 @@ function PaletteTile() {
         dragging = true;
         dragEl = document.createElement('div');
         dragEl.className = 'fixed z-50 pointer-events-none bg-white border-2 border-indigo-400 rounded px-2 py-1 shadow-lg flex flex-col items-center opacity-90';
-        dragEl.innerHTML = `<span style="font-size:0.65rem;color:#999">${sym.hand}</span><span style="font-weight:700">${sym.name}</span>`;
+        dragEl.innerHTML = `<span style="font-weight:700">${sym.name}</span><span style="font-size:0.65rem;color:#999">${sym.hand}</span>`;
         document.body.appendChild(dragEl);
       }
       if (dragging && dragEl) {
@@ -79,8 +79,8 @@ function PaletteTile() {
           class="flex flex-col items-center bg-white border border-gray-300 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
           onpointerdown={e => onPointerDown(e, sym)}
         >
-          <span class="text-xs text-gray-400 font-mono">{sym.hand}</span>
           <span class="font-bold text-base leading-tight">{sym.name}</span>
+          <span class="text-xs text-gray-400 font-mono">{sym.hand}</span>
         </div>
       );
     }

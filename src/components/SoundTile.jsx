@@ -16,11 +16,11 @@ export function SoundTile() {
             m.redraw();
           }}
         >
-          <span class="text-xs text-gray-400 font-mono">{sound.hand}</span>
           <span class="font-bold text-base leading-tight">{sound.name}</span>
           {sound.instruction
             ? <span class="text-xs text-gray-500 mt-0.5 text-center leading-tight">{sound.instruction}</span>
             : null}
+          <span class="text-xs text-gray-400 font-mono">{sound.hand}</span>
           {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
         </div>
       );
