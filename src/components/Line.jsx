@@ -129,10 +129,10 @@ export function Line() {
 
       return (
         <div
-          class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 cursor-pointer ${selected ? 'bg-indigo-50 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
+          class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${selected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
           onclick={() => piece.selectLine(line.id)}
         >
-          <span class={`text-xs w-6 pt-2 shrink-0 text-right ${selected ? 'text-indigo-500 font-bold' : 'text-gray-400'}`}>{index + 1}</span>
+          <span class={`text-xs w-6 pt-2 shrink-0 text-right ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}>{index + 1}</span>
           <div
             class="sounds-and-instructions relative flex-1 min-w-0"
             style={wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : ''}
@@ -172,7 +172,7 @@ export function Line() {
             {instructionLayouts.map(layout => (
               <span
                 key={layout.id}
-                class="absolute text-xs text-gray-600 whitespace-nowrap pointer-events-none"
+                class="absolute text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
                 style={`left: ${layout.left}px; top: ${layout.top}px`}
               >
                 {layout.text}
@@ -180,7 +180,7 @@ export function Line() {
             ))}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
-            <span class="text-xs text-gray-400">{+beats.toFixed(2)}b</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
             <button
               class="text-xs text-red-400 hover:text-red-600"
               onclick={e => { e.stopPropagation(); piece.removeLine(line.id); }}

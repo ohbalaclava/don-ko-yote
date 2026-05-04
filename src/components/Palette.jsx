@@ -7,9 +7,9 @@ export function Palette() {
   return {
     view() {
       return (
-        <aside class="bg-gray-50 border-t border-gray-200 p-2 flex flex-col gap-2">
+        <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
           <div>
-            <p class="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wide">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
               Sounds — tap to add · drag to line
             </p>
             <div class="flex flex-wrap gap-1">
@@ -19,7 +19,7 @@ export function Palette() {
 
           {patternStore.items.length > 0
             ? <div>
-                <p class="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wide">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
                   Patterns
                 </p>
                 <div class="flex flex-wrap gap-1">
@@ -95,11 +95,11 @@ function SoundPaletteTile() {
       });
       return (
         <div
-          class="flex flex-col items-center bg-white border border-gray-300 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
           onpointerdown={handler}
         >
           <span class="font-bold text-base leading-tight">{sym.name}</span>
-          <span class="text-xs text-gray-400 font-mono">{sym.hand}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sym.hand}</span>
         </div>
       );
     }
@@ -120,11 +120,11 @@ function PatternPaletteTile() {
       return (
         <div class="flex items-center gap-1">
           <div
-            class="flex flex-col items-center bg-purple-50 border border-purple-300 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3.5rem] active:border-purple-500"
+            class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3.5rem] active:border-purple-500"
             onpointerdown={handler}
           >
-            <span class="font-bold text-sm leading-tight text-purple-800">{pattern.name}</span>
-            <span class="text-xs text-purple-400">{beats}b</span>
+            <span class="font-bold text-sm leading-tight text-purple-800 dark:text-purple-300">{pattern.name}</span>
+            <span class="text-xs text-purple-400 dark:text-purple-500">{beats}b</span>
           </div>
           <button
             class="text-xs text-red-400 hover:text-red-600"

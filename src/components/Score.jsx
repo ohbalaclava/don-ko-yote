@@ -23,22 +23,22 @@ export function Score() {
 
       return (
         <div class="flex-1 overflow-y-auto flex flex-col">
-          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 border-b border-gray-300 shrink-0">
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
             <button
-              class={`text-xs font-semibold rounded px-2 py-1 border ${piece.selectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 text-gray-600'}`}
+              class={`text-xs font-semibold rounded px-2 py-1 border ${piece.selectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
               onclick={() => piece.toggleSelectMode()}
             >{piece.selectMode ? 'Cancel' : 'Select'}</button>
 
             {hasSelection
               ? [
-                  <span class="text-xs text-gray-500">{selCount} selected</span>,
+                  <span class="text-xs text-gray-500 dark:text-gray-400">{selCount} selected</span>,
                   <button
                     class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
                     onclick={savePattern}
                   >Save pattern</button>
                 ]
               : piece.selectMode
-                ? <span class="text-xs text-gray-400">Tap tiles to select</span>
+                ? <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
                 : null}
           </div>
 
@@ -48,7 +48,7 @@ export function Score() {
 
           <div class="px-3 py-2">
             <button
-              class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold"
+              class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
               onclick={() => piece.addLine()}
             >+ Add line</button>
           </div>

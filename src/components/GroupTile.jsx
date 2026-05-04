@@ -1,5 +1,9 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { settings } from '../data/settings.js';
+
+const BEAT_WIDTH_REM = 4;
+const MIN_WIDTH_REM = 2;
 
 export function GroupTile() {
   return {
@@ -8,8 +12,8 @@ export function GroupTile() {
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
 
       const borderClass = isSelected
-        ? 'border-indigo-500 bg-indigo-50'
-        : 'border-purple-400 bg-purple-50';
+        ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/40'
+        : 'border-purple-400 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20';
 
       let subPos = startPos;
 
@@ -31,14 +35,18 @@ export function GroupTile() {
           {sound.sounds.map((s, i) => {
             const isHeadBeat = Math.abs(subPos - Math.round(subPos)) < 1e-9;
             subPos += s.duration;
+            const widthStyle = settings.proportionalWidth
+              ? `width: ${Math.max(s.duration * BEAT_WIDTH_REM, MIN_WIDTH_REM)}rem`
+              : undefined;
             return (
               <div
                 key={s.id ?? i}
-                class={`relative flex flex-col items-center px-2 py-1 min-w-[3rem] ${i > 0 ? 'border-l border-purple-200' : ''}`}
+                class={`relative flex flex-col items-center px-2 py-1 ${settings.proportionalWidth ? '' : 'min-w-[3rem]'} ${i > 0 ? 'border-l border-purple-200 dark:border-purple-800' : ''}`}
+                style={widthStyle}
               >
-                {isHeadBeat ? <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
+                {isHeadBeat ? <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" /> : null}
                 <span class="font-bold text-base leading-tight">{s.name}</span>
-                <span class="text-xs text-gray-400 font-mono">{s.hand}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{s.hand}</span>
               </div>
             );
           })}
@@ -54,13 +62,13 @@ function GroupEditor() {
     view({ attrs: { lineId, sound } }) {
       return (
         <div
-          class="absolute top-full left-0 z-20 mt-1 bg-white border border-gray-300 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[9rem]"
+          class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[9rem]"
           onclick={e => e.stopPropagation()}
         >
-          <span class="text-xs font-semibold text-gray-700">{sound.name}</span>
-          <span class="text-xs text-gray-400">{sound.sounds.length} sounds</span>
+          <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{sound.name}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">{sound.sounds.length} sounds</span>
           <button
-            class="mt-1 text-xs text-indigo-600 hover:text-indigo-800 text-left"
+            class="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left"
             onclick={() => piece.expandGroup(lineId, sound.id)}
           >Expand in place</button>
           <button

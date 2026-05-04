@@ -1,12 +1,17 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   overflow: hidden;
-  font-family: system-ui, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.font-script {
+  font-family: 'Ma Shan Zheng', cursive;
 }
 
 .sound-tile {

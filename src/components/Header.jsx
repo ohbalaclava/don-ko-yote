@@ -5,7 +5,7 @@ import { exportPdf } from '../pdf.js';
 
 export function Header() {
   return {
-    view() {
+    view({ attrs: { onOpenSettings } }) {
       return (
         <header class="flex flex-wrap gap-2 items-center p-3 bg-gray-900 text-white">
           <img src="/mitsudomoe-badge.svg" class="w-8 h-8 shrink-0" aria-hidden="true" />
@@ -34,9 +34,12 @@ export function Header() {
           <button
             class="bg-indigo-600 hover:bg-indigo-500 rounded px-3 py-1 text-sm font-semibold"
             onclick={() => exportPdf()}
-          >
-            Export PDF
-          </button>
+          >Export PDF</button>
+          <button
+            class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
+            onclick={onOpenSettings}
+            title="Settings"
+          >⚙</button>
         </header>
       );
     }
