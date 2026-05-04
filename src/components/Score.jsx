@@ -4,18 +4,15 @@ import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 
 export function Score() {
-  let patternName = '';
-
   async function savePattern() {
-    const name = patternName.trim() || 'Pattern';
     const line = piece.lines.find(l => l.id === piece.selection.lineId);
     if (!line) return;
     const selectedSet = new Set(piece.selection.soundIds);
     const sounds = line.sounds
       .filter(s => selectedSet.has(s.id))
       .map(({ id: _id, ...rest }) => rest);
+    const name = sounds.map(s => s.name).join(' ');
     await patternStore.save(name, sounds);
-    patternName = '';
     piece.clearSelection();
   }
 
@@ -35,13 +32,6 @@ export function Score() {
             {hasSelection
               ? [
                   <span class="text-xs text-gray-500">{selCount} selected</span>,
-                  <input
-                    class="flex-1 min-w-0 border border-gray-300 rounded px-2 py-0.5 text-xs"
-                    placeholder="Pattern name…"
-                    value={patternName}
-                    oninput={e => { patternName = e.target.value; }}
-                    onkeydown={e => { if (e.key === 'Enter') savePattern(); }}
-                  />,
                   <button
                     class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
                     onclick={savePattern}
