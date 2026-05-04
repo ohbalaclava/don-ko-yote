@@ -3,18 +3,19 @@ import { piece } from '../data/piece.js';
 
 export function GroupTile() {
   return {
-    view({ attrs: { sound, lineId, isHeadBeat, isSelected } }) {
+    view({ attrs: { sound, lineId, startPos, isSelected } }) {
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
-      const beats = +sound.duration.toFixed(2);
 
       const borderClass = isSelected
         ? 'border-indigo-500 bg-indigo-50'
-        : 'border-purple-300 bg-purple-50';
+        : 'border-purple-400 bg-purple-50';
+
+      let subPos = startPos;
 
       return (
         <div
-          class={`sound-tile relative flex flex-col items-center border rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3.5rem] ${borderClass}`}
+          class={`sound-tile relative flex items-stretch border-2 rounded shadow-sm cursor-grab select-none ${borderClass}`}
           data-sound-id={sound.id}
           onpointerup={e => {
             if (!piece.selectMode) return;
@@ -27,9 +28,20 @@ export function GroupTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {isHeadBeat ? <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
-          <span class="font-bold text-sm leading-tight text-purple-800 text-center">{sound.name}</span>
-          <span class="text-xs text-purple-400 font-mono">{beats}b</span>
+          {sound.sounds.map((s, i) => {
+            const isHeadBeat = Math.abs(subPos - Math.round(subPos)) < 1e-9;
+            subPos += s.duration;
+            return (
+              <div
+                key={s.id ?? i}
+                class={`relative flex flex-col items-center px-2 py-1 min-w-[3rem] ${i > 0 ? 'border-l border-purple-200' : ''}`}
+              >
+                {isHeadBeat ? <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
+                <span class="font-bold text-base leading-tight">{s.name}</span>
+                <span class="text-xs text-gray-400 font-mono">{s.hand}</span>
+              </div>
+            );
+          })}
           {isEditing ? <GroupEditor lineId={lineId} sound={sound} /> : null}
         </div>
       );

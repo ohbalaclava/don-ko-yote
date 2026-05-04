@@ -144,7 +144,7 @@ export function Line() {
               {(() => {
                 let pos = 0;
                 return line.sounds.map(s => {
-                  const isHeadBeat = Math.abs(pos - Math.round(pos)) < 1e-9;
+                  const startPos = pos;
                   pos += s.duration;
                   if (s.type === 'group') {
                     return (
@@ -152,7 +152,7 @@ export function Line() {
                         key={s.id}
                         sound={s}
                         lineId={line.id}
-                        isHeadBeat={isHeadBeat}
+                        startPos={startPos}
                         isSelected={selectionIds ? selectionIds.has(s.id) : false}
                       />
                     );
@@ -162,7 +162,7 @@ export function Line() {
                       key={s.id}
                       sound={s}
                       lineId={line.id}
-                      isHeadBeat={isHeadBeat}
+                      isHeadBeat={Math.abs(startPos - Math.round(startPos)) < 1e-9}
                       isSelected={selectionIds ? selectionIds.has(s.id) : false}
                     />
                   );
