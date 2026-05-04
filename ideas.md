@@ -9,10 +9,10 @@
 1. ~~Mitsudomoe watermark~~
 
 ## App Configuration
-1. Allow for the possibility of app configuration ie settings. These should be edited through a modal dialog or whatever works best for mobile devices. The configuration should be saved to browser memory but also exportable to a json file. Support the following settings:
-   1. Toggle proportional tile width. Tiles should either be all the same width or their width should be proportional to the fraction of the beat that they occupy.
-   1. Font. There should be a serif font, a sans serif font, a monospaced font, and a script font (ideally with a brushed, far-eastern look)
-   1. Dark mode/light mode
+1. ~~Allow for the possibility of app configuration ie settings. These should be edited through a modal dialog or whatever works best for mobile devices. The configuration should be saved to browser memory but also exportable to a json file. Support the following settings:~~
+   1. ~~Toggle proportional tile width. Tiles should either be all the same width or their width should be proportional to the fraction of the beat that they occupy.~~
+   1. ~~Font. There should be a serif font, a sans serif font, a monospaced font, and a script font (ideally with a brushed, far-eastern look)~~
+   1. ~~Dark mode/light mode~~
    
 ## Score configuration
 1. Jiuchi
@@ -43,5 +43,10 @@
 
 ## Non-functional
 1. Unit tests
-2. Selenium tests?
-3. code formatter
+1. Selenium tests?
+1. code formatter
+
+## Bugs
+1. dark mode not quite working - text should be light
+1. script font looks rubbish - find another one
+1. not sure all tiles are proportional - te & ke
