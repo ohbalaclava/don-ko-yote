@@ -8,6 +8,7 @@ export function Header() {
     view() {
       return (
         <header class="flex flex-wrap gap-2 items-center p-3 bg-gray-900 text-white">
+          <img src="/mitsudomoe-badge.svg" class="w-8 h-8 shrink-0" aria-hidden="true" />
           <input
             class="flex-1 min-w-0 bg-gray-800 rounded px-2 py-1 text-lg font-bold"
             value={piece.title}
