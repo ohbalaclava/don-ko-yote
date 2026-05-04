@@ -13,6 +13,10 @@ html, body {
   touch-action: none;
 }
 
+.select-mode .sound-tile {
+  touch-action: manipulation;
+}
+
 .sortable-ghost {
   opacity: 0.3;
 }

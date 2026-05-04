@@ -2,6 +2,7 @@ import m from 'mithril';
 import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
 import { SoundTile } from './SoundTile.jsx';
+import { GroupTile } from './GroupTile.jsx';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -9,21 +10,34 @@ function lineDuration(line) {
 
 export function Line() {
   let sortable;
+  let container;
+
+  function ensureSortable() {
+    if (piece.selectMode) {
+      if (sortable) { sortable.destroy(); sortable = null; }
+      return;
+    }
+    if (sortable) return;
+    sortable = Sortable.create(container, {
+      group: 'sounds',
+      animation: 150,
+      ghostClass: 'opacity-30',
+      onEnd(evt) {
+        const soundId = evt.item.dataset.soundId;
+        const fromLineId = evt.from.dataset.lineId;
+        const toLineId = evt.to.dataset.lineId;
+        piece.moveSound(fromLineId, soundId, toLineId, evt.newIndex);
+      },
+    });
+  }
 
   return {
-    oncreate({ dom, attrs: { line } }) {
-      const container = dom.querySelector('.sounds-container');
-      sortable = Sortable.create(container, {
-        group: 'sounds',
-        animation: 150,
-        ghostClass: 'opacity-30',
-        onEnd(evt) {
-          const soundId = evt.item.dataset.soundId;
-          const fromLineId = evt.from.dataset.lineId;
-          const toLineId = evt.to.dataset.lineId;
-          piece.moveSound(fromLineId, soundId, toLineId, evt.newIndex);
-        },
-      });
+    oncreate({ dom }) {
+      container = dom.querySelector('.sounds-container');
+      ensureSortable();
+    },
+    onupdate() {
+      ensureSortable();
     },
     onremove() {
       if (sortable) sortable.destroy();
@@ -31,6 +45,10 @@ export function Line() {
     view({ attrs: { line, index } }) {
       const beats = lineDuration(line);
       const selected = piece.selectedLineId === line.id;
+      const selectionIds = piece.selectMode && piece.selection.lineId === line.id
+        ? new Set(piece.selection.soundIds)
+        : null;
+
       return (
         <div
           class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 cursor-pointer ${selected ? 'bg-indigo-50 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
@@ -46,7 +64,26 @@ export function Line() {
               return line.sounds.map(s => {
                 const isHeadBeat = Math.abs(pos - Math.round(pos)) < 1e-9;
                 pos += s.duration;
-                return <SoundTile key={s.id} sound={s} lineId={line.id} isHeadBeat={isHeadBeat} />;
+                if (s.type === 'group') {
+                  return (
+                    <GroupTile
+                      key={s.id}
+                      sound={s}
+                      lineId={line.id}
+                      isHeadBeat={isHeadBeat}
+                      isSelected={selectionIds ? selectionIds.has(s.id) : false}
+                    />
+                  );
+                }
+                return (
+                  <SoundTile
+                    key={s.id}
+                    sound={s}
+                    lineId={line.id}
+                    isHeadBeat={isHeadBeat}
+                    isSelected={selectionIds ? selectionIds.has(s.id) : false}
+                  />
+                );
               });
             })()}
           </div>
@@ -54,7 +91,7 @@ export function Line() {
             <span class="text-xs text-gray-400">{+beats.toFixed(2)}b</span>
             <button
               class="text-xs text-red-400 hover:text-red-600"
-              onclick={() => piece.removeLine(line.id)}
+              onclick={e => { e.stopPropagation(); piece.removeLine(line.id); }}
               title="Remove line"
             >✕</button>
           </div>

@@ -15,13 +15,15 @@ export function SoundTile() {
         <div
           class={`sound-tile relative flex flex-col items-center border rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] ${borderClass}`}
           data-sound-id={sound.id}
+          onpointerup={e => {
+            if (!piece.selectMode) return;
+            e.stopPropagation();
+            piece.toggleSoundSelection(lineId, sound.id);
+          }}
           onclick={e => {
             e.stopPropagation();
-            if (piece.selectMode) {
-              piece.toggleSoundSelection(lineId, sound.id);
-            } else {
-              piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
-            }
+            if (piece.selectMode) return;
+            piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
           {isHeadBeat ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
