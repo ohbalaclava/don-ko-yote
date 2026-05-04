@@ -2,7 +2,7 @@
 1. ~~Click on a tile to add it to end of the current line. Will require lines to be selectable.~~
 1. ~~Allow a sequence of tiles to be selected and grouped so they can be added to a library of patterns. Patterns in the library can then be added as a group tile to the score.~~
 1. ~~Move the 'hand' to the bottom of the tile~~
-1. Don't display the instruction on the tile. Instead, display it unbroken under the tile. The instruction can extend beyond the limits of the originating tile, under subsequent tiles. If this happens and a subsequent tile also has an instruction, display that tile's instruction underneath the first one.
+1. ~~Don't display the instruction on the tile. Instead, display it unbroken under the tile. The instruction can extend beyond the limits of the originating tile, under subsequent tiles. If this happens and a subsequent tile also has an instruction, display that tile's instruction underneath the first one.~~
 1. ~~Display a small black circle centrally above each tile that lands on a head beat.~~
 1. ~~Mitsudomoe app icon~~
 1. ~~Mitsudomoe in front of title~~
