@@ -16,3 +16,7 @@ html, body {
 .sortable-ghost {
   opacity: 0.3;
 }
+
+.sortable-chosen .beat-dot {
+  display: none;
+}

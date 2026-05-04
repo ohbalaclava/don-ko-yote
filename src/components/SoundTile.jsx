@@ -1,22 +1,30 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 
-let editing = null; // { lineId, soundId }
-
 export function SoundTile() {
   return {
-    view({ attrs: { sound, lineId, isHeadBeat } }) {
-      const isEditing = editing && editing.lineId === lineId && editing.soundId === sound.id;
+    view({ attrs: { sound, lineId, isHeadBeat, isSelected } }) {
+      const et = piece.editingTile;
+      const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
+
+      const borderClass = isSelected
+        ? 'border-indigo-500 bg-indigo-50'
+        : 'border-gray-300 bg-white';
+
       return (
         <div
-          class="sound-tile relative flex flex-col items-center bg-white border border-gray-300 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem]"
+          class={`sound-tile relative flex flex-col items-center border rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] ${borderClass}`}
           data-sound-id={sound.id}
-          onclick={() => {
-            editing = isEditing ? null : { lineId, soundId: sound.id };
-            m.redraw();
+          onclick={e => {
+            e.stopPropagation();
+            if (piece.selectMode) {
+              piece.toggleSoundSelection(lineId, sound.id);
+            } else {
+              piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
+            }
           }}
         >
-          {isHeadBeat ? <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
+          {isHeadBeat ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900" /> : null}
           <span class="font-bold text-base leading-tight">{sound.name}</span>
           {sound.instruction
             ? <span class="text-xs text-gray-500 mt-0.5 text-center leading-tight">{sound.instruction}</span>
@@ -55,7 +63,7 @@ function SoundEditor() {
           />
           <button
             class="mt-1 text-xs text-red-500 hover:text-red-700 text-left"
-            onclick={() => { piece.removeSound(lineId, sound.id); editing = null; }}
+            onclick={() => { piece.removeSound(lineId, sound.id); piece.setEditingTile(null); }}
           >Remove</button>
         </div>
       );
