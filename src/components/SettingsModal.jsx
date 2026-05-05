@@ -5,7 +5,7 @@ const FONTS = [
   { id: 'sans',   label: 'Sans-serif',     style: 'font-family: ui-sans-serif, system-ui, sans-serif' },
   { id: 'serif',  label: 'Serif',          style: 'font-family: ui-serif, Georgia, serif' },
   { id: 'mono',   label: 'Monospace',      style: 'font-family: ui-monospace, monospace' },
-  { id: 'script', label: 'Script 筆書体', style: "font-family: 'Ma Shan Zheng', cursive" },
+  { id: 'script', label: 'Script', style: "font-family: 'Permanent Marker', cursive" },
 ];
 
 function Toggle() {
