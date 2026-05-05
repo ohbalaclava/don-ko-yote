@@ -46,7 +46,7 @@
 1. code formatter
 
 ## Bugs
-1. dark mode not quite working - text should be light
+1. ~~dark mode not quite working - text should be light~~
 1. script font looks rubbish - find another one
-1. not sure all tiles are proportional - te & ke
-1. export pdf: Invalid arguments passed to jsPDF.text
+1. ~~not sure all tiles are proportional - te & ke~~
+1. ~~export pdf: Invalid arguments passed to jsPDF.text~~
