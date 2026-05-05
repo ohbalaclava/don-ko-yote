@@ -34,6 +34,7 @@ function targetLineIdx(fromIdx, duration) {
 const _firstLine = makeLine();
 
 export const piece = {
+  id: null,
   title: 'Untitled',
   jiuchi: 'gobu-gobu',
   beatsPerLine: 4,
@@ -54,6 +55,7 @@ export const piece = {
 
   reset(jiuchi, beatsPerLine) {
     const line = makeLine();
+    piece.id = null;
     piece.title = 'Untitled';
     piece.jiuchi = jiuchi;
     piece.beatsPerLine = beatsPerLine;

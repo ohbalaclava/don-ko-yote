@@ -7,11 +7,15 @@ import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
+import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { patternStore } from './data/patterns.js';
+import { scoreStore } from './data/scoreStore.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
 
 patternStore.load();
+scoreStore.init();
+scoreStore.load();
 settings.load();
 
 function App() {
@@ -19,6 +23,7 @@ function App() {
   let scoreSettingsOpen = false;
   let menuOpen = false;
   let newScoreOpen = false;
+  let loadScoreOpen = false;
 
   return {
     view() {
@@ -46,8 +51,8 @@ function App() {
             ? <MenuSheet
                 onClose={() => { menuOpen = false; m.redraw(); }}
                 onNew={() => { newScoreOpen = true; }}
-                onSave={null}
-                onLoad={null}
+                onSave={() => { scoreStore.save(); }}
+                onLoad={() => { loadScoreOpen = true; }}
                 onExportJson={null}
                 onImportJson={null}
                 onClear={() => {
@@ -60,6 +65,9 @@ function App() {
             : null}
           {newScoreOpen
             ? <NewScoreSheet onClose={() => { newScoreOpen = false; m.redraw(); }} />
+            : null}
+          {loadScoreOpen
+            ? <LoadScoreSheet onClose={() => { loadScoreOpen = false; m.redraw(); }} />
             : null}
         </div>
       );
