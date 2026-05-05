@@ -185,7 +185,7 @@ export function Line() {
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
             <button
-              class="text-xs text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
+              class="text-base text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
               onclick={e => { e.stopPropagation(); piece.duplicateLine(line.id); }}
               title="Duplicate line"
             >⊕</button>
