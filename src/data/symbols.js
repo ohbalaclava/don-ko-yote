@@ -10,6 +10,10 @@ export const SYMBOLS = [
   { name: 'ke',   duration: 1/4,  hand: 'L' },
   { name: 'tere', duration: 1/2,  hand: 'R' },
   { name: 'rere', duration: 1/2,  hand: 'R' },
+  { name: 'SU',   duration: 1},
+  { name: 'su',   duration: 1/2},
+  { name: "s'",   duration: 1/4},
+  { name: 'HUP',  duration: 1},
 ];
 
 export const JIUCHI = [
