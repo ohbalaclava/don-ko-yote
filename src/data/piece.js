@@ -11,6 +11,26 @@ function makeLine() {
   return { id: uid(), sounds: [] };
 }
 
+function lineDur(line) {
+  return line.sounds.reduce((sum, s) => sum + s.duration, 0);
+}
+
+// Returns the index of the first line (starting from fromIdx) that can fit
+// `duration` beats. Creates a new line at the end when all are full.
+// When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
+// returns fromIdx unchanged.
+function targetLineIdx(fromIdx, duration) {
+  const max = piece.beatsPerLine;
+  if (!max || duration > max) return fromIdx;
+  let i = fromIdx;
+  while (i < piece.lines.length) {
+    if (lineDur(piece.lines[i]) + duration <= max) return i;
+    i++;
+  }
+  piece.lines.push(makeLine());
+  return piece.lines.length - 1;
+}
+
 const _firstLine = makeLine();
 
 export const piece = {
@@ -144,11 +164,14 @@ export const piece = {
   // ── Sounds ────────────────────────────────────────────────────────────────
 
   addSound(lineId, symbol, atIndex) {
-    const line = piece.lines.find(l => l.id === lineId);
-    if (!line) return;
+    const fromIdx = piece.lines.findIndex(l => l.id === lineId);
+    if (fromIdx === -1) return;
     const s = makeSound(symbol);
-    if (atIndex == null) line.sounds.push(s);
-    else line.sounds.splice(atIndex, 0, s);
+    const tIdx = targetLineIdx(fromIdx, s.duration);
+    const target = piece.lines[tIdx];
+    if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
+    else target.sounds.push(s);
+    if (tIdx !== fromIdx) piece.selectedLineId = target.id;
     m.redraw();
   },
 
@@ -158,7 +181,13 @@ export const piece = {
     if (!fromLine || !toLine) return;
     const idx = fromLine.sounds.findIndex(s => s.id === soundId);
     if (idx === -1) return;
-    const [sound] = fromLine.sounds.splice(idx, 1);
+    const sound = fromLine.sounds[idx];
+    if (fromLineId !== toLineId && piece.beatsPerLine > 0 &&
+        lineDur(toLine) + sound.duration > piece.beatsPerLine) {
+      m.redraw(); // revert SortableJS DOM change
+      return;
+    }
+    fromLine.sounds.splice(idx, 1);
     toLine.sounds.splice(toIndex, 0, sound);
     m.redraw();
   },
@@ -182,8 +211,8 @@ export const piece = {
   // ── Group tiles (pattern instances) ──────────────────────────────────────
 
   addGroup(lineId, pattern, atIndex) {
-    const line = piece.lines.find(l => l.id === lineId);
-    if (!line) return;
+    const fromIdx = piece.lines.findIndex(l => l.id === lineId);
+    if (fromIdx === -1) return;
     const group = {
       id: uid(),
       type: 'group',
@@ -191,8 +220,11 @@ export const piece = {
       sounds: pattern.sounds,
       duration: pattern.sounds.reduce((sum, s) => sum + s.duration, 0),
     };
-    if (atIndex == null) line.sounds.push(group);
-    else line.sounds.splice(atIndex, 0, group);
+    const tIdx = targetLineIdx(fromIdx, group.duration);
+    const target = piece.lines[tIdx];
+    if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
+    else target.sounds.push(group);
+    if (tIdx !== fromIdx) piece.selectedLineId = target.id;
     m.redraw();
   },
 
