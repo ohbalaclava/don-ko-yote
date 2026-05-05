@@ -96,7 +96,7 @@ function SoundPaletteTile() {
       });
       return (
         <div
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
@@ -124,7 +124,7 @@ function PatternPaletteTile() {
             class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3.5rem] active:border-purple-500"
             onpointerdown={handler}
           >
-            <span class="font-bold text-sm leading-tight text-purple-800 dark:text-purple-300">{pattern.name}</span>
+            <span class={`font-bold text-sm leading-tight text-purple-800 dark:text-purple-300 font-${settings.font}`}>{pattern.name}</span>
             <span class="text-xs text-purple-400 dark:text-purple-500">{beats}b</span>
           </div>
           <button
