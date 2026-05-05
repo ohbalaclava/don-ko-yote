@@ -6,6 +6,7 @@ import { Palette } from './components/Palette.jsx';
 import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
+import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
@@ -17,6 +18,7 @@ function App() {
   let settingsOpen = false;
   let scoreSettingsOpen = false;
   let menuOpen = false;
+  let newScoreOpen = false;
 
   return {
     view() {
@@ -43,14 +45,21 @@ function App() {
           {menuOpen
             ? <MenuSheet
                 onClose={() => { menuOpen = false; m.redraw(); }}
-                onNew={null}
+                onNew={() => { newScoreOpen = true; }}
                 onSave={null}
                 onLoad={null}
                 onExportJson={null}
                 onImportJson={null}
-                onClear={null}
+                onClear={() => {
+                  if (window.confirm('Clear all content? This cannot be undone.')) {
+                    piece.clearLines();
+                  }
+                }}
                 onHelp={null}
               />
+            : null}
+          {newScoreOpen
+            ? <NewScoreSheet onClose={() => { newScoreOpen = false; m.redraw(); }} />
             : null}
         </div>
       );

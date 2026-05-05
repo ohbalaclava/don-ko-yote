@@ -42,6 +42,8 @@
    1. Export to PDF
    2. Clear button with confirmation dialog
    2. Help - how to use
+1. shichisan sounds
+2. nagado sounds
 
 ## Non-functional
 1. Unit tests

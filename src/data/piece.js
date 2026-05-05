@@ -52,6 +52,32 @@ export const piece = {
 
   // ── Settings ──────────────────────────────────────────────────────────────
 
+  reset(jiuchi, beatsPerLine) {
+    const line = makeLine();
+    piece.title = 'Untitled';
+    piece.jiuchi = jiuchi;
+    piece.beatsPerLine = beatsPerLine;
+    piece.bpm = 120;
+    piece.author = '';
+    piece.icon = null;
+    piece.lines = [line];
+    piece.selectedLineId = line.id;
+    piece.editingTile = null;
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    m.redraw();
+  },
+
+  clearLines() {
+    const line = makeLine();
+    piece.lines = [line];
+    piece.selectedLineId = line.id;
+    piece.editingTile = null;
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    m.redraw();
+  },
+
   setTitle(v) { piece.title = v; m.redraw(); },
   setJiuchi(v) { piece.jiuchi = v; m.redraw(); },
   setBeatsPerLine(v) { piece.beatsPerLine = Number(v); m.redraw(); },
