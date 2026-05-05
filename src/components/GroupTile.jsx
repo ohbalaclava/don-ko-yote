@@ -2,8 +2,8 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 
-const BEAT_WIDTH_REM = 4;
-const MIN_WIDTH_REM = 2;
+const TE_WIDTH_REM = 2;
+const BEAT_WIDTH_REM = TE_WIDTH_REM * 4;
 
 export function GroupTile() {
   return {
@@ -36,7 +36,7 @@ export function GroupTile() {
             const isHeadBeat = Math.abs(subPos - Math.round(subPos)) < 1e-9;
             subPos += s.duration;
             const widthStyle = settings.proportionalWidth
-              ? `width: ${Math.max(s.duration * BEAT_WIDTH_REM, MIN_WIDTH_REM)}rem`
+              ? `width: ${s.duration * BEAT_WIDTH_REM}rem`
               : undefined;
             return (
               <div

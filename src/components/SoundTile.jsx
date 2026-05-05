@@ -2,8 +2,8 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 
-const BEAT_WIDTH_REM = 4;
-const MIN_WIDTH_REM = 2;
+const TE_WIDTH_REM = 2;                  // te/ke (duration=1/4) are the reference unit
+const BEAT_WIDTH_REM = TE_WIDTH_REM * 4; // one full beat = 4× a te tile
 
 export function SoundTile() {
   return {
@@ -16,7 +16,7 @@ export function SoundTile() {
         : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = settings.proportionalWidth
-        ? `width: ${Math.max(sound.duration * BEAT_WIDTH_REM, MIN_WIDTH_REM)}rem`
+        ? `width: ${sound.duration * BEAT_WIDTH_REM}rem`
         : undefined;
 
       return (
