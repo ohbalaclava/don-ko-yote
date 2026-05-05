@@ -7,6 +7,7 @@
 1. ~~Mitsudomoe app icon~~
 1. ~~Mitsudomoe in front of title~~
 1. ~~Mitsudomoe watermark~~
+2. move/duplicate lines
 
 ## App Configuration
 1. ~~Allow for the possibility of app configuration ie settings. These should be edited through a modal dialog or whatever works best for mobile devices. The configuration should be saved to browser memory but also exportable to a json file. Support the following settings:~~

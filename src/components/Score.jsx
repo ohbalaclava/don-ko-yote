@@ -43,7 +43,7 @@ export function Score() {
           </div>
 
           {piece.lines.map((line, i) => (
-            <Line key={line.id} line={line} index={i} />
+            <Line key={line.id} line={line} index={i} total={piece.lines.length} />
           ))}
 
           <div class="px-3 py-2">

@@ -120,7 +120,7 @@ export function Line() {
     onremove() {
       if (sortable) sortable.destroy();
     },
-    view({ attrs: { line, index } }) {
+    view({ attrs: { line, index, total } }) {
       const beats = lineDuration(line);
       const selected = piece.selectedLineId === line.id;
       const selectionIds = piece.selectMode && piece.selection.lineId === line.id
@@ -181,6 +181,21 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
+            <button
+              class={`text-xs ${index === 0 ? 'text-gray-300 dark:text-gray-600 cursor-default' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              onclick={e => { e.stopPropagation(); piece.moveLine(line.id, -1); }}
+              title="Move up"
+            >↑</button>
+            <button
+              class={`text-xs ${index === total - 1 ? 'text-gray-300 dark:text-gray-600 cursor-default' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              onclick={e => { e.stopPropagation(); piece.moveLine(line.id, 1); }}
+              title="Move down"
+            >↓</button>
+            <button
+              class="text-xs text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
+              onclick={e => { e.stopPropagation(); piece.duplicateLine(line.id); }}
+              title="Duplicate line"
+            >⊕</button>
             <button
               class="text-xs text-red-400 hover:text-red-600"
               onclick={e => { e.stopPropagation(); piece.removeLine(line.id); }}

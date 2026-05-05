@@ -102,6 +102,33 @@ export const piece = {
     m.redraw();
   },
 
+  moveLine(lineId, delta) {
+    const idx = piece.lines.findIndex(l => l.id === lineId);
+    const newIdx = idx + delta;
+    if (idx === -1 || newIdx < 0 || newIdx >= piece.lines.length) return;
+    const lines = piece.lines.slice();
+    [lines[idx], lines[newIdx]] = [lines[newIdx], lines[idx]];
+    piece.lines = lines;
+    m.redraw();
+  },
+
+  duplicateLine(lineId) {
+    const line = piece.lines.find(l => l.id === lineId);
+    if (!line) return;
+    const copy = {
+      id: uid(),
+      sounds: line.sounds.map(s => ({
+        ...s,
+        id: uid(),
+        ...(s.type === 'group' ? { sounds: s.sounds.map(gs => ({ ...gs, id: uid() })) } : {}),
+      })),
+    };
+    const idx = piece.lines.findIndex(l => l.id === lineId);
+    piece.lines.splice(idx + 1, 0, copy);
+    piece.selectedLineId = copy.id;
+    m.redraw();
+  },
+
   removeLine(lineId) {
     const idx = piece.lines.findIndex(l => l.id === lineId);
     piece.lines = piece.lines.filter(l => l.id !== lineId);
