@@ -1,11 +1,7 @@
 import { db } from '../db.js';
 import m from 'mithril';
 
-const FONT_CLASSES = ['font-sans', 'font-serif', 'font-mono', 'font-script'];
-
 function applyToDOM() {
-  document.body.classList.remove(...FONT_CLASSES);
-  document.body.classList.add(`font-${settings.font}`);
   document.body.classList.toggle('dark', settings.darkMode);
 }
 

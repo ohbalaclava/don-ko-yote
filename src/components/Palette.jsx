@@ -2,6 +2,7 @@ import m from 'mithril';
 import { SYMBOLS } from '../data/symbols.js';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
+import { settings } from '../data/settings.js';
 
 export function Palette() {
   return {
@@ -98,7 +99,7 @@ function SoundPaletteTile() {
           class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
           onpointerdown={handler}
         >
-          <span class="font-bold text-base leading-tight">{sym.name}</span>
+          <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sym.hand}</span>
         </div>
       );

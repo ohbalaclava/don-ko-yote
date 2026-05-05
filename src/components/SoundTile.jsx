@@ -36,7 +36,7 @@ export function SoundTile() {
           }}
         >
           {isHeadBeat ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" /> : null}
-          <span class="font-bold text-base leading-tight text-gray-900 dark:text-gray-200">{sound.name}</span>
+          <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}>{sound.name}</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
           {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
         </div>

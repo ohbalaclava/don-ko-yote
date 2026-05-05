@@ -2,6 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { JIUCHI } from '../data/symbols.js';
 import { exportPdf } from '../pdf.js';
+import { settings } from '../data/settings.js';
 
 export function Header() {
   return {
@@ -10,7 +11,7 @@ export function Header() {
         <header class="flex flex-wrap gap-2 items-center p-3 bg-gray-900 text-white">
           <img src="/mitsudomoe-badge.svg" class="w-8 h-8 shrink-0" aria-hidden="true" />
           <input
-            class="flex-1 min-w-0 bg-gray-800 rounded px-2 py-1 text-lg font-bold"
+            class={`flex-1 min-w-0 bg-gray-800 rounded px-2 py-1 text-lg font-bold font-${settings.font}`}
             value={piece.title}
             oninput={e => piece.setTitle(e.target.value)}
             placeholder="Untitled"
