@@ -55,12 +55,18 @@ function SoundEditor() {
         >
           <label class="text-xs font-semibold text-gray-600 dark:text-gray-400">Hand</label>
           <div class="flex gap-1">
-            {['L', 'R'].map(h => (
-              <button
-                class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                onclick={() => piece.updateSound(lineId, sound.id, { hand: h })}
-              >{h}</button>
-            ))}
+            <button
+              class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === 'L' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
+              onclick={() => piece.updateSound(lineId, sound.id, { hand: 'L' })}
+            >L</button>
+            <button
+              class={`w-6 rounded py-0.5 text-sm font-bold border ${sound.hand === 'B' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
+              onclick={() => piece.updateSound(lineId, sound.id, { hand: 'B' })}
+            >B</button>
+            <button
+              class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === 'R' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
+              onclick={() => piece.updateSound(lineId, sound.id, { hand: 'R' })}
+            >R</button>
           </div>
           <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1">Instruction</label>
           <input
