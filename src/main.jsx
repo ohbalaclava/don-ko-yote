@@ -53,8 +53,17 @@ function App() {
                 onNew={() => { newScoreOpen = true; }}
                 onSave={() => { scoreStore.save(); }}
                 onLoad={() => { loadScoreOpen = true; }}
-                onExportJson={null}
-                onImportJson={null}
+                onExportJson={() => { scoreStore.exportJson(); }}
+                onImportJson={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.json';
+                  input.onchange = async e => {
+                    const file = e.target.files[0];
+                    if (file) scoreStore.importJson(await file.text());
+                  };
+                  input.click();
+                }}
                 onClear={() => {
                   if (window.confirm('Clear all content? This cannot be undone.')) {
                     piece.clearLines();

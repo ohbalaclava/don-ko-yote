@@ -70,4 +70,34 @@ export const scoreStore = {
     scoreStore.items = scoreStore.items.filter(s => s.id !== id);
     m.redraw();
   },
+
+  exportJson() {
+    const { id: _id, ...data } = snapshot();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${piece.title || 'score'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  importJson(text) {
+    const data = JSON.parse(text);
+    piece.id           = null;
+    piece.title        = data.title        ?? 'Untitled';
+    piece.jiuchi       = data.jiuchi       ?? piece.jiuchi;
+    piece.beatsPerLine = data.beatsPerLine ?? piece.beatsPerLine;
+    piece.bpm          = data.bpm          ?? 120;
+    piece.author       = data.author       ?? '';
+    piece.icon         = data.icon         ?? null;
+    if (Array.isArray(data.lines) && data.lines.length) {
+      piece.lines = data.lines;
+      piece.selectedLineId = data.lines[0].id;
+    }
+    piece.editingTile = null;
+    piece.selectMode  = false;
+    piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    m.redraw();
+  },
 };
