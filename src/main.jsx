@@ -5,6 +5,7 @@ import { Score } from './components/Score.jsx';
 import { Palette } from './components/Palette.jsx';
 import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
+import { MenuSheet } from './components/MenuSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
@@ -15,6 +16,7 @@ settings.load();
 function App() {
   let settingsOpen = false;
   let scoreSettingsOpen = false;
+  let menuOpen = false;
 
   return {
     view() {
@@ -28,11 +30,28 @@ function App() {
           <Header
             onOpenSettings={() => { settingsOpen = true; }}
             onOpenScoreSettings={() => { scoreSettingsOpen = true; }}
+            onOpenMenu={() => { menuOpen = true; }}
           />
           <Score />
           <Palette />
-          {settingsOpen ? <SettingsModal onClose={() => { settingsOpen = false; m.redraw(); }} /> : null}
-          {scoreSettingsOpen ? <ScoreSettingsModal onClose={() => { scoreSettingsOpen = false; m.redraw(); }} /> : null}
+          {settingsOpen
+            ? <SettingsModal onClose={() => { settingsOpen = false; m.redraw(); }} />
+            : null}
+          {scoreSettingsOpen
+            ? <ScoreSettingsModal onClose={() => { scoreSettingsOpen = false; m.redraw(); }} />
+            : null}
+          {menuOpen
+            ? <MenuSheet
+                onClose={() => { menuOpen = false; m.redraw(); }}
+                onNew={null}
+                onSave={null}
+                onLoad={null}
+                onExportJson={null}
+                onImportJson={null}
+                onClear={null}
+                onHelp={null}
+              />
+            : null}
         </div>
       );
     }
