@@ -241,18 +241,33 @@ export const piece = {
   addGroup(lineId, pattern, atIndex) {
     const fromIdx = piece.lines.findIndex(l => l.id === lineId);
     if (fromIdx === -1) return;
-    const group = {
-      id: uid(),
-      type: 'group',
-      name: pattern.name,
-      sounds: pattern.sounds,
-      duration: pattern.sounds.reduce((sum, s) => sum + s.duration, 0),
-    };
-    const tIdx = targetLineIdx(fromIdx, group.duration);
-    const target = piece.lines[tIdx];
-    if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
-    else target.sounds.push(group);
-    if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+    const patternDur = pattern.sounds.reduce((sum, s) => sum + s.duration, 0);
+    const max = piece.beatsPerLine;
+
+    if (!max || patternDur <= max) {
+      const group = {
+        id: uid(),
+        type: 'group',
+        name: pattern.name,
+        sounds: pattern.sounds,
+        duration: patternDur,
+      };
+      const tIdx = targetLineIdx(fromIdx, group.duration);
+      const target = piece.lines[tIdx];
+      if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
+      else target.sounds.push(group);
+      if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+      m.redraw();
+      return;
+    }
+
+    // Pattern exceeds beatsPerLine: expand and distribute sounds across lines.
+    let lineIdx = fromIdx;
+    for (const s of pattern.sounds) {
+      lineIdx = targetLineIdx(lineIdx, s.duration);
+      piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
+    }
+    piece.selectedLineId = piece.lines[lineIdx].id;
     m.redraw();
   },
 
