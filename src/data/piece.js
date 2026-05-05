@@ -102,12 +102,11 @@ export const piece = {
     m.redraw();
   },
 
-  moveLine(lineId, delta) {
-    const idx = piece.lines.findIndex(l => l.id === lineId);
-    const newIdx = idx + delta;
-    if (idx === -1 || newIdx < 0 || newIdx >= piece.lines.length) return;
+  reorderLine(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
     const lines = piece.lines.slice();
-    [lines[idx], lines[newIdx]] = [lines[newIdx], lines[idx]];
+    const [line] = lines.splice(fromIndex, 1);
+    lines.splice(toIndex, 0, line);
     piece.lines = lines;
     m.redraw();
   },

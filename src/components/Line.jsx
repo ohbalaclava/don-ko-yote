@@ -120,7 +120,7 @@ export function Line() {
     onremove() {
       if (sortable) sortable.destroy();
     },
-    view({ attrs: { line, index, total } }) {
+    view({ attrs: { line, index } }) {
       const beats = lineDuration(line);
       const selected = piece.selectedLineId === line.id;
       const selectionIds = piece.selectMode && piece.selection.lineId === line.id
@@ -132,7 +132,10 @@ export function Line() {
           class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${selected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
           onclick={() => piece.selectLine(line.id)}
         >
-          <span class={`text-xs w-6 pt-2 shrink-0 text-right ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}>{index + 1}</span>
+          <div class="line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none" title="Drag to reorder">
+            <span class="text-gray-300 dark:text-gray-600 text-sm leading-none">⠿</span>
+            <span class={`text-xs ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}>{index + 1}</span>
+          </div>
           <div
             class="sounds-and-instructions relative flex-1 min-w-0"
             style={wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : ''}
@@ -181,16 +184,6 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
-            <button
-              class={`text-xs ${index === 0 ? 'text-gray-300 dark:text-gray-600 cursor-default' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              onclick={e => { e.stopPropagation(); piece.moveLine(line.id, -1); }}
-              title="Move up"
-            >↑</button>
-            <button
-              class={`text-xs ${index === total - 1 ? 'text-gray-300 dark:text-gray-600 cursor-default' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              onclick={e => { e.stopPropagation(); piece.moveLine(line.id, 1); }}
-              title="Move down"
-            >↓</button>
             <button
               class="text-xs text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
               onclick={e => { e.stopPropagation(); piece.duplicateLine(line.id); }}

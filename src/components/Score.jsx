@@ -1,9 +1,12 @@
 import m from 'mithril';
+import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 
 export function Score() {
+  let sortable;
+
   async function savePattern() {
     const line = piece.lines.find(l => l.id === piece.selection.lineId);
     if (!line) return;
@@ -17,6 +20,17 @@ export function Score() {
   }
 
   return {
+    oncreate({ dom }) {
+      sortable = Sortable.create(dom.querySelector('.lines-container'), {
+        handle: '.line-drag-handle',
+        animation: 150,
+        ghostClass: 'opacity-30',
+        onEnd(evt) { piece.reorderLine(evt.oldIndex, evt.newIndex); },
+      });
+    },
+    onremove() {
+      if (sortable) sortable.destroy();
+    },
     view() {
       const selCount = piece.selection.soundIds.length;
       const hasSelection = piece.selectMode && selCount > 0;
@@ -42,9 +56,11 @@ export function Score() {
                 : null}
           </div>
 
-          {piece.lines.map((line, i) => (
-            <Line key={line.id} line={line} index={i} total={piece.lines.length} />
-          ))}
+          <div class="lines-container">
+            {piece.lines.map((line, i) => (
+              <Line key={line.id} line={line} index={i} />
+            ))}
+          </div>
 
           <div class="px-3 py-2">
             <button
