@@ -8,6 +8,7 @@ import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
+import { HelpSheet } from './components/HelpSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
 import { piece } from './data/piece.js';
@@ -24,6 +25,7 @@ function App() {
   let menuOpen = false;
   let newScoreOpen = false;
   let loadScoreOpen = false;
+  let helpOpen = false;
 
   return {
     view() {
@@ -69,7 +71,7 @@ function App() {
                     piece.clearLines();
                   }
                 }}
-                onHelp={null}
+                onHelp={() => { helpOpen = true; }}
               />
             : null}
           {newScoreOpen
@@ -77,6 +79,9 @@ function App() {
             : null}
           {loadScoreOpen
             ? <LoadScoreSheet onClose={() => { loadScoreOpen = false; m.redraw(); }} />
+            : null}
+          {helpOpen
+            ? <HelpSheet onClose={() => { helpOpen = false; m.redraw(); }} />
             : null}
         </div>
       );
