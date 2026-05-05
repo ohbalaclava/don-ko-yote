@@ -37,7 +37,7 @@ export const piece = {
   id: null,
   title: 'Untitled',
   jiuchi: 'gobu-gobu',
-  beatsPerLine: 4,
+  beatsPerLine: 8,
   bpm: 120,
   author: '',
   icon: null,
