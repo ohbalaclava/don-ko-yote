@@ -73,6 +73,7 @@ export function Line() {
   let container;
   let instructionLayouts = [];
   let wrapperPaddingBottom = 0;
+  let editingRepeat = false;
 
   function ensureSortable() {
     if (piece.selectMode) {
@@ -140,8 +141,9 @@ export function Line() {
             class="sounds-and-instructions relative flex-1 min-w-0"
             style={wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : ''}
           >
+            <div class="flex items-start gap-1">
             <div
-              class="sounds-container flex flex-wrap gap-1 min-h-[3.5rem] pt-3"
+              class="sounds-container flex flex-wrap gap-1 min-h-[3.5rem] pt-3 flex-1"
               data-line-id={line.id}
             >
               {(() => {
@@ -172,6 +174,17 @@ export function Line() {
                 });
               })()}
             </div>
+            {(line.repeat || 1) > 1 && !editingRepeat && (
+              <div
+                class="shrink-0 mt-3 flex flex-row items-baseline justify-center border-2 border-indigo-400 rounded shadow-sm bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-bold cursor-pointer select-none min-w-[3rem] px-2 py-1"
+                onclick={e => { e.stopPropagation(); editingRepeat = true; m.redraw(); }}
+                title="Edit repeat count"
+              >
+                <span class="text-xs leading-none text-indigo-400 dark:text-indigo-500 mr-0.5">×</span>
+                <span class="text-xl leading-none">{line.repeat}</span>
+              </div>
+            )}
+            </div>
             {instructionLayouts.map(layout => (
               <span
                 key={layout.id}
@@ -184,6 +197,24 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
+            {editingRepeat
+              ? <input
+                  type="number"
+                  min="1"
+                  class="w-10 text-xs text-center border border-indigo-400 rounded bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300"
+                  value={line.repeat || 1}
+                  onclick={e => e.stopPropagation()}
+                  onchange={e => { piece.setLineRepeat(line.id, e.target.value); }}
+                  onblur={e => { piece.setLineRepeat(line.id, e.target.value); editingRepeat = false; m.redraw(); }}
+                  onkeydown={e => { if (e.key === 'Enter' || e.key === 'Escape') { piece.setLineRepeat(line.id, e.target.value); editingRepeat = false; m.redraw(); } e.stopPropagation(); }}
+                  oncreate={({ dom }) => { dom.focus(); dom.select(); }}
+                />
+              : <button
+                  class={`text-xs font-mono ${(line.repeat || 1) > 1 ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-300 dark:text-gray-600 hover:text-gray-400'}`}
+                  onclick={e => { e.stopPropagation(); editingRepeat = true; m.redraw(); }}
+                  title="Set repeat count"
+                >{(line.repeat || 1) > 1 ? `×${line.repeat}` : '×'}</button>
+            }
             <button
               class="text-base text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
               onclick={e => { e.stopPropagation(); piece.duplicateLine(line.id); }}
