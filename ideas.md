@@ -34,13 +34,13 @@
 
 ## New Features
 1. ~~Menu button to toggle a menu with the following items:~~
-   1. ~~New button - request jiuchi and beats per line
-   1. ~~Save button - save to browser memory. Automatically save if a score's title is changed.
-   1. ~~Load button - load from browser memory.
-   1. ~~Export button - export to json file
-   1. ~~Import tiles button - import from json file
-   1. Export to PDF
-   2. ~~Clear button with confirmation dialog
+   1. ~~New button - request jiuchi and beats per line~~
+   1. ~~Save button - save to browser memory. Automatically save if a score's title is changed.~~
+   1. ~~Load button - load from browser memory.~~
+   1. ~~Export button - export to json file~~
+   1. ~~Import tiles button - import from json file~~
+   1. ~~Export to PDF~~
+   2. ~~Clear button with confirmation dialog~~
    2. Help - how to use
 1. shichisan sounds
 2. nagado sounds

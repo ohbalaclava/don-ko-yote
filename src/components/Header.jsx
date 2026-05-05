@@ -1,7 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { JIUCHI } from '../data/symbols.js';
-import { exportPdf } from '../pdf.js';
 import { settings } from '../data/settings.js';
 
 export function Header() {
@@ -16,11 +15,7 @@ export function Header() {
             oninput={e => piece.setTitle(e.target.value)}
             placeholder="Untitled"
           />
-          <button
-            class="bg-indigo-600 hover:bg-indigo-500 rounded px-3 py-1 text-sm font-semibold"
-            onclick={() => exportPdf()}
-          >Export PDF</button>
-          <button
+<button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
             onclick={onOpenScoreSettings}
             title="Score settings"
