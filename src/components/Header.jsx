@@ -16,22 +16,6 @@ export function Header() {
             oninput={e => piece.setTitle(e.target.value)}
             placeholder="Untitled"
           />
-          <select
-            class="bg-gray-800 rounded px-2 py-1"
-            value={piece.jiuchi}
-            onchange={e => piece.setJiuchi(e.target.value)}
-          >
-            {JIUCHI.map(j => <option value={j.id}>{j.label}</option>)}
-          </select>
-          <label class="flex items-center gap-1 text-sm">
-            Beats
-            <input
-              type="number" min="1" max="32"
-              class="w-14 bg-gray-800 rounded px-2 py-1"
-              value={piece.beatsPerLine}
-              onchange={e => piece.setBeatsPerLine(e.target.value)}
-            />
-          </label>
           <button
             class="bg-indigo-600 hover:bg-indigo-500 rounded px-3 py-1 text-sm font-semibold"
             onclick={() => exportPdf()}
