@@ -17,6 +17,9 @@ export const piece = {
   title: 'Untitled',
   jiuchi: 'gobu-gobu',
   beatsPerLine: 4,
+  bpm: 120,
+  author: '',
+  icon: null,
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
 
@@ -32,6 +35,9 @@ export const piece = {
   setTitle(v) { piece.title = v; m.redraw(); },
   setJiuchi(v) { piece.jiuchi = v; m.redraw(); },
   setBeatsPerLine(v) { piece.beatsPerLine = Number(v); m.redraw(); },
+  setBpm(v) { piece.bpm = Number(v); m.redraw(); },
+  setAuthor(v) { piece.author = v; m.redraw(); },
+  setIcon(dataUrl) { piece.icon = dataUrl; m.redraw(); },
   selectLine(id) { piece.selectedLineId = id; m.redraw(); },
 
   setEditingTile(info) { piece.editingTile = info; m.redraw(); },

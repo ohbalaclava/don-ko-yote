@@ -4,6 +4,7 @@ import { Header } from './components/Header.jsx';
 import { Score } from './components/Score.jsx';
 import { Palette } from './components/Palette.jsx';
 import { SettingsModal } from './components/SettingsModal.jsx';
+import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { patternStore } from './data/patterns.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
@@ -13,6 +14,7 @@ settings.load();
 
 function App() {
   let settingsOpen = false;
+  let scoreSettingsOpen = false;
 
   return {
     view() {
@@ -23,10 +25,14 @@ function App() {
             class="fixed inset-0 m-auto w-[70vmin] h-[70vmin] opacity-5 pointer-events-none -z-10"
             aria-hidden="true"
           />
-          <Header onOpenSettings={() => { settingsOpen = true; }} />
+          <Header
+            onOpenSettings={() => { settingsOpen = true; }}
+            onOpenScoreSettings={() => { scoreSettingsOpen = true; }}
+          />
           <Score />
           <Palette />
           {settingsOpen ? <SettingsModal onClose={() => { settingsOpen = false; m.redraw(); }} /> : null}
+          {scoreSettingsOpen ? <ScoreSettingsModal onClose={() => { scoreSettingsOpen = false; m.redraw(); }} /> : null}
         </div>
       );
     }
