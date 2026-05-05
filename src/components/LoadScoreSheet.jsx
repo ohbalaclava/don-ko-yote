@@ -7,7 +7,7 @@ function formatDate(ts) {
 
 export function LoadScoreSheet() {
   return {
-    view({ attrs: { onClose } }) {
+    view({ attrs: { onClose, onLoaded } }) {
       const items = [...scoreStore.items].sort((a, b) => b.savedAt - a.savedAt);
 
       return (
@@ -45,7 +45,7 @@ export function LoadScoreSheet() {
                     </div>
                     <button
                       class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold"
-                      onclick={() => { scoreStore.loadScore(score.id); onClose(); }}
+                      onclick={() => { scoreStore.loadScore(score.id); onLoaded?.(); onClose(); }}
                     >Load</button>
                     <button
                       class="shrink-0 text-red-400 hover:text-red-600 text-sm px-1"

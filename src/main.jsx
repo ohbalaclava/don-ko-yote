@@ -20,6 +20,7 @@ scoreStore.load();
 settings.load();
 
 function App() {
+  let scoreActive = false;
   let settingsOpen = false;
   let scoreSettingsOpen = false;
   let menuOpen = false;
@@ -27,8 +28,66 @@ function App() {
   let loadScoreOpen = false;
   let helpOpen = false;
 
+  function openImportJson(onImported) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async e => {
+      const file = e.target.files[0];
+      if (file) {
+        scoreStore.importJson(await file.text());
+        onImported?.();
+        m.redraw();
+      }
+    };
+    input.click();
+  }
+
   return {
     view() {
+      if (!scoreActive) {
+        return (
+          <div class="flex flex-col h-dvh items-center justify-center dark:bg-gray-900 p-8">
+            <img
+              src="/mitsudomoe.svg"
+              class="fixed inset-0 m-auto w-[70vmin] h-[70vmin] opacity-5 pointer-events-none -z-10"
+              aria-hidden="true"
+            />
+            <div class="flex flex-col items-center gap-2 mb-10">
+              <img src="/mitsudomoe-badge.svg" class="w-20 h-20 mb-2" aria-hidden="true" />
+              <h1 class="text-3xl font-bold dark:text-white">don-ko-yote</h1>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Taiko sheet music</p>
+            </div>
+            <div class="flex flex-col w-full max-w-xs gap-3">
+              <button
+                class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-base font-semibold"
+                onclick={() => { newScoreOpen = true; m.redraw(); }}
+              >New score</button>
+              <button
+                class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white text-base font-semibold"
+                onclick={() => { loadScoreOpen = true; m.redraw(); }}
+              >Load score</button>
+              <button
+                class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white text-base font-semibold"
+                onclick={() => openImportJson(() => { scoreActive = true; })}
+              >Import JSON</button>
+            </div>
+            {newScoreOpen
+              ? <NewScoreSheet
+                  onClose={() => { newScoreOpen = false; m.redraw(); }}
+                  onCreated={() => { scoreActive = true; }}
+                />
+              : null}
+            {loadScoreOpen
+              ? <LoadScoreSheet
+                  onClose={() => { loadScoreOpen = false; m.redraw(); }}
+                  onLoaded={() => { scoreActive = true; }}
+                />
+              : null}
+          </div>
+        );
+      }
+
       return (
         <div class={`flex flex-col h-dvh dark:bg-gray-900 ${piece.selectMode ? 'select-mode' : ''}`}>
           <img
@@ -56,16 +115,7 @@ function App() {
                 onSave={() => { scoreStore.save(); }}
                 onLoad={() => { loadScoreOpen = true; }}
                 onExportJson={() => { scoreStore.exportJson(); }}
-                onImportJson={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = '.json';
-                  input.onchange = async e => {
-                    const file = e.target.files[0];
-                    if (file) scoreStore.importJson(await file.text());
-                  };
-                  input.click();
-                }}
+                onImportJson={() => openImportJson()}
                 onClear={() => {
                   if (window.confirm('Clear all content? This cannot be undone.')) {
                     piece.clearLines();

@@ -11,7 +11,7 @@ export function NewScoreSheet() {
       jiuchi = piece.jiuchi;
       beatsPerLine = piece.beatsPerLine;
     },
-    view({ attrs: { onClose } }) {
+    view({ attrs: { onClose, onCreated } }) {
       return (
         <div
           class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end"
@@ -63,7 +63,7 @@ export function NewScoreSheet() {
                 >Cancel</button>
                 <button
                   class="flex-1 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold"
-                  onclick={() => { piece.reset(jiuchi, beatsPerLine || 4); onClose(); }}
+                  onclick={() => { piece.reset(jiuchi, beatsPerLine || 8); onCreated?.(); onClose(); }}
                 >Create</button>
               </div>
             </div>
