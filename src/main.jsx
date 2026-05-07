@@ -55,7 +55,7 @@ function App() {
             />
             <div class="flex flex-col items-center gap-2 mb-10">
               <img src="/mitsudomoe-badge.svg" class="w-20 h-20 mb-2" aria-hidden="true" />
-              <h1 class="text-3xl font-bold dark:text-white">don-ko-yote</h1>
+              <h1 class="text-3xl font-bold dark:text-white">kuchi·shoga</h1>
               <p class="text-sm text-gray-500 dark:text-gray-400">Taiko sheet music</p>
             </div>
             <div class="flex flex-col w-full max-w-xs gap-3">

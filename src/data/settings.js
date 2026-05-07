@@ -42,7 +42,7 @@ export const settings = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'don-ko-yote-settings.json';
+    a.download = 'kuchi.shoga-settings.json';
     a.click();
     URL.revokeObjectURL(url);
   },

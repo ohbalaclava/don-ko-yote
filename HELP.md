@@ -1,8 +1,8 @@
-# Don-ko-yote: User Guide
+# kuchi·shoga: User Guide
 
-## What is Don-ko-yote?
+## What is kuchi·shoga?
 
-Don-ko-yote is a mobile-friendly web app for writing taiko drum sheet music. You build a score by arranging sound tiles onto horizontal lines, set the hand (left or right) and any movement instructions for each sound, then export the finished score as a PDF to print or share.
+kuchi·shoga is a mobile-friendly web app for writing taiko drum sheet music. You build a score by arranging sound tiles onto horizontal lines, set the hand (left or right) and any movement instructions for each sound, then export the finished score as a PDF to print or share.
 
 The app works entirely in your browser — your patterns are saved locally and no account is needed.
 
