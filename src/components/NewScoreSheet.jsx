@@ -1,6 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
-import { JIUCHI } from '../data/symbols.js';
+import { JIUCHI } from '../data/symbols-high-straight.js';
 
 export function NewScoreSheet() {
   let jiuchi;

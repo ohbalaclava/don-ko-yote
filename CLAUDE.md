@@ -20,7 +20,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 
 ### Data layer (`src/data/`)
 
-- `symbols.js` — the master list of sound symbols (`SYMBOLS` array) and jiuchi type definitions (`JIUCHI` array). Each symbol has `name`, `duration` (number, fraction of a beat), and `hand` (`'L'` or `'R'`). Each jiuchi has `id`, `label`, and `rhythm`.
+- `symbols-high-straight.js` — the master list of sound symbols (`SymbolsSmallStraight` array) and jiuchi type definitions (`JIUCHI` array). Each symbol has `name`, `duration` (number, fraction of a beat), and `hand` (`'L'` or `'R'`). Each jiuchi has `id`, `label`, and `rhythm`.
 - `piece.js` — singleton mutable state for the current piece. Shape: `{ title, jiuchi, beatsPerLine, selectedLineId, editingTile, selectMode, selection, lines: [{ id, sounds: [] }] }`. Sounds are either sound objects `{ id, name, hand, duration, instruction }` or group objects `{ id, type: 'group', name, sounds[], duration }`. All mutations go through methods on `piece` (e.g. `piece.addSound`, `piece.moveSound`, `piece.addGroup`, `piece.expandGroup`) which call `m.redraw()`. Select mode tracks `{ lineId, anchorId, soundIds[] }` for anchor-based contiguous range selection.
 - `patterns.js` — `patternStore` manages saved patterns via IndexedDB. Methods: `load()`, `save(name, sounds)`, `delete(id)`. `patternStore.items` holds the current list in memory.
 - `db.js` — Promise-based IndexedDB wrapper. Exposes `db.kv` (key-value store) and `db.patterns` (collection) with `get`/`set`/`all`/`save`/`delete` methods. Items auto-assigned UUIDs if no `id` present.

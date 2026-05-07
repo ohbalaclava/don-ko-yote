@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { SYMBOLS } from '../data/symbols.js';
+import { SYMBOLS } from '../data/symbols-high-straight.js';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';

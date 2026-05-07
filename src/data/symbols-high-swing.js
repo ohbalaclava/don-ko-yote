@@ -17,6 +17,8 @@ export const SYMBOLS = [
 ];
 
 export const JIUCHI = [
-  { id: 'gobu-gobu', label: 'Gobu-gobu', rhythm: 'straight' },
-  { id: 'shichisan', label: 'Shichisan', rhythm: 'swing' },
+  { id: 'gobu-gobu', label: 'Gobu-gobu' },
+  { id: 'shichisan', label: 'Shichisan' },
+  { id: 'mitsu-uchi', label: 'Mitsu-uchi' },
+  { id: 'shiburoku', label: 'Shiburoku' },
 ];

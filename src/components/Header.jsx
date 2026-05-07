@@ -1,6 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
-import { JIUCHI } from '../data/symbols.js';
+import { JIUCHI } from '../data/symbols-high-straight.js';
 import { settings } from '../data/settings.js';
 
 export function Header() {

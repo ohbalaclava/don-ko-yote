@@ -16,12 +16,10 @@
    1. ~~Dark mode/light mode~~
    
 ## Score configuration
-1. Jiuchi
-1. Max line width
-1. BPM
-1. Notes
-1. author
-1. icon
+1. ~~BPM~~
+1. ~~Notes~~
+1. ~~author~~
+1. ~~icon~~
 
 ## PDF
 1. Remove the tile outlines.
@@ -41,7 +39,7 @@
    1. ~~Import tiles button - import from json file~~
    1. ~~Export to PDF~~
    2. ~~Clear button with confirmation dialog~~
-   2. Help - how to use
+   2. ~~Help - how to use~~
 1. shichisan sounds
 2. nagado sounds
 
