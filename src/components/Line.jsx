@@ -143,7 +143,7 @@ export function Line() {
           >
             <div class="flex items-start gap-1">
             <div
-              class="sounds-container flex flex-wrap gap-1 min-h-[3.5rem] pt-3 flex-1"
+              class="sounds-container flex flex-wrap gap-x-1 gap-y-4 min-h-[3.5rem] pt-3 flex-1"
               data-line-id={line.id}
             >
               {(() => {
