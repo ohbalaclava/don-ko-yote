@@ -228,6 +228,22 @@ export const piece = {
     m.redraw();
   },
 
+  moveSounds(fromLineId, soundIds, toLineId, toIndex) {
+    const fromLine = piece.lines.find(l => l.id === fromLineId);
+    const toLine   = piece.lines.find(l => l.id === toLineId);
+    if (!fromLine || !toLine) return;
+    const idSet = new Set(soundIds);
+    const sounds = fromLine.sounds.filter(s => idSet.has(s.id));
+    if (sounds.length !== soundIds.length) return;
+    if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
+      const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
+      if (lineDur(toLine) + totalDur > piece.beatsPerLine) { m.redraw(); return; }
+    }
+    fromLine.sounds = fromLine.sounds.filter(s => !idSet.has(s.id));
+    toLine.sounds.splice(toIndex, 0, ...sounds);
+    m.redraw();
+  },
+
   removeSound(lineId, soundId) {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;

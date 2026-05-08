@@ -45,7 +45,7 @@ export function SoundTile() {
   };
 }
 
-function SoundEditor() {
+export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
       return (
