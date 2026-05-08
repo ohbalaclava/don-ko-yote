@@ -134,6 +134,40 @@ export function Line() {
   let wrapperPaddingBottom = 0;
   let editingRepeat = false;
 
+  let lpTimer = null;
+  let lpSoundId = null;
+  let lpLineId = null;
+  let lpStartX, lpStartY;
+
+  function lpStart(e) {
+    if (piece.selectMode) return;
+    const tile = e.target.closest('.sound-tile[data-sound-id], [data-ligature-ids]');
+    if (!tile) return;
+    lpSoundId = tile.dataset.soundId ?? tile.dataset.ligatureIds?.split(',')[0];
+    lpLineId = tile.closest('[data-line-id]')?.dataset.lineId;
+    if (!lpSoundId || !lpLineId) return;
+    lpStartX = e.clientX;
+    lpStartY = e.clientY;
+    lpTimer = setTimeout(() => {
+      lpTimer = null;
+      if (!piece.selectMode) {
+        piece.toggleSelectMode();
+        piece.toggleSoundSelection(lpLineId, lpSoundId);
+      }
+    }, 500);
+  }
+
+  function lpMove(e) {
+    if (lpTimer == null) return;
+    const dx = e.clientX - lpStartX;
+    const dy = e.clientY - lpStartY;
+    if (dx * dx + dy * dy > 25) { clearTimeout(lpTimer); lpTimer = null; }
+  }
+
+  function lpEnd() {
+    if (lpTimer != null) { clearTimeout(lpTimer); lpTimer = null; }
+  }
+
   function ensureSortable() {
     if (piece.selectMode) {
       if (sortable) { sortable.destroy(); sortable = null; }
@@ -209,6 +243,11 @@ export function Line() {
             <div
               class="sounds-container flex flex-wrap gap-x-1 gap-y-4 min-h-[3.5rem] pt-3 flex-1"
               data-line-id={line.id}
+              onpointerdown={lpStart}
+              onpointermove={lpMove}
+              onpointerup={lpEnd}
+              onpointercancel={lpEnd}
+              onpointerleave={lpEnd}
             >
               {groupSoundsForDisplay(line.sounds).map(item => {
                 if (item.sounds) {
