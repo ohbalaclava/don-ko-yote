@@ -1,4 +1,4 @@
-const MAX = 12;
+const MAX = 32;
 let stack = [];
 let ptr = -1;
 
