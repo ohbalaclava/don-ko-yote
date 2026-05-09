@@ -28,9 +28,21 @@ export function Score() {
         ghostClass: 'opacity-30',
         onEnd(evt) { piece.reorderLine(evt.oldIndex, evt.newIndex); },
       });
+
+      const handleKeydown = e => {
+        if (e.key === 'Backspace' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+          e.preventDefault();
+          piece.undo();
+        }
+      };
+      document.addEventListener('keydown', handleKeydown);
+      Score.handleKeydown = handleKeydown;
     },
     onremove() {
       if (sortable) sortable.destroy();
+      if (Score.handleKeydown) {
+        document.removeEventListener('keydown', Score.handleKeydown);
+      }
     },
     view() {
       const selCount = piece.selection.soundIds.length;
