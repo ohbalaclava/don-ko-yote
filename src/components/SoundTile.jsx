@@ -55,8 +55,7 @@ export function SoundEditor() {
         >
           {sound.hand != null && (
             <div>
-              <label class="text-xs font-semibold text-gray-600 dark:text-gray-400">Hand</label>
-              <div class="flex gap-1 mt-1">
+              <div class="flex gap-1">
                 <button
                   class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === 'L' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
                   onclick={() => piece.updateSound(lineId, sound.id, { hand: 'L' })}
@@ -80,9 +79,9 @@ export function SoundEditor() {
             placeholder="e.g. step left"
           />
           <button
-            class={`mt-1 text-xs text-left ${sound.emphasis ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}
+            class={`mt-1 text-xs text-left text-gray-700 dark:text-gray-300 ${sound.emphasis ? 'font-bold' : 'font-normal'}`}
             onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
-          >{sound.emphasis ? 'Emphasis: on' : 'Emphasis: off'}</button>
+          >Accent</button>
           <button
             class="mt-1 text-xs text-red-500 hover:text-red-700 text-left"
             onclick={() => { piece.removeSound(lineId, sound.id); piece.setEditingTile(null); }}
