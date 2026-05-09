@@ -278,7 +278,7 @@ export function Line() {
                     key={s.id}
                     sound={s}
                     lineId={line.id}
-                    isHeadBeat={Math.abs(item.startPos - Math.round(item.startPos)) < 1e-9}
+                    startPos={item.startPos}
                     isSelected={selectionIds ? selectionIds.has(s.id) : false}
                   />
                 );

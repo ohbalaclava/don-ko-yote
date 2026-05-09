@@ -8,7 +8,7 @@ const PROP_PAD_REM = 0.25;              // left padding in proportional mode for
 
 export function SoundTile() {
   return {
-    view({ attrs: { sound, lineId, isHeadBeat, isSelected } }) {
+    view({ attrs: { sound, lineId, startPos, isSelected } }) {
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
 
@@ -39,7 +39,19 @@ export function SoundTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {isHeadBeat ? <span class="beat-dot absolute -top-3 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" style={prop ? `left: ${propPad + TE_WIDTH_REM / 2}rem` : 'left: 50%'} /> : null}
+          {prop && Array.from({ length: Math.round(sound.duration * 4) }, (_, i) => {
+            const absPos = (startPos ?? 0) + i * 0.25;
+            const isHB = Math.abs(absPos - Math.round(absPos)) < 1e-9;
+            return (
+              <span
+                class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
+                style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem`}
+              />
+            );
+          })}
+          {!prop && startPos != null && Math.abs(startPos - Math.round(startPos)) < 1e-9
+            ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+            : null}
           {prop
             ? <div class="flex flex-col items-center py-0" style={`width: ${TE_WIDTH_REM}rem`}>
                 <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
