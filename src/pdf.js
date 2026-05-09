@@ -49,7 +49,14 @@ export function exportPdf() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(0);
-      doc.text(sound.name, x + (tileW - 1) / 2, y + 7.5, { align: 'center' });
+      const nameX = x + (tileW - 1) / 2;
+      doc.text(sound.name, nameX, y + 7.5, { align: 'center' });
+      if (sound.emphasis) {
+        const nameW = doc.getTextWidth(sound.name);
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.3);
+        doc.line(nameX - nameW / 2, y + 8.2, nameX + nameW / 2, y + 8.2);
+      }
 
       // Instruction
       if (sound.instruction) {
