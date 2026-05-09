@@ -19,9 +19,11 @@ export function SoundTile() {
         ? `width: ${sound.duration * BEAT_WIDTH_REM}rem`
         : undefined;
 
+      const prop = settings.proportionalWidth;
+
       return (
         <div
-          class={`sound-tile relative flex flex-col items-center border rounded shadow-sm px-2 py-1 cursor-grab select-none ${settings.proportionalWidth ? '' : 'min-w-[3rem]'} ${borderClass}`}
+          class={`sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? 'px-0 py-1' : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`}
           style={widthStyle}
           data-sound-id={sound.id}
           onpointerup={e => {
@@ -35,9 +37,17 @@ export function SoundTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {isHeadBeat ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" /> : null}
-          <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+          {isHeadBeat ? <span class="beat-dot absolute -top-3 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" style={prop ? `left: ${TE_WIDTH_REM / 2}rem` : 'left: 50%'} /> : null}
+          {prop
+            ? <div class="flex flex-col items-center py-0" style={`width: ${TE_WIDTH_REM}rem`}>
+                <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+              </div>
+            : <>
+                <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+              </>
+          }
           {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
         </div>
       );
