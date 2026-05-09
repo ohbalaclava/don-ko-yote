@@ -4,6 +4,7 @@ import { settings } from '../data/settings.js';
 
 const TE_WIDTH_REM = 2;                  // te/ke (duration=1/4) are the reference unit
 const BEAT_WIDTH_REM = TE_WIDTH_REM * 4; // one full beat = 4× a te tile
+const PROP_PAD_REM = 0.25;              // left padding in proportional mode for non-quarter tiles
 
 export function SoundTile() {
   return {
@@ -20,10 +21,11 @@ export function SoundTile() {
         : undefined;
 
       const prop = settings.proportionalWidth;
+      const propPad = prop && sound.duration > 1/4 ? PROP_PAD_REM : 0;
 
       return (
         <div
-          class={`sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? 'px-0 py-1' : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`}
+          class={`sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`}
           style={widthStyle}
           data-sound-id={sound.id}
           onpointerup={e => {
@@ -37,7 +39,7 @@ export function SoundTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {isHeadBeat ? <span class="beat-dot absolute -top-3 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" style={prop ? `left: ${TE_WIDTH_REM / 2}rem` : 'left: 50%'} /> : null}
+          {isHeadBeat ? <span class="beat-dot absolute -top-3 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" style={prop ? `left: ${propPad + TE_WIDTH_REM / 2}rem` : 'left: 50%'} /> : null}
           {prop
             ? <div class="flex flex-col items-center py-0" style={`width: ${TE_WIDTH_REM}rem`}>
                 <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
