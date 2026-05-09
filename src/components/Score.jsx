@@ -1,6 +1,7 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
+import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 
@@ -54,6 +55,21 @@ export function Score() {
               : piece.selectMode
                 ? <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
                 : null}
+
+            <div class="ml-auto flex items-center gap-1">
+              <button
+                class={`text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                onclick={() => piece.undo()}
+                disabled={!history.canUndo()}
+                title="Undo (Ctrl+Z)"
+              >↺</button>
+              <button
+                class={`text-sm rounded px-2 py-0.5 border ${history.canRedo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                onclick={() => piece.redo()}
+                disabled={!history.canRedo()}
+                title="Redo (Ctrl+Y)"
+              >↻</button>
+            </div>
           </div>
 
           <div class="lines-container">

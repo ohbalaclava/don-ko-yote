@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { db } from '../db.js';
 import { piece } from './piece.js';
+import { history } from './history.js';
 
 let autoSaveTimer = null;
 
@@ -60,6 +61,7 @@ export const scoreStore = {
     piece.editingTile = null;
     piece.selectMode  = false;
     piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    history.reset(piece._snapshot());
     scoreStore.items = await db.scores.all();
     m.redraw();
   },
@@ -98,6 +100,7 @@ export const scoreStore = {
     piece.editingTile = null;
     piece.selectMode  = false;
     piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    history.reset(piece._snapshot());
     m.redraw();
   },
 };

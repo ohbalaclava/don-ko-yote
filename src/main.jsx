@@ -14,6 +14,19 @@ import { scoreStore } from './data/scoreStore.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
 
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+    e.preventDefault();
+    piece.undo();
+  } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) ||
+             (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+    e.preventDefault();
+    piece.redo();
+  }
+});
+
 patternStore.load();
 scoreStore.init();
 scoreStore.load();
@@ -117,7 +130,7 @@ function App() {
                 onExportJson={() => { scoreStore.exportJson(); }}
                 onImportJson={() => openImportJson()}
                 onClear={() => {
-                  if (window.confirm('Clear all content? This cannot be undone.')) {
+                  if (window.confirm('Clear all lines?')) {
                     piece.clearLines();
                   }
                 }}

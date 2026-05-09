@@ -1,4 +1,5 @@
 import m from 'mithril';
+import { history } from './history.js';
 
 let _nextId = 1;
 const uid = () => String(_nextId++);
@@ -51,6 +52,50 @@ export const piece = {
   selectMode: false,
   selection: { lineId: null, anchorId: null, soundIds: [] },
 
+  // ── Snapshot helpers ──────────────────────────────────────────────────────
+
+  _snapshot() {
+    return {
+      title: piece.title,
+      jiuchi: piece.jiuchi,
+      beatsPerLine: piece.beatsPerLine,
+      bpm: piece.bpm,
+      author: piece.author,
+      icon: piece.icon,
+      lines: piece.lines,
+    };
+  },
+
+  _restore(state) {
+    piece.title = state.title;
+    piece.jiuchi = state.jiuchi;
+    piece.beatsPerLine = state.beatsPerLine;
+    piece.bpm = state.bpm;
+    piece.author = state.author;
+    piece.icon = state.icon;
+    piece.lines = state.lines;
+    piece.editingTile = null;
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    if (!piece.lines.find(l => l.id === piece.selectedLineId)) {
+      piece.selectedLineId = piece.lines[0]?.id ?? null;
+    }
+  },
+
+  undo() {
+    const state = history.undo();
+    if (!state) return;
+    piece._restore(state);
+    m.redraw();
+  },
+
+  redo() {
+    const state = history.redo();
+    if (!state) return;
+    piece._restore(state);
+    m.redraw();
+  },
+
   // ── Settings ──────────────────────────────────────────────────────────────
 
   reset(jiuchi, beatsPerLine) {
@@ -67,6 +112,7 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    history.reset(piece._snapshot());
     m.redraw();
   },
 
@@ -77,15 +123,16 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    history.push(piece._snapshot());
     m.redraw();
   },
 
-  setTitle(v) { piece.title = v; m.redraw(); },
-  setJiuchi(v) { piece.jiuchi = v; m.redraw(); },
-  setBeatsPerLine(v) { piece.beatsPerLine = Number(v); m.redraw(); },
-  setBpm(v) { piece.bpm = Number(v); m.redraw(); },
-  setAuthor(v) { piece.author = v; m.redraw(); },
-  setIcon(dataUrl) { piece.icon = dataUrl; m.redraw(); },
+  setTitle(v) { piece.title = v; history.push(piece._snapshot()); m.redraw(); },
+  setJiuchi(v) { piece.jiuchi = v; history.push(piece._snapshot()); m.redraw(); },
+  setBeatsPerLine(v) { piece.beatsPerLine = Number(v); history.push(piece._snapshot()); m.redraw(); },
+  setBpm(v) { piece.bpm = Number(v); history.push(piece._snapshot()); m.redraw(); },
+  setAuthor(v) { piece.author = v; history.push(piece._snapshot()); m.redraw(); },
+  setIcon(dataUrl) { piece.icon = dataUrl; history.push(piece._snapshot()); m.redraw(); },
   selectLine(id) { piece.selectedLineId = id; m.redraw(); },
 
   setEditingTile(info) { piece.editingTile = info; m.redraw(); },
@@ -147,6 +194,7 @@ export const piece = {
     const line = makeLine();
     piece.lines.push(line);
     piece.selectedLineId = line.id;
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -156,6 +204,7 @@ export const piece = {
     const [line] = lines.splice(fromIndex, 1);
     lines.splice(toIndex, 0, line);
     piece.lines = lines;
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -174,6 +223,7 @@ export const piece = {
     const idx = piece.lines.findIndex(l => l.id === lineId);
     piece.lines.splice(idx + 1, 0, copy);
     piece.selectedLineId = copy.id;
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -181,6 +231,7 @@ export const piece = {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;
     line.repeat = Math.max(1, Math.round(Number(value)) || 1);
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -194,6 +245,7 @@ export const piece = {
     } else if (piece.selectedLineId === lineId) {
       piece.selectedLineId = piece.lines[Math.min(idx, piece.lines.length - 1)].id;
     }
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -208,6 +260,7 @@ export const piece = {
     if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
     if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -225,6 +278,7 @@ export const piece = {
     }
     fromLine.sounds.splice(idx, 1);
     toLine.sounds.splice(toIndex, 0, sound);
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -241,6 +295,7 @@ export const piece = {
     }
     fromLine.sounds = fromLine.sounds.filter(s => !idSet.has(s.id));
     toLine.sounds.splice(toIndex, 0, ...sounds);
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -248,6 +303,7 @@ export const piece = {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;
     line.sounds = line.sounds.filter(s => s.id !== soundId);
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -257,6 +313,7 @@ export const piece = {
     const s = line.sounds.find(s => s.id === soundId);
     if (!s) return;
     Object.assign(s, patch);
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -281,6 +338,7 @@ export const piece = {
       if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
       else target.sounds.push(group);
       if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+      history.push(piece._snapshot());
       m.redraw();
       return;
     }
@@ -292,6 +350,7 @@ export const piece = {
       piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
     }
     piece.selectedLineId = piece.lines[lineIdx].id;
+    history.push(piece._snapshot());
     m.redraw();
   },
 
@@ -305,6 +364,9 @@ export const piece = {
     const expanded = group.sounds.map(s => ({ ...s, id: uid() }));
     line.sounds.splice(idx, 1, ...expanded);
     piece.editingTile = null;
+    history.push(piece._snapshot());
     m.redraw();
   },
 };
+
+history.init(piece._snapshot());
