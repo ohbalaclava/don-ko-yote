@@ -66,6 +66,11 @@ function App() {
               class="fixed inset-0 m-auto w-[70vmin] h-[70vmin] opacity-5 pointer-events-none -z-10"
               aria-hidden="true"
             />
+            <button
+              class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 text-xl"
+              onclick={() => { settingsOpen = true; m.redraw(); }}
+              title="App settings"
+            >⚙</button>
             <div class="flex flex-col items-center gap-2 mb-10">
               <img src="/mitsudomoe-badge.svg" class="w-20 h-20 mb-2" aria-hidden="true" />
               <h1 class="text-3xl font-bold dark:text-white">kuchi·shoga</h1>
@@ -96,6 +101,9 @@ function App() {
                   onClose={() => { loadScoreOpen = false; m.redraw(); }}
                   onLoaded={() => { scoreActive = true; }}
                 />
+              : null}
+            {settingsOpen
+              ? <SettingsModal onClose={() => { settingsOpen = false; m.redraw(); }} />
               : null}
           </div>
         );
