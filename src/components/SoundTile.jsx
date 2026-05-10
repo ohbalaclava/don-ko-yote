@@ -39,29 +39,30 @@ export function SoundTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {prop && Array.from({ length: Math.round(sound.duration * 4) }, (_, i) => {
-            const absPos = (startPos ?? 0) + i * 0.25;
-            const isHB = Math.abs(absPos - Math.round(absPos)) < 1e-9;
-            return (
-              <span
-                class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
-                style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem`}
-              />
-            );
-          })}
-          {!prop && startPos != null && Math.abs(startPos - Math.round(startPos)) < 1e-9
-            ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-            : null}
-          {prop
-            ? <div class="flex flex-col items-center py-0" style={`width: ${TE_WIDTH_REM}rem`}>
-                <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
-              </div>
-            : <>
-                <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
-              </>
-          }
+          <div class="contents">
+            {prop
+              ? Array.from({ length: Math.round(sound.duration * 4) }, (_, i) => {
+                  const absPos = (startPos ?? 0) + i * 0.25;
+                  const isHB = Math.abs(absPos - Math.round(absPos)) < 1e-9;
+                  return (
+                    <span
+                      class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
+                      style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem`}
+                    />
+                  );
+                })
+              : startPos != null && Math.abs(startPos - Math.round(startPos)) < 1e-9
+                ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                : null
+            }
+          </div>
+          <div
+            class={prop ? 'flex flex-col items-center py-0' : 'contents'}
+            style={prop ? `width: ${TE_WIDTH_REM}rem` : undefined}
+          >
+            <span class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}>{sound.name}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+          </div>
           {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
         </div>
       );
@@ -72,8 +73,8 @@ export function SoundTile() {
 export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
-      return [
-        <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
+      return (<>
+        <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />
         <div
           key="ed"
           class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]"
@@ -113,7 +114,7 @@ export function SoundEditor() {
             onclick={() => { piece.removeSound(lineId, sound.id); piece.setEditingTile(null); }}
           >Remove</button>
         </div>
-      ];
+      </>);
     }
   };
 }
