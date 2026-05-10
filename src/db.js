@@ -28,7 +28,13 @@ async function getDB() {
   return _db ?? (_db = await openDB());
 }
 
-// Wraps a single IDBRequest in a Promise.
+/**
+ * Executes a single IDBRequest inside a transaction and resolves with its result.
+ * @param {string} storeName
+ * @param {'readonly'|'readwrite'} mode
+ * @param {(store: IDBObjectStore) => IDBRequest} fn - Receives the object store and returns the request to await.
+ * @returns {Promise<*>}
+ */
 async function tx(storeName, mode, fn) {
   const db = await getDB();
   return new Promise((resolve, reject) => {
@@ -40,8 +46,12 @@ async function tx(storeName, mode, fn) {
   });
 }
 
-// Factory for a named collection store.
-// Each item must be a plain object; id is assigned on first save.
+/**
+ * Creates a CRUD interface for a named IndexedDB object store.
+ * Each item must be a plain object; a UUID is assigned to `id` on first save.
+ * @param {string} storeName
+ * @returns {{ all: () => Promise<Array>, get: (id: string) => Promise<*>, delete: (id: string) => Promise<void>, save: (item: object) => Promise<object> }}
+ */
 function collection(storeName) {
   return {
     all:    ()     => tx(storeName, 'readonly',  s => s.getAll()),

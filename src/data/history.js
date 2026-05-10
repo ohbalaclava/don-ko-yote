@@ -12,6 +12,11 @@ export const history = {
     ptr = 0;
   },
 
+  /**
+   * Pushes a new state, discarding any redo history beyond the current pointer.
+   * Drops the oldest entry when the stack exceeds MAX.
+   * @param {object} state
+   */
   push(state) {
     stack = stack.slice(0, ptr + 1);
     stack.push(clone(state));
@@ -22,12 +27,14 @@ export const history = {
   canUndo() { return ptr > 0; },
   canRedo() { return ptr < stack.length - 1; },
 
+  /** @returns {object|null} The state to restore, or null if already at the beginning. */
   undo() {
     if (ptr <= 0) return null;
     ptr--;
     return clone(stack[ptr]);
   },
 
+  /** @returns {object|null} The state to restore, or null if already at the end. */
   redo() {
     if (ptr >= stack.length - 1) return null;
     ptr++;

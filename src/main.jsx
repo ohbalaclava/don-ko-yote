@@ -41,6 +41,10 @@ function App() {
   let loadScoreOpen = false;
   let helpOpen = false;
 
+  /**
+   * Opens a file picker for JSON import and loads the selected score.
+   * @param {(() => void) | undefined} onImported - Called after the score is loaded.
+   */
   function openImportJson(onImported) {
     const input = document.createElement('input');
     input.type = 'file';

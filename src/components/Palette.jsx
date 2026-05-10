@@ -43,6 +43,14 @@ function makeDragGhost(label, sub) {
   return el;
 }
 
+/**
+ * Returns a pointerdown handler that implements tap-or-drag behaviour.
+ * A move of less than DRAG_THRESHOLD px is treated as a tap and calls onTap.
+ * A larger move shows a ghost element and calls onDrop(lineId) on release,
+ * where lineId is read from the nearest [data-line-id] ancestor under the pointer.
+ * @param {{ onTap: () => void, onDrop: (lineId: string) => void, ghostLabel: string, ghostSub: string }} options
+ * @returns {(e: PointerEvent) => void}
+ */
 function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
   let dragEl = null;
 

@@ -10,9 +10,14 @@ function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
 
-// Groups consecutive sub-beat sounds of equal duration within the same beat
-// into ligature display items (non-proportional mode only).
-// Returns [{ sound, startPos } | { sounds, startPos }]
+/**
+ * Groups consecutive sub-beat sounds of equal duration within the same beat
+ * into ligature display items (non-proportional mode only).
+ * Adjacent sounds qualify if they share the same duration, are in the same beat,
+ * and alternate hands. Groups of one are emitted as single-sound items.
+ * @param {Array} sounds
+ * @returns {Array<{ sound: object, startPos: number } | { sounds: object[], startPos: number }>}
+ */
 function groupSoundsForDisplay(sounds) {
   const items = [];
   let pos = 0;
@@ -55,8 +60,13 @@ function groupSoundsForDisplay(sounds) {
   return items;
 }
 
-// Maps a SortableJS DOM drop index to the corresponding data array index,
-// accounting for ligature tiles that each represent multiple sounds.
+/**
+ * Maps a SortableJS DOM drop index to the corresponding data array index,
+ * accounting for ligature tiles that each represent multiple sounds.
+ * @param {HTMLElement} container
+ * @param {number} domIndex - Index of the dropped element among container's children.
+ * @returns {number} Equivalent index into the line's sounds array.
+ */
 function domIndexToDataIndex(container, domIndex) {
   const children = Array.from(container.children);
   let count = 0;
@@ -69,6 +79,14 @@ function domIndexToDataIndex(container, domIndex) {
 
 const INSTR_LINE_HEIGHT = 18;
 
+/**
+ * Measures instruction label positions for all sounds in a line, laying them out
+ * in non-overlapping horizontal tracks below their tiles using a canvas for text measurement.
+ * Groups tiles by visual row (snapped to a 5px grid to tolerate subpixel differences).
+ * @param {HTMLElement} dom - The Line component's root DOM node.
+ * @param {{ sounds: Array }} line
+ * @returns {{ layouts: Array<{ id: string, left: number, top: number, text: string }>, paddingBottom: number } | null}
+ */
 function measureInstructions(dom, line) {
   const wrapper = dom.querySelector('.sounds-and-instructions');
   if (!wrapper) return null;
@@ -139,6 +157,8 @@ export function Line() {
   let lpLineId = null;
   let lpStartX, lpStartY;
 
+  // Long-press detection: after 500ms without moving more than 5px, enters select
+  // mode and selects the pressed tile. Movement cancels the timer.
   function lpStart(e) {
     if (piece.selectMode) return;
     const tile = e.target.closest('.sound-tile[data-sound-id], [data-ligature-ids]');
@@ -168,6 +188,8 @@ export function Line() {
     if (lpTimer != null) { clearTimeout(lpTimer); lpTimer = null; }
   }
 
+  // SortableJS is disabled while select mode is active to prevent accidental drags
+  // from interfering with tap-based selection.
   function ensureSortable() {
     if (piece.selectMode) {
       if (sortable) { sortable.destroy(); sortable = null; }
@@ -192,6 +214,8 @@ export function Line() {
     });
   }
 
+  // Runs measureInstructions and triggers a redraw only when the result changed,
+  // avoiding an infinite loop (onupdate → redraw → onupdate → …).
   function applyLayouts(dom, line) {
     const result = measureInstructions(dom, line);
     if (!result) return;

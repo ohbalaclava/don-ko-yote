@@ -17,17 +17,28 @@ function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
 
-// Fractional beat offset at insertion index (0 = beat boundary, 0.5 = halfway, etc.)
+/**
+ * Returns the fractional beat offset at the given insertion index.
+ * E.g. after 1.5 beats of sounds, returns 0.5; at an integer boundary, returns 0.
+ * @param {Array<{ duration: number }>} sounds
+ * @param {number} idx - Index to measure up to (sounds.length = after last sound).
+ * @returns {number} Fractional part of cumulative beats, rounded to the nearest 0.25.
+ */
 function beatFractional(sounds, idx) {
   let total = 0;
   for (let i = 0; i < idx; i++) total += sounds[i].duration;
   return Math.round((total % 1) * 4) / 4;
 }
 
-// Returns the index of the first line (starting from fromIdx) that can fit
-// `duration` beats. Creates a new line at the end when all are full.
-// When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
-// returns fromIdx unchanged.
+/**
+ * Returns the index of the first line (starting from fromIdx) that can fit
+ * `duration` beats. Creates a new line at the end when all lines are full.
+ * When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
+ * returns fromIdx unchanged.
+ * @param {number} fromIdx - Starting line index.
+ * @param {number} duration - Beat duration to accommodate.
+ * @returns {number} Index of the target line.
+ */
 function targetLineIdx(fromIdx, duration) {
   const max = piece.beatsPerLine;
   if (!max || duration > max) return fromIdx;
@@ -53,7 +64,7 @@ export const piece = {
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
 
-  // Which tile has its popup open: { lineId, soundId } | null
+  /** @type {{ lineId: string, soundId: string } | null} Which tile has its popup open. */
   editingTile: null,
 
   // Selection mode for building patterns
@@ -74,6 +85,11 @@ export const piece = {
     };
   },
 
+  /**
+   * Applies a history snapshot to the piece and resets all transient UI state
+   * (editing tile, select mode). Corrects selectedLineId if it no longer exists.
+   * @param {{ title: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, icon: string|null, lines: Array }} state
+   */
   _restore(state) {
     piece.title = state.title;
     piece.jiuchi = state.jiuchi;
@@ -143,6 +159,10 @@ export const piece = {
   setIcon(dataUrl) { piece.icon = dataUrl; history.push(piece._snapshot()); m.redraw(); },
   selectLine(id) { piece.selectedLineId = id; m.redraw(); },
 
+  /**
+   * Opens or closes the inline tile editor popup.
+   * @param {{ lineId: string, soundId: string } | null} info - Pass null to close.
+   */
   setEditingTile(info) { piece.editingTile = info; m.redraw(); },
 
   // ── Select mode ───────────────────────────────────────────────────────────
@@ -154,6 +174,14 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Extends or sets the contiguous selection using anchor-based logic.
+   * - Tapping a sound on a different line, or with no prior selection: starts fresh at soundId.
+   * - Tapping another sound on the same line: extends the range from the anchor to soundId.
+   * - Tapping the anchor when it is the only selected sound: deselects.
+   * @param {string} lineId
+   * @param {string} soundId
+   */
   toggleSoundSelection(lineId, soundId) {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;
@@ -216,6 +244,11 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Inserts a deep copy of the line immediately after it and selects the copy.
+   * All sound and group IDs are replaced with fresh ones.
+   * @param {string} lineId
+   */
   duplicateLine(lineId) {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;
@@ -243,6 +276,11 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Removes the line. Selects the nearest remaining line when the removed line
+   * was selected. Always ensures at least one line exists.
+   * @param {string} lineId
+   */
   removeLine(lineId) {
     const idx = piece.lines.findIndex(l => l.id === lineId);
     piece.lines = piece.lines.filter(l => l.id !== lineId);
@@ -259,8 +297,13 @@ export const piece = {
 
   // ── Sounds ────────────────────────────────────────────────────────────────
 
-  // Returns the max duration that can be added at the end of the given line
-  // without crossing a beat boundary (Infinity when disabled or at a beat boundary).
+  /**
+   * Returns the max duration that can be added at the end of the line without
+   * crossing a beat boundary. Returns Infinity when beat boundaries are disabled
+   * or the line is already sitting on an integer beat position.
+   * @param {string} lineId
+   * @returns {number}
+   */
   maxAddDuration(lineId) {
     if (!settings.beatBoundaries) return Infinity;
     const line = piece.lines.find(l => l.id === lineId);
@@ -269,6 +312,14 @@ export const piece = {
     return frac === 0 ? Infinity : 1 - frac;
   },
 
+  /**
+   * Adds a sound to the line. If the line is full (beatsPerLine), overflows to the
+   * next line with space, creating one if needed. Beat-boundary enforcement can
+   * silently reject the add when the sound would straddle a boundary.
+   * @param {string} lineId
+   * @param {{ name: string, hand: string, duration: number }} symbol
+   * @param {number} [atIndex] - Insert position within the line; appends if omitted.
+   */
   addSound(lineId, symbol, atIndex) {
     const fromIdx = piece.lines.findIndex(l => l.id === lineId);
     if (fromIdx === -1) return;
@@ -287,6 +338,15 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Moves a sound within or between lines. Rejects cross-line moves that would
+   * overflow the target line's beat budget and calls m.redraw() to revert the
+   * SortableJS DOM change in that case.
+   * @param {string} fromLineId
+   * @param {string} soundId
+   * @param {string} toLineId
+   * @param {number} toIndex
+   */
   moveSound(fromLineId, soundId, toLineId, toIndex) {
     const fromLine = piece.lines.find(l => l.id === fromLineId);
     const toLine   = piece.lines.find(l => l.id === toLineId);
@@ -305,6 +365,13 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Moves multiple sounds as a contiguous unit within or between lines.
+   * @param {string} fromLineId
+   * @param {string[]} soundIds - Must all exist in fromLine; their relative order is preserved.
+   * @param {string} toLineId
+   * @param {number} toIndex - Insertion point in the target line's data array.
+   */
   moveSounds(fromLineId, soundIds, toLineId, toIndex) {
     const fromLine = piece.lines.find(l => l.id === fromLineId);
     const toLine   = piece.lines.find(l => l.id === toLineId);
@@ -330,6 +397,12 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Merges patch properties onto the matching sound object.
+   * @param {string} lineId
+   * @param {string} soundId
+   * @param {Partial<{ hand: string, instruction: string }>} patch
+   */
   updateSound(lineId, soundId, patch) {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;
@@ -342,6 +415,13 @@ export const piece = {
 
   // ── Group tiles (pattern instances) ──────────────────────────────────────
 
+  /**
+   * Adds a pattern as a group tile. If the pattern's total duration exceeds beatsPerLine,
+   * the group is expanded and its individual sounds are distributed across lines instead.
+   * @param {string} lineId
+   * @param {{ name: string, sounds: Array<{ duration: number }> }} pattern
+   * @param {number} [atIndex] - Insert position within the line; appends if omitted.
+   */
   addGroup(lineId, pattern, atIndex) {
     const fromIdx = piece.lines.findIndex(l => l.id === lineId);
     if (fromIdx === -1) return;
@@ -382,6 +462,12 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Replaces a group tile in-place with its constituent sounds. Each sound receives
+   * a fresh id to avoid collisions with the originals.
+   * @param {string} lineId
+   * @param {string} soundId - ID of the group tile to expand.
+   */
   expandGroup(lineId, soundId) {
     const line = piece.lines.find(l => l.id === lineId);
     if (!line) return;

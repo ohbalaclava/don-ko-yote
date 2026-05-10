@@ -22,7 +22,10 @@ function snapshot() {
 export const scoreStore = {
   items: [],
 
-  // Patch piece.setTitle to auto-save 1 s after the user stops typing.
+  /**
+   * Patches piece.setTitle to auto-save 1 second after the user stops typing,
+   * but only when the piece has already been saved (has an id).
+   */
   init() {
     const orig = piece.setTitle.bind(piece);
     piece.setTitle = v => {
@@ -46,6 +49,10 @@ export const scoreStore = {
     m.redraw();
   },
 
+  /**
+   * Loads a saved score by id, fully replacing all piece state and undo history.
+   * @param {string} id
+   */
   async loadScore(id) {
     const score = await db.scores.get(id);
     if (!score) return;
@@ -66,6 +73,11 @@ export const scoreStore = {
     m.redraw();
   },
 
+  /**
+   * Deletes a saved score. If the current piece matches this id, clears piece.id
+   * so a subsequent save creates a new record rather than trying to update the deleted one.
+   * @param {string} id
+   */
   async delete(id) {
     await db.scores.delete(id);
     if (piece.id === id) piece.id = null;
@@ -73,6 +85,7 @@ export const scoreStore = {
     m.redraw();
   },
 
+  /** Downloads the current score as a JSON file, stripping the internal database id. */
   exportJson() {
     const { id: _id, ...data } = snapshot();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -84,6 +97,11 @@ export const scoreStore = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * Loads a score from a JSON string into the current piece without saving it.
+   * Resets undo history. piece.id is cleared so the first save creates a new record.
+   * @param {string} text
+   */
   importJson(text) {
     const data = JSON.parse(text);
     piece.id           = null;

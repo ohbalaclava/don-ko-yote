@@ -51,6 +51,11 @@ export const settings = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * Imports settings from a JSON string, persists them, and redraws.
+   * Silently ignores unknown keys; validates font against the known set.
+   * @param {string} text
+   */
   async importJson(text) {
     const data = JSON.parse(text);
     if (typeof data.proportionalWidth === 'boolean') settings.proportionalWidth = data.proportionalWidth;
