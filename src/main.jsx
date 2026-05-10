@@ -88,7 +88,7 @@ function App() {
               <button
                 class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white text-base font-semibold"
                 onclick={() => openImportJson(() => { scoreActive = true; })}
-              >Import JSON</button>
+              >Import score</button>
             </div>
             {newScoreOpen
               ? <NewScoreSheet

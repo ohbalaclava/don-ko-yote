@@ -41,8 +41,8 @@ export function MenuSheet() {
               <Item label="New" sublabel="Start a fresh score" onclick={wrap(onNew)} />
               <Item label="Save" sublabel="Save to browser memory" onclick={wrap(onSave)} />
               <Item label="Load" sublabel="Load from browser memory" onclick={wrap(onLoad)} />
-              <Item label="Export JSON" sublabel="Download score as JSON file" onclick={wrap(onExportJson)} />
-              <Item label="Import JSON" sublabel="Load score from JSON file" onclick={wrap(onImportJson)} />
+              <Item label="Export score" sublabel="Download score as JSON file" onclick={wrap(onExportJson)} />
+              <Item label="Import score" sublabel="Load score from JSON file" onclick={wrap(onImportJson)} />
               <Item label="Export PDF" onclick={wrap(() => exportPdf())} />
               <Item label="Clear" danger onclick={wrap(onClear)} />
               <Item label="Help" onclick={wrap(onHelp)} />

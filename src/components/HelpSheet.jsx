@@ -96,7 +96,7 @@ export function HelpSheet() {
               <Section title="Menu ☰">
                 <Row label="New" desc="Start a fresh score, choosing jiuchi and beats per line." />
                 <Row label="Save / Load" desc="Persist scores to browser storage." />
-                <Row label="Export / Import JSON" desc="Download or upload a score as a portable JSON file." />
+                <Row label="Export / Import score" desc="Download or upload a score as a portable JSON file." />
                 <Row label="Export PDF" desc="Generate a printable A4 PDF of the score." />
                 <Row label="Clear" desc="Remove all sounds from the current score." />
               </Section>
