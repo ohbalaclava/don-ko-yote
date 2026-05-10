@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { isIntegerBeat } from '../util.js';
 
 const TE_WIDTH_REM = 2;                  // te/ke (duration=1/4) are the reference unit
 const BEAT_WIDTH_REM = TE_WIDTH_REM * 4; // one full beat = 4× a te tile
@@ -43,7 +44,7 @@ export function SoundTile() {
             {prop
               ? Array.from({ length: Math.round(sound.duration * 4) }, (_, i) => {
                   const absPos = (startPos ?? 0) + i * 0.25;
-                  const isHB = Math.abs(absPos - Math.round(absPos)) < 1e-9;
+                  const isHB = isIntegerBeat(absPos);
                   return (
                     <span
                       class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
@@ -51,7 +52,7 @@ export function SoundTile() {
                     />
                   );
                 })
-              : startPos != null && Math.abs(startPos - Math.round(startPos)) < 1e-9
+              : startPos != null && isIntegerBeat(startPos)
                 ? <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
                 : null
             }
@@ -83,18 +84,13 @@ export function SoundEditor() {
           {sound.hand != null && (
             <div>
               <div class="flex gap-1">
-                <button
-                  class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === 'L' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                  onclick={() => piece.updateSound(lineId, sound.id, { hand: 'L' })}
-                >L</button>
-                <button
-                  class={`w-6 rounded py-0.5 text-sm font-bold border ${sound.hand === 'B' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                  onclick={() => piece.updateSound(lineId, sound.id, { hand: 'B' })}
-                >B</button>
-                <button
-                  class={`flex-1 rounded py-0.5 text-sm font-bold border ${sound.hand === 'R' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                  onclick={() => piece.updateSound(lineId, sound.id, { hand: 'R' })}
-                >R</button>
+                {['L', 'B', 'R'].map(h => (
+                  <button
+                    key={h}
+                    class={`${h === 'B' ? 'w-6' : 'flex-1'} rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
+                    onclick={() => piece.updateSound(lineId, sound.id, { hand: h })}
+                  >{h}</button>
+                ))}
               </div>
             </div>
           )}

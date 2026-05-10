@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { isIntegerBeat } from '../util.js';
 import { SoundEditor } from './SoundTile.jsx';
 
 export function LigatureTile() {
@@ -18,7 +19,7 @@ export function LigatureTile() {
           {sounds.map((sound, idx) => {
             const pos = subPos;
             subPos += sound.duration;
-            const isHeadBeat = Math.abs(pos - Math.round(pos)) < 1e-9;
+            const isHeadBeat = isIntegerBeat(pos);
             const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
             const isSelected = selectionIds ? selectionIds.has(sound.id) : false;
 

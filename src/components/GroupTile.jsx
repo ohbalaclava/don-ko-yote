@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { isIntegerBeat } from '../util.js';
 
 const TE_WIDTH_REM = 2;
 const BEAT_WIDTH_REM = TE_WIDTH_REM * 4;
@@ -33,7 +34,7 @@ export function GroupTile() {
           }}
         >
           {sound.sounds.map((s, i) => {
-            const isHeadBeat = Math.abs(subPos - Math.round(subPos)) < 1e-9;
+            const isHeadBeat = isIntegerBeat(subPos);
             subPos += s.duration;
             const widthStyle = settings.proportionalWidth
               ? `width: ${s.duration * BEAT_WIDTH_REM}rem`

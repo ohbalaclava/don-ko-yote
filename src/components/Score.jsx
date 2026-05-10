@@ -7,6 +7,7 @@ import { Line } from './Line.jsx';
 
 export function Score() {
   let sortable;
+  let keydownHandler;
 
   async function savePattern() {
     const line = piece.lines.find(l => l.id === piece.selection.lineId);
@@ -29,20 +30,17 @@ export function Score() {
         onEnd(evt) { piece.reorderLine(evt.oldIndex, evt.newIndex); },
       });
 
-      const handleKeydown = e => {
+      keydownHandler = e => {
         if (e.key === 'Backspace' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
           e.preventDefault();
           piece.undo();
         }
       };
-      document.addEventListener('keydown', handleKeydown);
-      Score.handleKeydown = handleKeydown;
+      document.addEventListener('keydown', keydownHandler);
     },
     onremove() {
       if (sortable) sortable.destroy();
-      if (Score.handleKeydown) {
-        document.removeEventListener('keydown', Score.handleKeydown);
-      }
+      if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
     },
     view() {
       const selCount = piece.selection.soundIds.length;
