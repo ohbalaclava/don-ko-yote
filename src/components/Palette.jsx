@@ -7,6 +7,10 @@ import { settings } from '../data/settings.js';
 export function Palette() {
   return {
     view() {
+      // Compute once and pass to tiles; otherwise each tile re-walks the
+      // selected line's sounds on every redraw.
+      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
+
       return (
         <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
           <div>
@@ -14,7 +18,7 @@ export function Palette() {
               Sounds — tap to add · drag to line
             </p>
             <div class="flex flex-wrap gap-1">
-              {SYMBOLS.map(sym => <SoundPaletteTile key={sym.name} sym={sym} />)}
+              {SYMBOLS.map(sym => <SoundPaletteTile key={sym.name} sym={sym} maxDur={maxDur} />)}
             </div>
           </div>
 
@@ -24,7 +28,7 @@ export function Palette() {
                   Patterns
                 </p>
                 <div class="flex flex-wrap gap-1">
-                  {patternStore.items.map(p => <PatternPaletteTile key={p.id} pattern={p} />)}
+                  {patternStore.items.map(p => <PatternPaletteTile key={p.id} pattern={p} maxDur={maxDur} />)}
                 </div>
               </div>
             : null}
@@ -95,14 +99,13 @@ function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
 function SoundPaletteTile() {
   let handler;
   return {
-    view({ attrs: { sym } }) {
+    view({ attrs: { sym, maxDur } }) {
       if (!handler) handler = dragBehaviour({
         ghostLabel: sym.name,
         ghostSub: sym.hand,
         onTap:  () => piece.selectedLineId && piece.addSound(piece.selectedLineId, sym),
         onDrop: lineId => piece.addSound(lineId, sym),
       });
-      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
       const disabled = sym.duration > maxDur;
       return (
         <div
@@ -120,7 +123,7 @@ function SoundPaletteTile() {
 function PatternPaletteTile() {
   let handler;
   return {
-    view({ attrs: { pattern } }) {
+    view({ attrs: { pattern, maxDur } }) {
       const beats = +(pattern.sounds.reduce((s, x) => s + x.duration, 0).toFixed(2));
       if (!handler) handler = dragBehaviour({
         ghostLabel: pattern.name,
@@ -128,7 +131,6 @@ function PatternPaletteTile() {
         onTap:  () => piece.selectedLineId && piece.addGroup(piece.selectedLineId, pattern),
         onDrop: lineId => piece.addGroup(lineId, pattern),
       });
-      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
       const disabled = beats > maxDur;
       return (
         <div class="flex items-center gap-1">
