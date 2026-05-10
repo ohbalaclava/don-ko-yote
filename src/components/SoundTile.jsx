@@ -73,8 +73,8 @@ export function SoundTile() {
 export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
-      return (<>
-        <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />
+      return [
+        <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
         <div
           key="ed"
           class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]"
@@ -114,7 +114,7 @@ export function SoundEditor() {
             onclick={() => { piece.removeSound(lineId, sound.id); piece.setEditingTile(null); }}
           >Remove</button>
         </div>
-      </>);
+      ];
     }
   };
 }

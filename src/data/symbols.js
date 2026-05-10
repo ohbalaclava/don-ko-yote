@@ -8,12 +8,14 @@ export const SYMBOLS = [
   { name: 'ku',   duration: 1/2,  hand: 'L' },
   { name: 'te',   duration: 1/4,  hand: 'R' },
   { name: 'ke',   duration: 1/4,  hand: 'L' },
-  { name: 'tere', duration: 1/2,  hand: 'R' },
-  { name: 'rere', duration: 1/2,  hand: 'R' },
+  { name: 're',   duration: 1/4,  hand: 'L' },
   { name: 'SU',   duration: 1},
   { name: 'su',   duration: 1/2},
   { name: "s'",   duration: 1/4},
+  { name: "'",   duration: 1/4},
   { name: 'HUP',  duration: 1},
+  { name: 'SO',   duration: 1},
+  { name: 'RE',   duration: 1},
 ];
 
 export const JIUCHI = [

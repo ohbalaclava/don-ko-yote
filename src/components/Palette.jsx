@@ -94,9 +94,11 @@ function SoundPaletteTile() {
         onTap:  () => piece.selectedLineId && piece.addSound(piece.selectedLineId, sym),
         onDrop: lineId => piece.addSound(lineId, sym),
       });
+      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
+      const disabled = sym.duration > maxDur;
       return (
         <div
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3rem] active:border-indigo-400"
+          class={`flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:border-indigo-400'}`}
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
@@ -118,10 +120,12 @@ function PatternPaletteTile() {
         onTap:  () => piece.selectedLineId && piece.addGroup(piece.selectedLineId, pattern),
         onDrop: lineId => piece.addGroup(lineId, pattern),
       });
+      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
+      const disabled = beats > maxDur;
       return (
         <div class="flex items-center gap-1">
           <div
-            class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 cursor-grab select-none min-w-[3.5rem] active:border-purple-500"
+            class={`flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:border-purple-500'}`}
             onpointerdown={handler}
           >
             <span class={`font-bold text-sm leading-tight text-purple-800 dark:text-purple-300 font-${settings.font}`}>{pattern.name}</span>

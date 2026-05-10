@@ -7,7 +7,10 @@
 1. ~~Mitsudomoe app icon~~
 1. ~~Mitsudomoe in front of title~~
 1. ~~Mitsudomoe watermark~~
-2. ~~move/duplicate lines~~
+1. ~~move/duplicate lines~~
+1. ~~emphasis - underline~~
+1. multiple skins - katsugi
+1. predefined patterns
 
 ## App Configuration
 1. ~~Allow for the possibility of app configuration ie settings. These should be edited through a modal dialog or whatever works best for mobile devices. The configuration should be saved to browser memory but also exportable to a json file. Support the following settings:~~
@@ -17,13 +20,13 @@
    
 ## Score configuration
 1. Jiuchi
-1. Max line width
-1. BPM
-1. Notes
-1. author
-1. icon
+1. ~~Max line width~~
+1. ~~BPM~~
+1. ~~Notes~~
+1. ~~author~~
+1. ~~icon~~
 
-## PDF
+## PDF/DOCX
 1. Remove the tile outlines.
 1. Export dialog with options for below: 
    1. Font
@@ -44,6 +47,7 @@
    2. Help - how to use
 1. shichisan sounds
 2. nagado sounds
+
 
 ## Non-functional
 1. Unit tests
