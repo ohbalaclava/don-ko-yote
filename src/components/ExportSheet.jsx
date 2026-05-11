@@ -43,7 +43,7 @@ export function ExportSheet() {
               <Item label="← Back" onclick={onClose} />
               <Item
                 label="Export PDF"
-                sublabel="Download as PDF file"
+                sublabel="Download score as PDF file"
                 onclick={wrap(() => exportPdf())}
               />
               <Item
