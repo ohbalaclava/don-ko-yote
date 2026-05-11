@@ -10,13 +10,13 @@ export function Score() {
   let keydownHandler;
 
   async function savePattern() {
-    const line = piece.lines.find(l => l.id === piece.selection.lineId);
+    const line = piece.lines.find((l) => l.id === piece.selection.lineId);
     if (!line) return;
     const selectedSet = new Set(piece.selection.soundIds);
     const sounds = line.sounds
-      .filter(s => selectedSet.has(s.id))
+      .filter((s) => selectedSet.has(s.id))
       .map(({ id: _id, ...rest }) => rest);
-    const name = sounds.map(s => s.name).join(' ');
+    const name = sounds.map((s) => s.name).join(' ');
     await patternStore.save(name, sounds);
     piece.clearSelection();
   }
@@ -27,10 +27,12 @@ export function Score() {
         handle: '.line-drag-handle',
         animation: 150,
         ghostClass: 'opacity-30',
-        onEnd(evt) { piece.reorderLine(evt.oldIndex, evt.newIndex); },
+        onEnd(evt) {
+          piece.reorderLine(evt.oldIndex, evt.newIndex);
+        },
       });
 
-      keydownHandler = e => {
+      keydownHandler = (e) => {
         if (e.key === 'Backspace' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
           e.preventDefault();
           piece.undo();
@@ -52,19 +54,23 @@ export function Score() {
             <button
               class={`text-xs font-semibold rounded px-2 py-1 border ${piece.selectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
               onclick={() => piece.toggleSelectMode()}
-            >{piece.selectMode ? 'Cancel' : 'Select'}</button>
+            >
+              {piece.selectMode ? 'Cancel' : 'Select'}
+            </button>
 
-            {hasSelection
-              ? [
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{selCount} selected</span>,
-                  <button
-                    class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
-                    onclick={savePattern}
-                  >Save pattern</button>
-                ]
-              : piece.selectMode
-                ? <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
-                : null}
+            {hasSelection ? (
+              [
+                <span class="text-xs text-gray-500 dark:text-gray-400">{selCount} selected</span>,
+                <button
+                  class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
+                  onclick={savePattern}
+                >
+                  Save pattern
+                </button>,
+              ]
+            ) : piece.selectMode ? (
+              <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
+            ) : null}
 
             <div class="ml-auto flex items-center gap-1">
               <button
@@ -72,13 +78,17 @@ export function Score() {
                 onclick={() => piece.undo()}
                 disabled={!history.canUndo()}
                 title="Undo (Ctrl+Z)"
-              >↺</button>
+              >
+                ↺
+              </button>
               <button
                 class={`text-sm rounded px-2 py-0.5 border ${history.canRedo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                 onclick={() => piece.redo()}
                 disabled={!history.canRedo()}
                 title="Redo (Ctrl+Y)"
-              >↻</button>
+              >
+                ↻
+              </button>
             </div>
           </div>
 
@@ -92,10 +102,12 @@ export function Score() {
             <button
               class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
               onclick={() => piece.addLine()}
-            >+ Add line</button>
+            >
+              + Add line
+            </button>
           </div>
         </div>
       );
-    }
+    },
   };
 }

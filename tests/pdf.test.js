@@ -12,7 +12,9 @@ const mockDoc = vi.hoisted(() => ({
 }));
 
 vi.mock('jspdf', () => ({
-  jsPDF: vi.fn(function() { return mockDoc; }),
+  jsPDF: vi.fn(function () {
+    return mockDoc;
+  }),
 }));
 
 const mockPiece = vi.hoisted(() => ({

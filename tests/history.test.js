@@ -49,7 +49,10 @@ describe('history', () => {
       // MAX=32 means 32 total entries (current + 31 prior), so max undos = 31.
       for (let i = 1; i <= 40; i++) history.push({ val: i });
       let count = 0;
-      while (history.canUndo()) { history.undo(); count++; }
+      while (history.canUndo()) {
+        history.undo();
+        count++;
+      }
       expect(count).toBe(31);
     });
 

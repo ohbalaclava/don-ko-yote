@@ -30,12 +30,12 @@ export function exportPdf() {
     doc.text(String(li + 1), margin, y + 4);
     doc.setTextColor(0);
 
-    const flatSounds = line.sounds.flatMap(s => s.type === 'group' ? s.sounds : [s]);
+    const flatSounds = line.sounds.flatMap((s) => (s.type === 'group' ? s.sounds : [s]));
     const tileW = Math.min(usableW / Math.max(flatSounds.length, 1), 18);
     const tileH = 14;
     let x = margin + 5;
 
-    flatSounds.forEach(sound => {
+    flatSounds.forEach((sound) => {
       // Border
       doc.setDrawColor(180);
       doc.rect(x, y, tileW - 1, tileH);
@@ -63,7 +63,10 @@ export function exportPdf() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(5.5);
         doc.setTextColor(80);
-        doc.text(sound.instruction, x + (tileW - 1) / 2, y + 11.5, { align: 'center', maxWidth: tileW - 2 });
+        doc.text(sound.instruction, x + (tileW - 1) / 2, y + 11.5, {
+          align: 'center',
+          maxWidth: tileW - 2,
+        });
         doc.setTextColor(0);
       }
 

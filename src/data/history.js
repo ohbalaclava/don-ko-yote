@@ -24,8 +24,12 @@ export const history = {
     ptr = stack.length - 1;
   },
 
-  canUndo() { return ptr > 0; },
-  canRedo() { return ptr < stack.length - 1; },
+  canUndo() {
+    return ptr > 0;
+  },
+  canRedo() {
+    return ptr < stack.length - 1;
+  },
 
   /** @returns {object|null} The state to restore, or null if already at the beginning. */
   undo() {

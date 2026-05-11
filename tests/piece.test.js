@@ -13,8 +13,12 @@ function sym(name = 'Don', hand = 'R', duration = 1) {
   return { name, hand, duration };
 }
 
-function line(idx = 0) { return piece.lines[idx]; }
-function sounds(lineIdx = 0) { return piece.lines[lineIdx].sounds; }
+function line(idx = 0) {
+  return piece.lines[idx];
+}
+function sounds(lineIdx = 0) {
+  return piece.lines[lineIdx].sounds;
+}
 
 beforeEach(() => {
   piece.reset('gobu-gobu', 8);
@@ -128,7 +132,7 @@ describe('moveSounds', () => {
   it('preserves the relative order of moved sounds', () => {
     piece.addSound(line().id, sym('A'));
     piece.addSound(line().id, sym('B'));
-    const ids = sounds().map(s => s.id);
+    const ids = sounds().map((s) => s.id);
     piece.addLine();
     piece.moveSounds(line(0).id, ids, line(1).id, 0);
     expect(sounds(1)[0].name).toBe('A');
@@ -223,7 +227,7 @@ describe('addGroup', () => {
     expect(totalSounds).toBe(3);
     expect(piece.lines.length).toBeGreaterThan(1);
     // No group tiles — each sound is placed individually
-    piece.lines.forEach(l => l.sounds.forEach(s => expect(s.type).toBeUndefined()));
+    piece.lines.forEach((l) => l.sounds.forEach((s) => expect(s.type).toBeUndefined()));
   });
 });
 
@@ -233,7 +237,10 @@ describe('expandGroup', () => {
   it('replaces the group tile with its constituent sounds', () => {
     piece.addGroup(line().id, {
       name: 'Pat',
-      sounds: [{ name: 'A', hand: 'R', duration: 1 }, { name: 'B', hand: 'L', duration: 1 }],
+      sounds: [
+        { name: 'A', hand: 'R', duration: 1 },
+        { name: 'B', hand: 'L', duration: 1 },
+      ],
     });
     piece.expandGroup(line().id, sounds()[0].id);
     expect(sounds()).toHaveLength(2);
@@ -288,7 +295,7 @@ describe('toggleSoundSelection', () => {
     piece.addSound(line().id, sym('A'));
     piece.addSound(line().id, sym('B'));
     piece.addSound(line().id, sym('C'));
-    const [idA, idB, idC] = sounds().map(s => s.id);
+    const [idA, idB, idC] = sounds().map((s) => s.id);
     piece.toggleSoundSelection(line().id, idA);
     piece.toggleSoundSelection(line().id, idC);
     expect(piece.selection.soundIds).toEqual([idA, idB, idC]);
@@ -299,7 +306,7 @@ describe('toggleSoundSelection', () => {
     piece.addSound(line().id, sym('A'));
     piece.addSound(line().id, sym('B'));
     piece.addSound(line().id, sym('C'));
-    const [idA, idB, idC] = sounds().map(s => s.id);
+    const [idA, idB, idC] = sounds().map((s) => s.id);
     piece.toggleSoundSelection(line().id, idC); // anchor = C
     piece.toggleSoundSelection(line().id, idA); // extend backwards to A
     expect(piece.selection.soundIds).toEqual([idA, idB, idC]);
@@ -324,7 +331,7 @@ describe('removeLine', () => {
     const idToRemove = piece.lines[1].id;
     piece.removeLine(idToRemove);
     expect(piece.lines).toHaveLength(1);
-    expect(piece.lines.find(l => l.id === idToRemove)).toBeUndefined();
+    expect(piece.lines.find((l) => l.id === idToRemove)).toBeUndefined();
   });
 
   it('always keeps at least one line', () => {
@@ -336,7 +343,7 @@ describe('removeLine', () => {
   it('selects the nearest remaining line when the selected line is removed', () => {
     piece.addLine();
     piece.addLine();
-    const [id0, id1, id2] = piece.lines.map(l => l.id);
+    const [id0, id1, id2] = piece.lines.map((l) => l.id);
     piece.selectLine(id1);
     piece.removeLine(id1);
     expect([id0, id2]).toContain(piece.selectedLineId);
@@ -425,7 +432,7 @@ describe('reorderLine', () => {
   it('moves a line to a new index', () => {
     piece.addLine();
     piece.addLine();
-    const ids = piece.lines.map(l => l.id);
+    const ids = piece.lines.map((l) => l.id);
     piece.reorderLine(0, 2);
     expect(piece.lines[2].id).toBe(ids[0]);
     expect(piece.lines[0].id).toBe(ids[1]);
@@ -433,9 +440,9 @@ describe('reorderLine', () => {
 
   it('is a no-op when from and to are the same', () => {
     piece.addLine();
-    const idsBefore = piece.lines.map(l => l.id);
+    const idsBefore = piece.lines.map((l) => l.id);
     piece.reorderLine(1, 1);
-    expect(piece.lines.map(l => l.id)).toEqual(idsBefore);
+    expect(piece.lines.map((l) => l.id)).toEqual(idsBefore);
   });
 });
 

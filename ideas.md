@@ -1,4 +1,5 @@
 ## Display
+
 1. ~~Click on a tile to add it to end of the current line. Will require lines to be selectable.~~
 1. ~~Allow a sequence of tiles to be selected and grouped so they can be added to a library of patterns. Patterns in the library can then be added as a group tile to the score.~~
 1. ~~Move the 'hand' to the bottom of the tile~~
@@ -13,12 +14,14 @@
 1. predefined patterns
 
 ## App Configuration
+
 1. ~~Allow for the possibility of app configuration ie settings. These should be edited through a modal dialog or whatever works best for mobile devices. The configuration should be saved to browser memory but also exportable to a json file. Support the following settings:~~
    1. ~~Toggle proportional tile width. Tiles should either be all the same width or their width should be proportional to the fraction of the beat that they occupy.~~
    1. ~~Font. There should be a serif font, a sans serif font, a monospaced font, and a script font (ideally with a brushed, far-eastern look)~~
    1. ~~Dark mode/light mode~~
-   
+
 ## Score configuration
+
 1. Jiuchi
 1. ~~Max line width~~
 1. ~~BPM~~
@@ -27,8 +30,9 @@
 1. ~~icon~~
 
 ## PDF/DOCX
+
 1. Remove the tile outlines.
-1. Export dialog with options for below: 
+1. Export dialog with options for below:
    1. Font
    1. Add icon
    1. Add background
@@ -36,6 +40,7 @@
    1. Add date
 
 ## New Features
+
 1. ~~Menu button to toggle a menu with the following items:~~
    1. ~~New button - request jiuchi and beats per line~~
    1. ~~Save button - save to browser memory. Automatically save if a score's title is changed.~~
@@ -43,19 +48,20 @@
    1. ~~Export button - export to json file~~
    1. ~~Import tiles button - import from json file~~
    1. ~~Export to PDF~~
-   2. ~~Clear button with confirmation dialog~~
-   2. Help - how to use
+   1. ~~Clear button with confirmation dialog~~
+   1. Help - how to use
 1. shichisan sounds
-2. nagado sounds
-
+1. nagado sounds
 
 ## Non-functional
+
 1. Unit tests
 1. code formatter
 
 ## Bugs
+
 1. ~~dark mode not quite working - text should be light~~
 1. ~~script font looks rubbish - find another one~~
 1. ~~not sure all tiles are proportional - te & ke~~
 1. ~~export pdf: Invalid arguments passed to jsPDF.text~~
-2. ~~favicon should have white triskelion~~
+1. ~~favicon should have white triskelion~~

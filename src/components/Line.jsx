@@ -96,7 +96,7 @@ function measureInstructions(dom, line) {
 
   const items = [];
   for (const tile of tiles) {
-    const sound = line.sounds.find(s => s.id === tile.dataset.soundId);
+    const sound = line.sounds.find((s) => s.id === tile.dataset.soundId);
     if (!sound?.instruction) continue;
     const rect = tile.getBoundingClientRect();
     items.push({
@@ -181,18 +181,27 @@ export function Line() {
     if (lpTimer == null) return;
     const dx = e.clientX - lpStartX;
     const dy = e.clientY - lpStartY;
-    if (dx * dx + dy * dy > 25) { clearTimeout(lpTimer); lpTimer = null; }
+    if (dx * dx + dy * dy > 25) {
+      clearTimeout(lpTimer);
+      lpTimer = null;
+    }
   }
 
   function lpEnd() {
-    if (lpTimer != null) { clearTimeout(lpTimer); lpTimer = null; }
+    if (lpTimer != null) {
+      clearTimeout(lpTimer);
+      lpTimer = null;
+    }
   }
 
   // SortableJS is disabled while select mode is active to prevent accidental drags
   // from interfering with tap-based selection.
   function ensureSortable() {
     if (piece.selectMode) {
-      if (sortable) { sortable.destroy(); sortable = null; }
+      if (sortable) {
+        sortable.destroy();
+        sortable = null;
+      }
       return;
     }
     if (sortable) return;
@@ -246,49 +255,67 @@ export function Line() {
     view({ attrs: { line, index } }) {
       const beats = lineDuration(line);
       const selected = piece.selectedLineId === line.id;
-      const selectionIds = piece.selectMode && piece.selection.lineId === line.id
-        ? new Set(piece.selection.soundIds)
-        : null;
+      const selectionIds =
+        piece.selectMode && piece.selection.lineId === line.id
+          ? new Set(piece.selection.soundIds)
+          : null;
 
       return (
         <div
           class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${selected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
           onclick={() => piece.selectLine(line.id)}
         >
-          <div class="line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none" title="Drag to reorder">
+          <div
+            class="line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none"
+            title="Drag to reorder"
+          >
             <span class="text-gray-300 dark:text-gray-600 text-sm leading-none">⠿</span>
-            <span class={`text-xs ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}>{index + 1}</span>
+            <span
+              class={`text-xs ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+              {index + 1}
+            </span>
           </div>
           <div
             class="sounds-and-instructions relative flex-1 min-w-0"
             style={wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : ''}
           >
             <div class="flex items-start gap-1">
-            <div
-              class="sounds-container flex flex-wrap gap-x-1 gap-y-4 min-h-[3.5rem] pt-3 flex-1"
-              data-line-id={line.id}
-              onpointerdown={lpStart}
-              onpointermove={lpMove}
-              onpointerup={lpEnd}
-              onpointercancel={lpEnd}
-              onpointerleave={lpEnd}
-            >
-              {groupSoundsForDisplay(line.sounds).map(item => {
-                if (item.sounds) {
+              <div
+                class="sounds-container flex flex-wrap gap-x-1 gap-y-4 min-h-[3.5rem] pt-3 flex-1"
+                data-line-id={line.id}
+                onpointerdown={lpStart}
+                onpointermove={lpMove}
+                onpointerup={lpEnd}
+                onpointercancel={lpEnd}
+                onpointerleave={lpEnd}
+              >
+                {groupSoundsForDisplay(line.sounds).map((item) => {
+                  if (item.sounds) {
+                    return (
+                      <LigatureTile
+                        key={item.sounds[0].id}
+                        sounds={item.sounds}
+                        lineId={line.id}
+                        startPos={item.startPos}
+                        selectionIds={selectionIds}
+                      />
+                    );
+                  }
+                  const s = item.sound;
+                  if (s.type === 'group') {
+                    return (
+                      <GroupTile
+                        key={s.id}
+                        sound={s}
+                        lineId={line.id}
+                        startPos={item.startPos}
+                        isSelected={selectionIds ? selectionIds.has(s.id) : false}
+                      />
+                    );
+                  }
                   return (
-                    <LigatureTile
-                      key={item.sounds[0].id}
-                      sounds={item.sounds}
-                      lineId={line.id}
-                      startPos={item.startPos}
-                      selectionIds={selectionIds}
-                    />
-                  );
-                }
-                const s = item.sound;
-                if (s.type === 'group') {
-                  return (
-                    <GroupTile
+                    <SoundTile
                       key={s.id}
                       sound={s}
                       lineId={line.id}
@@ -296,43 +323,54 @@ export function Line() {
                       isSelected={selectionIds ? selectionIds.has(s.id) : false}
                     />
                   );
-                }
-                return (
-                  <SoundTile
-                    key={s.id}
-                    sound={s}
-                    lineId={line.id}
-                    startPos={item.startPos}
-                    isSelected={selectionIds ? selectionIds.has(s.id) : false}
-                  />
-                );
-              })}
-            </div>
-            <div
-              class={`shrink-0 mt-3 flex flex-row items-baseline justify-center border-2 rounded shadow-sm font-bold cursor-pointer select-none min-w-[3rem] px-2 py-1 ${editingRepeat || (line.repeat || 1) > 1 ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600'}`}
-              onclick={e => { if (!editingRepeat) { e.stopPropagation(); editingRepeat = true; m.redraw(); } }}
-              title="Set repeat count"
-            >
-              <span class="text-xs leading-none mr-0.5">×</span>
-              {editingRepeat
-                ? <input
+                })}
+              </div>
+              <div
+                class={`shrink-0 mt-3 flex flex-row items-baseline justify-center border-2 rounded shadow-sm font-bold cursor-pointer select-none min-w-[3rem] px-2 py-1 ${editingRepeat || (line.repeat || 1) > 1 ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600'}`}
+                onclick={(e) => {
+                  if (!editingRepeat) {
+                    e.stopPropagation();
+                    editingRepeat = true;
+                    m.redraw();
+                  }
+                }}
+                title="Set repeat count"
+              >
+                <span class="text-xs leading-none mr-0.5">×</span>
+                {editingRepeat ? (
+                  <input
                     type="number"
                     min="1"
                     class="w-7 text-sm text-center bg-transparent border-b border-indigo-400 outline-none font-bold"
                     value={line.repeat || 1}
-                    onclick={e => e.stopPropagation()}
-                    onchange={e => { piece.setLineRepeat(line.id, e.target.value); }}
-                    onblur={e => { piece.setLineRepeat(line.id, e.target.value); editingRepeat = false; m.redraw(); }}
-                    onkeydown={e => { if (e.key === 'Enter' || e.key === 'Escape') { piece.setLineRepeat(line.id, e.target.value); editingRepeat = false; m.redraw(); } e.stopPropagation(); }}
-                    oncreate={({ dom }) => { dom.focus(); dom.select(); }}
+                    onclick={(e) => e.stopPropagation()}
+                    onchange={(e) => {
+                      piece.setLineRepeat(line.id, e.target.value);
+                    }}
+                    onblur={(e) => {
+                      piece.setLineRepeat(line.id, e.target.value);
+                      editingRepeat = false;
+                      m.redraw();
+                    }}
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Escape') {
+                        piece.setLineRepeat(line.id, e.target.value);
+                        editingRepeat = false;
+                        m.redraw();
+                      }
+                      e.stopPropagation();
+                    }}
+                    oncreate={({ dom }) => {
+                      dom.focus();
+                      dom.select();
+                    }}
                   />
-                : (line.repeat || 1) > 1
-                  ? <span class="text-xl leading-none">{line.repeat}</span>
-                  : null
-              }
+                ) : (line.repeat || 1) > 1 ? (
+                  <span class="text-xl leading-none">{line.repeat}</span>
+                ) : null}
+              </div>
             </div>
-            </div>
-            {instructionLayouts.map(layout => (
+            {instructionLayouts.map((layout) => (
               <span
                 key={layout.id}
                 class="absolute text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
@@ -346,17 +384,27 @@ export function Line() {
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
             <button
               class="text-base text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
-              onclick={e => { e.stopPropagation(); piece.duplicateLine(line.id); }}
+              onclick={(e) => {
+                e.stopPropagation();
+                piece.duplicateLine(line.id);
+              }}
               title="Duplicate line"
-            >⊕</button>
+            >
+              ⊕
+            </button>
             <button
               class="text-xs text-red-400 hover:text-red-600"
-              onclick={e => { e.stopPropagation(); piece.removeLine(line.id); }}
+              onclick={(e) => {
+                e.stopPropagation();
+                piece.removeLine(line.id);
+              }}
               title="Remove line"
-            >✕</button>
+            >
+              ✕
+            </button>
           </div>
         </div>
       );
-    }
+    },
   };
 }

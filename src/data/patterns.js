@@ -18,7 +18,7 @@ export const patternStore = {
 
   async delete(id) {
     await db.patterns.delete(id);
-    patternStore.items = patternStore.items.filter(p => p.id !== id);
+    patternStore.items = patternStore.items.filter((p) => p.id !== id);
     m.redraw();
   },
 };

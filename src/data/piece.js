@@ -6,7 +6,13 @@ let _nextId = 1;
 const uid = () => String(_nextId++);
 
 function makeSound(symbol) {
-  return { id: uid(), name: symbol.name, hand: symbol.hand, duration: symbol.duration, instruction: '' };
+  return {
+    id: uid(),
+    name: symbol.name,
+    hand: symbol.hand,
+    duration: symbol.duration,
+    instruction: '',
+  };
 }
 
 function makeLine() {
@@ -101,7 +107,7 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
-    if (!piece.lines.find(l => l.id === piece.selectedLineId)) {
+    if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId = piece.lines[0]?.id ?? null;
     }
   },
@@ -151,19 +157,49 @@ export const piece = {
     m.redraw();
   },
 
-  setTitle(v) { piece.title = v; history.push(piece._snapshot()); m.redraw(); },
-  setJiuchi(v) { piece.jiuchi = v; history.push(piece._snapshot()); m.redraw(); },
-  setBeatsPerLine(v) { piece.beatsPerLine = Number(v); history.push(piece._snapshot()); m.redraw(); },
-  setBpm(v) { piece.bpm = Number(v); history.push(piece._snapshot()); m.redraw(); },
-  setAuthor(v) { piece.author = v; history.push(piece._snapshot()); m.redraw(); },
-  setIcon(dataUrl) { piece.icon = dataUrl; history.push(piece._snapshot()); m.redraw(); },
-  selectLine(id) { piece.selectedLineId = id; m.redraw(); },
+  setTitle(v) {
+    piece.title = v;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setJiuchi(v) {
+    piece.jiuchi = v;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setBeatsPerLine(v) {
+    piece.beatsPerLine = Number(v);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setBpm(v) {
+    piece.bpm = Number(v);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setAuthor(v) {
+    piece.author = v;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setIcon(dataUrl) {
+    piece.icon = dataUrl;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  selectLine(id) {
+    piece.selectedLineId = id;
+    m.redraw();
+  },
 
   /**
    * Opens or closes the inline tile editor popup.
    * @param {{ lineId: string, soundId: string } | null} info - Pass null to close.
    */
-  setEditingTile(info) { piece.editingTile = info; m.redraw(); },
+  setEditingTile(info) {
+    piece.editingTile = info;
+    m.redraw();
+  },
 
   // ── Select mode ───────────────────────────────────────────────────────────
 
@@ -183,9 +219,9 @@ export const piece = {
    * @param {string} soundId
    */
   toggleSoundSelection(lineId, soundId) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
-    const idx = line.sounds.findIndex(s => s.id === soundId);
+    const idx = line.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
 
     const sel = piece.selection;
@@ -197,7 +233,7 @@ export const piece = {
       return;
     }
 
-    const anchorIdx = line.sounds.findIndex(s => s.id === sel.anchorId);
+    const anchorIdx = line.sounds.findIndex((s) => s.id === sel.anchorId);
     if (anchorIdx === -1) {
       piece.selection = { lineId, anchorId: soundId, soundIds: [soundId] };
       m.redraw();
@@ -213,7 +249,7 @@ export const piece = {
 
     const lo = Math.min(anchorIdx, idx);
     const hi = Math.max(anchorIdx, idx);
-    const ids = line.sounds.slice(lo, hi + 1).map(s => s.id);
+    const ids = line.sounds.slice(lo, hi + 1).map((s) => s.id);
     piece.selection = { lineId, anchorId: sel.anchorId, soundIds: ids };
     m.redraw();
   },
@@ -250,18 +286,18 @@ export const piece = {
    * @param {string} lineId
    */
   duplicateLine(lineId) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
     const copy = {
       id: uid(),
       repeat: line.repeat || 1,
-      sounds: line.sounds.map(s => ({
+      sounds: line.sounds.map((s) => ({
         ...s,
         id: uid(),
-        ...(s.type === 'group' ? { sounds: s.sounds.map(gs => ({ ...gs, id: uid() })) } : {}),
+        ...(s.type === 'group' ? { sounds: s.sounds.map((gs) => ({ ...gs, id: uid() })) } : {}),
       })),
     };
-    const idx = piece.lines.findIndex(l => l.id === lineId);
+    const idx = piece.lines.findIndex((l) => l.id === lineId);
     piece.lines.splice(idx + 1, 0, copy);
     piece.selectedLineId = copy.id;
     history.push(piece._snapshot());
@@ -269,7 +305,7 @@ export const piece = {
   },
 
   setLineRepeat(lineId, value) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
     line.repeat = Math.max(1, Math.round(Number(value)) || 1);
     history.push(piece._snapshot());
@@ -282,8 +318,8 @@ export const piece = {
    * @param {string} lineId
    */
   removeLine(lineId) {
-    const idx = piece.lines.findIndex(l => l.id === lineId);
-    piece.lines = piece.lines.filter(l => l.id !== lineId);
+    const idx = piece.lines.findIndex((l) => l.id === lineId);
+    piece.lines = piece.lines.filter((l) => l.id !== lineId);
     if (piece.lines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);
@@ -306,7 +342,7 @@ export const piece = {
    */
   maxAddDuration(lineId) {
     if (!settings.beatBoundaries) return Infinity;
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return Infinity;
     const frac = beatFractional(line.sounds, line.sounds.length);
     return frac === 0 ? Infinity : 1 - frac;
@@ -321,12 +357,12 @@ export const piece = {
    * @param {number} [atIndex] - Insert position within the line; appends if omitted.
    */
   addSound(lineId, symbol, atIndex) {
-    const fromIdx = piece.lines.findIndex(l => l.id === lineId);
+    const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     const s = makeSound(symbol);
     const tIdx = targetLineIdx(fromIdx, s.duration);
     const target = piece.lines[tIdx];
-    const insertAt = (tIdx === fromIdx && atIndex != null) ? atIndex : target.sounds.length;
+    const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
     if (settings.beatBoundaries) {
       const frac = beatFractional(target.sounds, insertAt);
       if (frac > 0 && s.duration > 1 - frac) return;
@@ -348,14 +384,17 @@ export const piece = {
    * @param {number} toIndex
    */
   moveSound(fromLineId, soundId, toLineId, toIndex) {
-    const fromLine = piece.lines.find(l => l.id === fromLineId);
-    const toLine   = piece.lines.find(l => l.id === toLineId);
+    const fromLine = piece.lines.find((l) => l.id === fromLineId);
+    const toLine = piece.lines.find((l) => l.id === toLineId);
     if (!fromLine || !toLine) return;
-    const idx = fromLine.sounds.findIndex(s => s.id === soundId);
+    const idx = fromLine.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
     const sound = fromLine.sounds[idx];
-    if (fromLineId !== toLineId && piece.beatsPerLine > 0 &&
-        lineDur(toLine) + sound.duration > piece.beatsPerLine) {
+    if (
+      fromLineId !== toLineId &&
+      piece.beatsPerLine > 0 &&
+      lineDur(toLine) + sound.duration > piece.beatsPerLine
+    ) {
       m.redraw(); // revert SortableJS DOM change
       return;
     }
@@ -373,26 +412,29 @@ export const piece = {
    * @param {number} toIndex - Insertion point in the target line's data array.
    */
   moveSounds(fromLineId, soundIds, toLineId, toIndex) {
-    const fromLine = piece.lines.find(l => l.id === fromLineId);
-    const toLine   = piece.lines.find(l => l.id === toLineId);
+    const fromLine = piece.lines.find((l) => l.id === fromLineId);
+    const toLine = piece.lines.find((l) => l.id === toLineId);
     if (!fromLine || !toLine) return;
     const idSet = new Set(soundIds);
-    const sounds = fromLine.sounds.filter(s => idSet.has(s.id));
+    const sounds = fromLine.sounds.filter((s) => idSet.has(s.id));
     if (sounds.length !== soundIds.length) return;
     if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
       const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
-      if (lineDur(toLine) + totalDur > piece.beatsPerLine) { m.redraw(); return; }
+      if (lineDur(toLine) + totalDur > piece.beatsPerLine) {
+        m.redraw();
+        return;
+      }
     }
-    fromLine.sounds = fromLine.sounds.filter(s => !idSet.has(s.id));
+    fromLine.sounds = fromLine.sounds.filter((s) => !idSet.has(s.id));
     toLine.sounds.splice(toIndex, 0, ...sounds);
     history.push(piece._snapshot());
     m.redraw();
   },
 
   removeSound(lineId, soundId) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
-    line.sounds = line.sounds.filter(s => s.id !== soundId);
+    line.sounds = line.sounds.filter((s) => s.id !== soundId);
     history.push(piece._snapshot());
     m.redraw();
   },
@@ -404,9 +446,9 @@ export const piece = {
    * @param {Partial<{ hand: string, instruction: string }>} patch
    */
   updateSound(lineId, soundId, patch) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
-    const s = line.sounds.find(s => s.id === soundId);
+    const s = line.sounds.find((s) => s.id === soundId);
     if (!s) return;
     Object.assign(s, patch);
     history.push(piece._snapshot());
@@ -423,7 +465,7 @@ export const piece = {
    * @param {number} [atIndex] - Insert position within the line; appends if omitted.
    */
   addGroup(lineId, pattern, atIndex) {
-    const fromIdx = piece.lines.findIndex(l => l.id === lineId);
+    const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     const patternDur = pattern.sounds.reduce((sum, s) => sum + s.duration, 0);
     const max = piece.beatsPerLine;
@@ -438,7 +480,7 @@ export const piece = {
       };
       const tIdx = targetLineIdx(fromIdx, group.duration);
       const target = piece.lines[tIdx];
-      const insertAt = (tIdx === fromIdx && atIndex != null) ? atIndex : target.sounds.length;
+      const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
       if (settings.beatBoundaries) {
         const frac = beatFractional(target.sounds, insertAt);
         if (frac > 0 && group.duration > 1 - frac) return;
@@ -469,13 +511,13 @@ export const piece = {
    * @param {string} soundId - ID of the group tile to expand.
    */
   expandGroup(lineId, soundId) {
-    const line = piece.lines.find(l => l.id === lineId);
+    const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
-    const idx = line.sounds.findIndex(s => s.id === soundId);
+    const idx = line.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
     const group = line.sounds[idx];
     if (group.type !== 'group') return;
-    const expanded = group.sounds.map(s => ({ ...s, id: uid() }));
+    const expanded = group.sounds.map((s) => ({ ...s, id: uid() }));
     line.sounds.splice(idx, 1, ...expanded);
     piece.editingTile = null;
     history.push(piece._snapshot());

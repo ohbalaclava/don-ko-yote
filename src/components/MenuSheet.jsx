@@ -10,28 +10,32 @@ function Item() {
           onclick={onclick}
         >
           <span class="font-medium">{label}</span>
-          {sublabel ? <span class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sublabel}</span> : null}
+          {sublabel ? (
+            <span class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sublabel}</span>
+          ) : null}
         </button>
       );
-    }
+    },
   };
 }
 
 export function MenuSheet() {
   return {
-    view({ attrs: { onClose, onNew, onSave, onLoad, onExportJson, onImportJson, onClear, onHelp } }) {
+    view({
+      attrs: { onClose, onNew, onSave, onLoad, onExportJson, onImportJson, onClear, onHelp },
+    }) {
       function wrap(fn) {
-        return () => { onClose(); fn && fn(); };
+        return () => {
+          onClose();
+          fn && fn();
+        };
       }
 
       return (
-        <div
-          class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end"
-          onclick={onClose}
-        >
+        <div class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end" onclick={onClose}>
           <div
             class="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
-            onclick={e => e.stopPropagation()}
+            onclick={(e) => e.stopPropagation()}
           >
             <div class="flex justify-center pt-3 pb-2">
               <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
@@ -41,8 +45,16 @@ export function MenuSheet() {
               <Item label="New" sublabel="Start a fresh score" onclick={wrap(onNew)} />
               <Item label="Save" sublabel="Save to browser memory" onclick={wrap(onSave)} />
               <Item label="Load" sublabel="Load from browser memory" onclick={wrap(onLoad)} />
-              <Item label="Export score" sublabel="Download score as JSON file" onclick={wrap(onExportJson)} />
-              <Item label="Import score" sublabel="Load score from JSON file" onclick={wrap(onImportJson)} />
+              <Item
+                label="Export score"
+                sublabel="Download score as JSON file"
+                onclick={wrap(onExportJson)}
+              />
+              <Item
+                label="Import score"
+                sublabel="Load score from JSON file"
+                onclick={wrap(onImportJson)}
+              />
               <Item label="Export PDF" onclick={wrap(() => exportPdf())} />
               <Item label="Clear" danger onclick={wrap(onClear)} />
               <Item label="Help" onclick={wrap(onHelp)} />
@@ -50,6 +62,6 @@ export function MenuSheet() {
           </div>
         </div>
       );
-    }
+    },
   };
 }

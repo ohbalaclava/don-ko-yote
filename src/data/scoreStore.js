@@ -28,7 +28,7 @@ export const scoreStore = {
    */
   init() {
     const orig = piece.setTitle.bind(piece);
-    piece.setTitle = v => {
+    piece.setTitle = (v) => {
       orig(v);
       if (piece.id) {
         clearTimeout(autoSaveTimer);
@@ -56,18 +56,18 @@ export const scoreStore = {
   async loadScore(id) {
     const score = await db.scores.get(id);
     if (!score) return;
-    piece.id        = score.id;
-    piece.title     = score.title;
-    piece.jiuchi    = score.jiuchi;
+    piece.id = score.id;
+    piece.title = score.title;
+    piece.jiuchi = score.jiuchi;
     piece.beatsPerLine = score.beatsPerLine;
-    piece.bpm       = score.bpm    ?? 120;
-    piece.author    = score.author ?? '';
-    piece.icon      = score.icon   ?? null;
-    piece.lines     = score.lines;
+    piece.bpm = score.bpm ?? 120;
+    piece.author = score.author ?? '';
+    piece.icon = score.icon ?? null;
+    piece.lines = score.lines;
     piece.selectedLineId = score.lines[0]?.id ?? null;
     piece.editingTile = null;
-    piece.selectMode  = false;
-    piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     history.reset(piece._snapshot());
     scoreStore.items = await db.scores.all();
     m.redraw();
@@ -81,7 +81,7 @@ export const scoreStore = {
   async delete(id) {
     await db.scores.delete(id);
     if (piece.id === id) piece.id = null;
-    scoreStore.items = scoreStore.items.filter(s => s.id !== id);
+    scoreStore.items = scoreStore.items.filter((s) => s.id !== id);
     m.redraw();
   },
 
@@ -104,20 +104,20 @@ export const scoreStore = {
    */
   importJson(text) {
     const data = JSON.parse(text);
-    piece.id           = null;
-    piece.title        = data.title        ?? 'Untitled';
-    piece.jiuchi       = data.jiuchi       ?? piece.jiuchi;
+    piece.id = null;
+    piece.title = data.title ?? 'Untitled';
+    piece.jiuchi = data.jiuchi ?? piece.jiuchi;
     piece.beatsPerLine = data.beatsPerLine ?? piece.beatsPerLine;
-    piece.bpm          = data.bpm          ?? 120;
-    piece.author       = data.author       ?? '';
-    piece.icon         = data.icon         ?? null;
+    piece.bpm = data.bpm ?? 120;
+    piece.author = data.author ?? '';
+    piece.icon = data.icon ?? null;
     if (Array.isArray(data.lines) && data.lines.length) {
       piece.lines = data.lines;
       piece.selectedLineId = data.lines[0].id;
     }
     piece.editingTile = null;
-    piece.selectMode  = false;
-    piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     history.reset(piece._snapshot());
     m.redraw();
   },

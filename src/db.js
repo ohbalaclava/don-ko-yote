@@ -9,8 +9,7 @@ function openDB() {
 
     req.onupgradeneeded = ({ target: { result: db } }) => {
       // Key-value store for singleton data (app settings, score settings)
-      if (!db.objectStoreNames.contains('kv'))
-        db.createObjectStore('kv');
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
 
       // Collections
       if (!db.objectStoreNames.contains('scores'))
@@ -20,7 +19,7 @@ function openDB() {
     };
 
     req.onsuccess = ({ target: { result } }) => resolve(result);
-    req.onerror  = ({ target: { error  } }) => reject(error);
+    req.onerror = ({ target: { error } }) => reject(error);
   });
 }
 
@@ -42,7 +41,7 @@ async function tx(storeName, mode, fn) {
     t.onerror = () => reject(t.error);
     const r = fn(t.objectStore(storeName));
     r.onsuccess = () => resolve(r.result);
-    r.onerror   = () => reject(r.error);
+    r.onerror = () => reject(r.error);
   });
 }
 
@@ -54,13 +53,13 @@ async function tx(storeName, mode, fn) {
  */
 function collection(storeName) {
   return {
-    all:    ()     => tx(storeName, 'readonly',  s => s.getAll()),
-    get:    id     => tx(storeName, 'readonly',  s => s.get(id)),
-    delete: id     => tx(storeName, 'readwrite', s => s.delete(id)),
+    all: () => tx(storeName, 'readonly', (s) => s.getAll()),
+    get: (id) => tx(storeName, 'readonly', (s) => s.get(id)),
+    delete: (id) => tx(storeName, 'readwrite', (s) => s.delete(id)),
 
     async save(item) {
       const record = { ...item, id: item.id ?? crypto.randomUUID() };
-      await tx(storeName, 'readwrite', s => s.put(record));
+      await tx(storeName, 'readwrite', (s) => s.put(record));
       return record;
     },
   };
@@ -84,11 +83,11 @@ function collection(storeName) {
 
 export const db = {
   kv: {
-    get:    key       => tx('kv', 'readonly',  s => s.get(key)),
-    set:    (key, val) => tx('kv', 'readwrite', s => s.put(val, key)),
-    delete: key       => tx('kv', 'readwrite', s => s.delete(key)),
+    get: (key) => tx('kv', 'readonly', (s) => s.get(key)),
+    set: (key, val) => tx('kv', 'readwrite', (s) => s.put(val, key)),
+    delete: (key) => tx('kv', 'readwrite', (s) => s.delete(key)),
   },
 
-  scores:   collection('scores'),
+  scores: collection('scores'),
   patterns: collection('patterns'),
 };

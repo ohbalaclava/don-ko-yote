@@ -12,26 +12,32 @@ export function Header() {
           <input
             class={`flex-1 min-w-0 bg-gray-800 rounded px-2 py-1 text-lg font-bold font-${settings.font}`}
             value={piece.title}
-            oninput={e => piece.setTitle(e.target.value)}
+            oninput={(e) => piece.setTitle(e.target.value)}
             placeholder="Untitled"
           />
-<button
+          <button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
             onclick={onOpenScoreSettings}
             title="Score settings"
-          >♩</button>
+          >
+            ♩
+          </button>
           <button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
             onclick={onOpenSettings}
             title="App settings"
-          >⚙</button>
+          >
+            ⚙
+          </button>
           <button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
             onclick={onOpenMenu}
             title="Menu"
-          >☰</button>
+          >
+            ☰
+          </button>
         </header>
       );
-    }
+    },
   };
 }

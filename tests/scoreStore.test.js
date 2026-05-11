@@ -9,14 +9,14 @@ const fakeDb = vi.hoisted(() => ({
     set: vi.fn(async () => undefined),
   },
   scores: {
-    all:    vi.fn(async () => []),
-    get:    vi.fn(async () => undefined),
-    save:   vi.fn(async item => ({ ...item, id: item.id ?? 'generated-id' })),
+    all: vi.fn(async () => []),
+    get: vi.fn(async () => undefined),
+    save: vi.fn(async (item) => ({ ...item, id: item.id ?? 'generated-id' })),
     delete: vi.fn(async () => undefined),
   },
   patterns: {
-    all:    vi.fn(async () => []),
-    save:   vi.fn(async item => item),
+    all: vi.fn(async () => []),
+    save: vi.fn(async (item) => item),
     delete: vi.fn(async () => undefined),
   },
 }));
@@ -44,7 +44,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   fakeDb.scores.all.mockResolvedValue([]);
   fakeDb.scores.get.mockResolvedValue(undefined);
-  fakeDb.scores.save.mockImplementation(async item => ({ ...item, id: item.id ?? 'generated-id' }));
+  fakeDb.scores.save.mockImplementation(async (item) => ({
+    ...item,
+    id: item.id ?? 'generated-id',
+  }));
   fakeDb.scores.delete.mockResolvedValue(undefined);
   scoreStore.items = [];
   piece.reset('gobu-gobu', 8);
@@ -55,8 +58,13 @@ beforeEach(() => {
 describe('importJson', () => {
   it('sets all piece fields from the JSON', () => {
     const data = {
-      title: 'Test', jiuchi: 'shichisan', beatsPerLine: 4, bpm: 90,
-      author: 'Me', icon: 'data:img', lines: [{ id: 'l1', sounds: [], repeat: 1 }],
+      title: 'Test',
+      jiuchi: 'shichisan',
+      beatsPerLine: 4,
+      bpm: 90,
+      author: 'Me',
+      icon: 'data:img',
+      lines: [{ id: 'l1', sounds: [], repeat: 1 }],
     };
     scoreStore.importJson(JSON.stringify(data));
     expect(piece.title).toBe('Test');
@@ -199,7 +207,10 @@ describe('delete', () => {
   });
 
   it('removes the record from scoreStore.items', async () => {
-    scoreStore.items = [{ id: 'score-1', title: 'A' }, { id: 'score-2', title: 'B' }];
+    scoreStore.items = [
+      { id: 'score-1', title: 'A' },
+      { id: 'score-2', title: 'B' },
+    ];
     await scoreStore.delete('score-1');
     expect(scoreStore.items).toHaveLength(1);
     expect(scoreStore.items[0].id).toBe('score-2');
