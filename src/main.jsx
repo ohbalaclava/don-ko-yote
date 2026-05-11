@@ -89,14 +89,19 @@ function App() {
               aria-hidden="true"
             />
             <button
-              class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 text-xl"
+              class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               onclick={() => {
                 settingsOpen = true;
                 m.redraw();
               }}
               title="App settings"
             >
-              ⚙
+              <img
+                src="/assets/image/app-settings.png"
+                alt=""
+                class="w-[1.25rem] h-[1.25rem]"
+                aria-hidden="true"
+              />
             </button>
             <div class="flex flex-col items-center gap-2 mb-10">
               <img src="/mitsudomoe-badge.svg" class="w-20 h-20 mb-2" aria-hidden="true" />

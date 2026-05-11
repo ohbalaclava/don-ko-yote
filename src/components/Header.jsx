@@ -23,11 +23,16 @@ export function Header() {
             ♩
           </button>
           <button
-            class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
+            class="bg-gray-700 hover:bg-gray-600 rounded px-1 py-1 leading-none"
             onclick={onOpenSettings}
             title="App settings"
           >
-            ⚙
+            <img
+              src="/assets/image/app-settings.png"
+              alt=""
+              class="w-[1.125rem] h-[1.125rem] block invert"
+              aria-hidden="true"
+            />
           </button>
           <button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
