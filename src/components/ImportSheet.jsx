@@ -1,5 +1,4 @@
 import m from 'mithril';
-import { exportPdf } from '../pdf.js';
 
 function Item() {
   return {
@@ -19,9 +18,9 @@ function Item() {
   };
 }
 
-export function ExportSheet() {
+export function ImportSheet() {
   return {
-    view({ attrs: { onClose, onExportJson, onExportPatterns } }) {
+    view({ attrs: { onClose, onImportScore, onImportPatterns } }) {
       function wrap(fn) {
         return () => {
           onClose();
@@ -42,19 +41,14 @@ export function ExportSheet() {
             <div class="pb-4">
               <Item label="← Back" onclick={onClose} />
               <Item
-                label="Export PDF"
-                sublabel="Download score as PDF file"
-                onclick={wrap(() => exportPdf())}
+                label="Import score"
+                sublabel="Load score from JSON file"
+                onclick={wrap(onImportScore)}
               />
               <Item
-                label="Export score"
-                sublabel="Download score as JSON file"
-                onclick={wrap(onExportJson)}
-              />
-              <Item
-                label="Export patterns"
-                sublabel="Download saved patterns as JSON file"
-                onclick={wrap(onExportPatterns)}
+                label="Import patterns"
+                sublabel="Add patterns from JSON file"
+                onclick={wrap(onImportPatterns)}
               />
             </div>
           </div>

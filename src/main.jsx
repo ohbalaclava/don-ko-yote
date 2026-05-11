@@ -7,6 +7,7 @@ import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
 import { ExportSheet } from './components/ExportSheet.jsx';
+import { ImportSheet } from './components/ImportSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
@@ -41,6 +42,7 @@ function App() {
   let scoreSettingsOpen = false;
   let menuOpen = false;
   let exportSheetOpen = false;
+  let importSheetOpen = false;
   let newScoreOpen = false;
   let loadScoreOpen = false;
   let helpOpen = false;
@@ -60,6 +62,18 @@ function App() {
         onImported?.();
         m.redraw();
       }
+    };
+    input.click();
+  }
+
+  /** Opens a file picker for JSON import and merges patterns into the store. */
+  function openImportPatterns() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) await patternStore.importJson(await file.text());
     };
     input.click();
   }
@@ -210,7 +224,10 @@ function App() {
                 exportSheetOpen = true;
                 m.redraw();
               }}
-              onImportJson={() => openImportJson()}
+              onImport={() => {
+                importSheetOpen = true;
+                m.redraw();
+              }}
               onClear={() => {
                 if (window.confirm('Clear all lines?')) {
                   piece.clearLines();
@@ -227,9 +244,18 @@ function App() {
                 exportSheetOpen = false;
                 m.redraw();
               }}
-              onExportJson={() => {
-                scoreStore.exportJson();
+              onExportJson={() => scoreStore.exportJson()}
+              onExportPatterns={() => patternStore.exportJson()}
+            />
+          ) : null}
+          {importSheetOpen ? (
+            <ImportSheet
+              onClose={() => {
+                importSheetOpen = false;
+                m.redraw();
               }}
+              onImportScore={() => openImportJson()}
+              onImportPatterns={() => openImportPatterns()}
             />
           ) : null}
           {newScoreOpen ? (

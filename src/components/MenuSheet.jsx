@@ -20,7 +20,7 @@ function Item() {
 
 export function MenuSheet() {
   return {
-    view({ attrs: { onClose, onNew, onSave, onLoad, onExport, onImportJson, onClear, onHelp } }) {
+    view({ attrs: { onClose, onNew, onSave, onLoad, onExport, onImport, onClear, onHelp } }) {
       function wrap(fn) {
         return () => {
           onClose();
@@ -51,9 +51,12 @@ export function MenuSheet() {
                 }}
               />
               <Item
-                label="Import score"
-                sublabel="Load score from JSON file"
-                onclick={wrap(onImportJson)}
+                label="Import"
+                sublabel="Import score or patterns from JSON"
+                onclick={() => {
+                  onClose();
+                  onImport && onImport();
+                }}
               />
               <Item label="Clear" danger onclick={wrap(onClear)} />
               <Item label="Help" onclick={wrap(onHelp)} />
