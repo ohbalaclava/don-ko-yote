@@ -116,10 +116,10 @@ export function SettingsModal() {
                     class="flex-1 py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     onclick={() => settings.exportJson()}
                   >
-                    Export score
+                    Export settings
                   </button>
                   <label class="flex-1 py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-center">
-                    Import score
+                    Import settings
                     <input
                       type="file"
                       accept=".json"
