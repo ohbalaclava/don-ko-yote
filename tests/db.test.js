@@ -86,7 +86,7 @@ describe('db.patterns (collection)', () => {
     await db.patterns.save({ id: 'p2', name: 'b', sounds: [] });
     const all = await db.patterns.all();
     expect(all).toHaveLength(2);
-    expect(all.map(p => p.id)).toEqual(expect.arrayContaining(['p1', 'p2']));
+    expect(all.map((p) => p.id)).toEqual(expect.arrayContaining(['p1', 'p2']));
   });
 
   it('delete() removes the item', async () => {

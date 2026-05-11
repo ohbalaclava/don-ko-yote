@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { db } from '../db.js';
 import { piece } from './piece.js';
+import { history } from './history.js';
 
 let autoSaveTimer = null;
 
@@ -21,10 +22,13 @@ function snapshot() {
 export const scoreStore = {
   items: [],
 
-  // Patch piece.setTitle to auto-save 1 s after the user stops typing.
+  /**
+   * Patches piece.setTitle to auto-save 1 second after the user stops typing,
+   * but only when the piece has already been saved (has an id).
+   */
   init() {
     const orig = piece.setTitle.bind(piece);
-    piece.setTitle = v => {
+    piece.setTitle = (v) => {
       orig(v);
       if (piece.id) {
         clearTimeout(autoSaveTimer);
@@ -45,32 +49,43 @@ export const scoreStore = {
     m.redraw();
   },
 
+  /**
+   * Loads a saved score by id, fully replacing all piece state and undo history.
+   * @param {string} id
+   */
   async loadScore(id) {
     const score = await db.scores.get(id);
     if (!score) return;
-    piece.id        = score.id;
-    piece.title     = score.title;
-    piece.jiuchi    = score.jiuchi;
+    piece.id = score.id;
+    piece.title = score.title;
+    piece.jiuchi = score.jiuchi;
     piece.beatsPerLine = score.beatsPerLine;
-    piece.bpm       = score.bpm    ?? 120;
-    piece.author    = score.author ?? '';
-    piece.icon      = score.icon   ?? null;
-    piece.lines     = score.lines;
+    piece.bpm = score.bpm ?? 120;
+    piece.author = score.author ?? '';
+    piece.icon = score.icon ?? null;
+    piece.lines = score.lines;
     piece.selectedLineId = score.lines[0]?.id ?? null;
     piece.editingTile = null;
-    piece.selectMode  = false;
-    piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    history.reset(piece._snapshot());
     scoreStore.items = await db.scores.all();
     m.redraw();
   },
 
+  /**
+   * Deletes a saved score. If the current piece matches this id, clears piece.id
+   * so a subsequent save creates a new record rather than trying to update the deleted one.
+   * @param {string} id
+   */
   async delete(id) {
     await db.scores.delete(id);
     if (piece.id === id) piece.id = null;
-    scoreStore.items = scoreStore.items.filter(s => s.id !== id);
+    scoreStore.items = scoreStore.items.filter((s) => s.id !== id);
     m.redraw();
   },
 
+  /** Downloads the current score as a JSON file, stripping the internal database id. */
   exportJson() {
     const { id: _id, ...data } = snapshot();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -82,22 +97,28 @@ export const scoreStore = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * Loads a score from a JSON string into the current piece without saving it.
+   * Resets undo history. piece.id is cleared so the first save creates a new record.
+   * @param {string} text
+   */
   importJson(text) {
     const data = JSON.parse(text);
-    piece.id           = null;
-    piece.title        = data.title        ?? 'Untitled';
-    piece.jiuchi       = data.jiuchi       ?? piece.jiuchi;
+    piece.id = null;
+    piece.title = data.title ?? 'Untitled';
+    piece.jiuchi = data.jiuchi ?? piece.jiuchi;
     piece.beatsPerLine = data.beatsPerLine ?? piece.beatsPerLine;
-    piece.bpm          = data.bpm          ?? 120;
-    piece.author       = data.author       ?? '';
-    piece.icon         = data.icon         ?? null;
+    piece.bpm = data.bpm ?? 120;
+    piece.author = data.author ?? '';
+    piece.icon = data.icon ?? null;
     if (Array.isArray(data.lines) && data.lines.length) {
       piece.lines = data.lines;
       piece.selectedLineId = data.lines[0].id;
     }
     piece.editingTile = null;
-    piece.selectMode  = false;
-    piece.selection   = { lineId: null, anchorId: null, soundIds: [] };
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    history.reset(piece._snapshot());
     m.redraw();
   },
 };

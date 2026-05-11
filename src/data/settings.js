@@ -9,6 +9,7 @@ export const settings = {
   proportionalWidth: false,
   font: 'sans',
   darkMode: false,
+  beatBoundaries: true,
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -16,6 +17,7 @@ export const settings = {
       if ('proportionalWidth' in saved) settings.proportionalWidth = saved.proportionalWidth;
       if ('font' in saved) settings.font = saved.font;
       if ('darkMode' in saved) settings.darkMode = saved.darkMode;
+      if ('beatBoundaries' in saved) settings.beatBoundaries = saved.beatBoundaries;
     }
     applyToDOM();
     m.redraw();
@@ -27,17 +29,23 @@ export const settings = {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
       darkMode: settings.darkMode,
+      beatBoundaries: settings.beatBoundaries,
     });
     applyToDOM();
     m.redraw();
   },
 
   exportJson() {
-    const data = JSON.stringify({
-      proportionalWidth: settings.proportionalWidth,
-      font: settings.font,
-      darkMode: settings.darkMode,
-    }, null, 2);
+    const data = JSON.stringify(
+      {
+        proportionalWidth: settings.proportionalWidth,
+        font: settings.font,
+        darkMode: settings.darkMode,
+        beatBoundaries: settings.beatBoundaries,
+      },
+      null,
+      2
+    );
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -47,15 +55,23 @@ export const settings = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * Imports settings from a JSON string, persists them, and redraws.
+   * Silently ignores unknown keys; validates font against the known set.
+   * @param {string} text
+   */
   async importJson(text) {
     const data = JSON.parse(text);
-    if (typeof data.proportionalWidth === 'boolean') settings.proportionalWidth = data.proportionalWidth;
+    if (typeof data.proportionalWidth === 'boolean')
+      settings.proportionalWidth = data.proportionalWidth;
     if (['sans', 'serif', 'mono', 'script'].includes(data.font)) settings.font = data.font;
     if (typeof data.darkMode === 'boolean') settings.darkMode = data.darkMode;
+    if (typeof data.beatBoundaries === 'boolean') settings.beatBoundaries = data.beatBoundaries;
     await db.kv.set('settings', {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
       darkMode: settings.darkMode,
+      beatBoundaries: settings.beatBoundaries,
     });
     applyToDOM();
     m.redraw();

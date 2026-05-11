@@ -23,7 +23,7 @@ The screen is divided into three areas:
 The palette lists all available drum sounds:
 
 | Name | Hand | Duration |
-|------|------|----------|
+| ---- | ---- | -------- |
 | TEN  | R    | 1 beat   |
 | KEN  | L    | 1 beat   |
 | TE   | R    | ½ beat   |

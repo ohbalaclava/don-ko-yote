@@ -11,13 +11,10 @@ export function LoadScoreSheet() {
       const items = [...scoreStore.items].sort((a, b) => b.savedAt - a.savedAt);
 
       return (
-        <div
-          class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end"
-          onclick={onClose}
-        >
+        <div class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end" onclick={onClose}>
           <div
             class="bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
-            onclick={e => e.stopPropagation()}
+            onclick={(e) => e.stopPropagation()}
           >
             <div class="flex justify-center pt-3 pb-1">
               <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
@@ -29,24 +26,39 @@ export function LoadScoreSheet() {
                 <button
                   class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none w-8 h-8 flex items-center justify-center"
                   onclick={onClose}
-                >×</button>
+                >
+                  ×
+                </button>
               </div>
 
-              {items.length === 0
-                ? <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No saved scores yet.</p>
-                : items.map(score => (
+              {items.length === 0 ? (
+                <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                  No saved scores yet.
+                </p>
+              ) : (
+                items.map((score) => (
                   <div
                     key={score.id}
                     class="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700"
                   >
                     <div class="flex-1 min-w-0">
-                      <div class="font-medium dark:text-white truncate">{score.title || 'Untitled'}</div>
-                      <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatDate(score.savedAt)}</div>
+                      <div class="font-medium dark:text-white truncate">
+                        {score.title || 'Untitled'}
+                      </div>
+                      <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {formatDate(score.savedAt)}
+                      </div>
                     </div>
                     <button
                       class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold"
-                      onclick={() => { scoreStore.loadScore(score.id); onLoaded?.(); onClose(); }}
-                    >Load</button>
+                      onclick={() => {
+                        scoreStore.loadScore(score.id);
+                        onLoaded?.();
+                        onClose();
+                      }}
+                    >
+                      Load
+                    </button>
                     <button
                       class="shrink-0 text-red-400 hover:text-red-600 text-sm px-1"
                       title="Delete"
@@ -54,14 +66,16 @@ export function LoadScoreSheet() {
                         if (window.confirm(`Delete "${score.title || 'Untitled'}"?`))
                           scoreStore.delete(score.id);
                       }}
-                    >✕</button>
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))
-              }
+              )}
             </div>
           </div>
         </div>
       );
-    }
+    },
   };
 }

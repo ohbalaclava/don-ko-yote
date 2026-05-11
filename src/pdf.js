@@ -30,12 +30,12 @@ export function exportPdf() {
     doc.text(String(li + 1), margin, y + 4);
     doc.setTextColor(0);
 
-    const flatSounds = line.sounds.flatMap(s => s.type === 'group' ? s.sounds : [s]);
+    const flatSounds = line.sounds.flatMap((s) => (s.type === 'group' ? s.sounds : [s]));
     const tileW = Math.min(usableW / Math.max(flatSounds.length, 1), 18);
     const tileH = 14;
     let x = margin + 5;
 
-    flatSounds.forEach(sound => {
+    flatSounds.forEach((sound) => {
       // Border
       doc.setDrawColor(180);
       doc.rect(x, y, tileW - 1, tileH);
@@ -49,14 +49,24 @@ export function exportPdf() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(0);
-      doc.text(sound.name, x + (tileW - 1) / 2, y + 7.5, { align: 'center' });
+      const nameX = x + (tileW - 1) / 2;
+      doc.text(sound.name, nameX, y + 7.5, { align: 'center' });
+      if (sound.emphasis) {
+        const nameW = doc.getTextWidth(sound.name);
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.3);
+        doc.line(nameX - nameW / 2, y + 8.2, nameX + nameW / 2, y + 8.2);
+      }
 
       // Instruction
       if (sound.instruction) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(5.5);
         doc.setTextColor(80);
-        doc.text(sound.instruction, x + (tileW - 1) / 2, y + 11.5, { align: 'center', maxWidth: tileW - 2 });
+        doc.text(sound.instruction, x + (tileW - 1) / 2, y + 11.5, {
+          align: 'center',
+          maxWidth: tileW - 2,
+        });
         doc.setTextColor(0);
       }
 
