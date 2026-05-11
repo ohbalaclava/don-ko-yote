@@ -6,6 +6,7 @@ import { Palette } from './components/Palette.jsx';
 import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
+import { ExportSheet } from './components/ExportSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
@@ -39,6 +40,7 @@ function App() {
   let settingsOpen = false;
   let scoreSettingsOpen = false;
   let menuOpen = false;
+  let exportSheetOpen = false;
   let newScoreOpen = false;
   let loadScoreOpen = false;
   let helpOpen = false;
@@ -204,8 +206,9 @@ function App() {
               onLoad={() => {
                 loadScoreOpen = true;
               }}
-              onExportJson={() => {
-                scoreStore.exportJson();
+              onExport={() => {
+                exportSheetOpen = true;
+                m.redraw();
               }}
               onImportJson={() => openImportJson()}
               onClear={() => {
@@ -215,6 +218,17 @@ function App() {
               }}
               onHelp={() => {
                 helpOpen = true;
+              }}
+            />
+          ) : null}
+          {exportSheetOpen ? (
+            <ExportSheet
+              onClose={() => {
+                exportSheetOpen = false;
+                m.redraw();
+              }}
+              onExportJson={() => {
+                scoreStore.exportJson();
               }}
             />
           ) : null}

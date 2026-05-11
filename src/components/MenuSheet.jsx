@@ -1,5 +1,4 @@
 import m from 'mithril';
-import { exportPdf } from '../pdf.js';
 
 function Item() {
   return {
@@ -21,9 +20,7 @@ function Item() {
 
 export function MenuSheet() {
   return {
-    view({
-      attrs: { onClose, onNew, onSave, onLoad, onExportJson, onImportJson, onClear, onHelp },
-    }) {
+    view({ attrs: { onClose, onNew, onSave, onLoad, onExport, onImportJson, onClear, onHelp } }) {
       function wrap(fn) {
         return () => {
           onClose();
@@ -46,16 +43,18 @@ export function MenuSheet() {
               <Item label="Save" sublabel="Save to browser memory" onclick={wrap(onSave)} />
               <Item label="Load" sublabel="Load from browser memory" onclick={wrap(onLoad)} />
               <Item
-                label="Export score"
-                sublabel="Download score as JSON file"
-                onclick={wrap(onExportJson)}
+                label="Export"
+                sublabel="Export as PDF or JSON"
+                onclick={() => {
+                  onClose();
+                  onExport && onExport();
+                }}
               />
               <Item
                 label="Import score"
                 sublabel="Load score from JSON file"
                 onclick={wrap(onImportJson)}
               />
-              <Item label="Export PDF" onclick={wrap(() => exportPdf())} />
               <Item label="Clear" danger onclick={wrap(onClear)} />
               <Item label="Help" onclick={wrap(onHelp)} />
             </div>
