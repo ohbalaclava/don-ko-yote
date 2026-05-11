@@ -98,7 +98,7 @@ function App() {
                 New score
               </button>
               <button
-                class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white text-base font-semibold"
+                class="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold"
                 onclick={() => {
                   loadScoreOpen = true;
                   m.redraw();
@@ -107,7 +107,7 @@ function App() {
                 Load score
               </button>
               <button
-                class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white text-base font-semibold"
+                class="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold"
                 onclick={() =>
                   openImportJson(() => {
                     scoreActive = true;
