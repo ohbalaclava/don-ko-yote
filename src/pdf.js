@@ -38,6 +38,20 @@ export function exportPdf() {
       return;
     }
 
+    if (line.type === 'block-repeat') {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(200, 100, 0);
+      doc.text(`end repeat  ×${line.count}`, margin + 5, y + 3);
+      doc.setTextColor(0);
+      y += 6;
+      if (y > 270) {
+        doc.addPage();
+        y = margin;
+      }
+      return;
+    }
+
     if (line.sounds.length === 0) return;
     lineOrdinal++;
 

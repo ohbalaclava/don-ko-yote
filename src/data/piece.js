@@ -23,6 +23,10 @@ function makeHeading() {
   return { id: uid(), type: 'heading', text: '' };
 }
 
+function makeBlockRepeat(count, lineIds) {
+  return { id: uid(), type: 'block-repeat', count, lineIds };
+}
+
 function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
@@ -54,7 +58,9 @@ function targetLineIdx(fromIdx, duration) {
   if (!max || duration > max) return fromIdx;
   let i = fromIdx;
   while (i < piece.lines.length) {
-    if (piece.lines[i].type !== 'heading' && lineDur(piece.lines[i]) + duration <= max) return i;
+    const item = piece.lines[i];
+    if (item.type !== 'heading' && item.type !== 'block-repeat' && lineDur(item) + duration <= max)
+      return i;
     i++;
   }
   piece.lines.push(makeLine());
@@ -80,6 +86,10 @@ export const piece = {
   // Selection mode for building patterns
   selectMode: false,
   selection: { lineId: null, anchorId: null, soundIds: [] },
+
+  // Line selection mode for bulk operations
+  lineSelectMode: false,
+  lineSelection: [],
 
   // ── Snapshot helpers ──────────────────────────────────────────────────────
 
@@ -111,8 +121,11 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    piece.lineSelectMode = false;
+    piece.lineSelection = [];
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
-      piece.selectedLineId = piece.lines.find((l) => l.type !== 'heading')?.id ?? null;
+      piece.selectedLineId =
+        piece.lines.find((l) => l.type !== 'heading' && l.type !== 'block-repeat')?.id ?? null;
     }
   },
 
@@ -146,6 +159,8 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    piece.lineSelectMode = false;
+    piece.lineSelection = [];
     history.reset(piece._snapshot());
     m.redraw();
   },
@@ -157,6 +172,8 @@ export const piece = {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    piece.lineSelectMode = false;
+    piece.lineSelection = [];
     history.push(piece._snapshot());
     m.redraw();
   },
@@ -264,6 +281,36 @@ export const piece = {
     m.redraw();
   },
 
+  toggleLineSelectMode() {
+    piece.lineSelectMode = !piece.lineSelectMode;
+    piece.lineSelection = [];
+    if (piece.selectMode) {
+      piece.selectMode = false;
+      piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    }
+    m.redraw();
+  },
+
+  /**
+   * Add or remove an item ID from line selection.
+   * @param {string} id - Line or heading ID
+   */
+  toggleLineSelection(id) {
+    const idx = piece.lineSelection.indexOf(id);
+    if (idx === -1) {
+      piece.lineSelection.push(id);
+    } else {
+      piece.lineSelection.splice(idx, 1);
+    }
+    m.redraw();
+  },
+
+  clearLineSelection() {
+    piece.lineSelectMode = false;
+    piece.lineSelection = [];
+    m.redraw();
+  },
+
   // ── Lines ─────────────────────────────────────────────────────────────────
 
   addLine() {
@@ -349,17 +396,129 @@ export const piece = {
   removeLine(lineId) {
     const idx = piece.lines.findIndex((l) => l.id === lineId);
     piece.lines = piece.lines.filter((l) => l.id !== lineId);
-    const realLines = piece.lines.filter((l) => l.type !== 'heading');
+    // Prune lineId from block-repeat markers; drop markers that become empty
+    piece.lines = piece.lines.filter((item) => {
+      if (item.type !== 'block-repeat') return true;
+      item.lineIds = item.lineIds.filter((id) => id !== lineId);
+      return item.lineIds.length > 0;
+    });
+    const realLines = piece.lines.filter((l) => l.type !== 'heading' && l.type !== 'block-repeat');
     if (realLines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
-      // Select the nearest real line
-      const candidates = piece.lines.filter((l) => l.type !== 'heading');
+      const candidates = piece.lines.filter(
+        (l) => l.type !== 'heading' && l.type !== 'block-repeat'
+      );
       const nearIdx = Math.min(idx, candidates.length - 1);
       piece.selectedLineId = candidates[nearIdx >= 0 ? nearIdx : 0].id;
     }
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  // ── Bulk line operations ──────────────────────────────────────────────────
+
+  /**
+   * Deep-clones an item (line or heading) with fresh IDs throughout.
+   * @param {Object} item - Line or heading object
+   * @returns {Object} Cloned item
+   */
+  _cloneItem(item) {
+    if (item.type === 'heading') return { ...item, id: uid() };
+    if (item.type === 'block-repeat') return { ...item, id: uid() };
+    return {
+      id: uid(),
+      repeat: item.repeat || 1,
+      sounds: item.sounds.map((s) => ({
+        ...s,
+        id: uid(),
+        ...(s.type === 'group' ? { sounds: s.sounds.map((gs) => ({ ...gs, id: uid() })) } : {}),
+      })),
+    };
+  },
+
+  /**
+   * Duplicates all selected items in order and inserts them after the last selected item.
+   */
+  duplicateSelectedLines() {
+    if (piece.lineSelection.length === 0) return;
+    const selSet = new Set(piece.lineSelection);
+    const toClone = piece.lines.filter((item) => selSet.has(item.id));
+    if (toClone.length === 0) return;
+    const lastIdx = piece.lines.findIndex((item) => item.id === toClone[toClone.length - 1].id);
+    const clones = toClone.map((item) => piece._cloneItem(item));
+    piece.lines.splice(lastIdx + 1, 0, ...clones);
+    piece.lineSelection = clones.map((item) => item.id);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /**
+   * Deletes all selected items. Ensures at least one real (non-heading) line remains.
+   */
+  deleteSelectedLines() {
+    if (piece.lineSelection.length === 0) return;
+    const selSet = new Set(piece.lineSelection);
+    piece.lines = piece.lines.filter((item) => !selSet.has(item.id));
+    // Remove lineIds from block-repeat markers that no longer exist; drop empty markers
+    const remaining = new Set(piece.lines.map((item) => item.id));
+    piece.lines = piece.lines.filter((item) => {
+      if (item.type !== 'block-repeat') return true;
+      item.lineIds = item.lineIds.filter((id) => remaining.has(id));
+      return item.lineIds.length > 0;
+    });
+    piece.lineSelection = [];
+    const realLines = piece.lines.filter(
+      (item) => item.type !== 'heading' && item.type !== 'block-repeat'
+    );
+    if (realLines.length === 0) {
+      const line = makeLine();
+      piece.lines.push(line);
+      piece.selectedLineId = line.id;
+    }
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /**
+   * Inserts a block-repeat marker after the last selected item.
+   * Lines in the selection are marked visually as a repeating block.
+   * @param {number} n - Repeat count (≥ 2)
+   */
+  addBlockRepeat(n) {
+    if (piece.lineSelection.length === 0 || !n || n < 2) return;
+    const selSet = new Set(piece.lineSelection);
+    // Collect selected IDs in array order, excluding any existing block-repeat items
+    const lineIds = piece.lines
+      .filter((item) => selSet.has(item.id) && item.type !== 'block-repeat')
+      .map((item) => item.id);
+    if (lineIds.length === 0) return;
+    const lastId = lineIds[lineIds.length - 1];
+    const lastIdx = piece.lines.findIndex((item) => item.id === lastId);
+    piece.lines.splice(lastIdx + 1, 0, makeBlockRepeat(n, lineIds));
+    piece.lineSelection = [];
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /**
+   * Updates the repeat count on a block-repeat marker.
+   * @param {string} id - block-repeat item ID
+   * @param {number} count
+   */
+  setBlockRepeatCount(id, count) {
+    const item = piece.lines.find((l) => l.id === id);
+    if (!item || item.type !== 'block-repeat') return;
+    item.count = Math.max(2, Math.round(count) || 2);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /** @param {string} id - block-repeat item ID */
+  removeBlockRepeat(id) {
+    piece.lines = piece.lines.filter((l) => l.id !== id);
     history.push(piece._snapshot());
     m.redraw();
   },

@@ -5,15 +5,25 @@ export function SectionHeading() {
   let editing = false;
 
   return {
-    view({ attrs: { heading } }) {
+    view({ attrs: { heading, inBlockRepeat } }) {
       function commit(value) {
         piece.setHeadingText(heading.id, value);
         editing = false;
         m.redraw();
       }
 
+      const isSelected = piece.lineSelection.includes(heading.id);
+      const isHighlighted =
+        piece.lineSelectMode && isSelected
+          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-400'
+          : inBlockRepeat
+            ? 'border-l-4 border-l-orange-400 bg-orange-50/40 dark:bg-orange-900/10'
+            : 'border-l-4 border-l-transparent';
+
       return (
-        <div class="flex items-center gap-2 px-3 py-1 border-b border-gray-200 dark:border-gray-700 group">
+        <div
+          class={`flex items-center gap-2 px-3 py-1 border-b border-gray-200 dark:border-gray-700 group ${isHighlighted}`}
+        >
           <div
             class="line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none"
             title="Drag to reorder"
@@ -46,10 +56,14 @@ export function SectionHeading() {
               class="flex-1 text-sm font-semibold text-gray-600 dark:text-gray-300 cursor-text min-w-0 truncate"
               onclick={(e) => {
                 e.stopPropagation();
-                editing = true;
-                m.redraw();
+                if (piece.lineSelectMode) {
+                  piece.toggleLineSelection(heading.id);
+                } else {
+                  editing = true;
+                  m.redraw();
+                }
               }}
-              title="Click to edit"
+              title={piece.lineSelectMode ? 'Click to select' : 'Click to edit'}
             >
               {heading.text || (
                 <span class="text-gray-300 dark:text-gray-600 italic font-normal">Heading</span>

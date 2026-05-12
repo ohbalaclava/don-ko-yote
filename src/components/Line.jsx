@@ -252,18 +252,34 @@ export function Line() {
     onremove() {
       if (sortable) sortable.destroy();
     },
-    view({ attrs: { line, index } }) {
+    view({ attrs: { line, index, inBlockRepeat } }) {
       const beats = lineDuration(line);
       const selected = piece.selectedLineId === line.id;
+      const isLineSelected = piece.lineSelection.includes(line.id);
       const selectionIds =
         piece.selectMode && piece.selection.lineId === line.id
           ? new Set(piece.selection.soundIds)
           : null;
 
+      const isHighlighted =
+        piece.lineSelectMode && isLineSelected
+          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-400'
+          : !piece.lineSelectMode && selected
+            ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400'
+            : inBlockRepeat
+              ? 'border-l-4 border-l-orange-400 bg-orange-50/40 dark:bg-orange-900/10'
+              : 'border-l-4 border-l-transparent';
+
       return (
         <div
-          class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${selected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400' : 'border-l-4 border-l-transparent'}`}
-          onclick={() => piece.selectLine(line.id)}
+          class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${isHighlighted}`}
+          onclick={() => {
+            if (piece.lineSelectMode) {
+              piece.toggleLineSelection(line.id);
+            } else {
+              piece.selectLine(line.id);
+            }
+          }}
         >
           <div
             class="line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none"

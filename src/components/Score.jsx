@@ -5,10 +5,12 @@ import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
+import { BlockRepeatRow } from './BlockRepeatRow.jsx';
 
 export function Score() {
   let sortable;
   let keydownHandler;
+  let repeatInput;
 
   async function savePattern() {
     const line = piece.lines.find((l) => l.id === piece.selection.lineId);
@@ -26,6 +28,7 @@ export function Score() {
     oncreate({ dom }) {
       sortable = Sortable.create(dom.querySelector('.lines-container'), {
         handle: '.line-drag-handle',
+        filter: '.block-repeat-row',
         animation: 150,
         ghostClass: 'opacity-30',
         onEnd(evt) {
@@ -48,6 +51,8 @@ export function Score() {
     view() {
       const selCount = piece.selection.soundIds.length;
       const hasSelection = piece.selectMode && selCount > 0;
+      const lineSelCount = piece.lineSelection.length;
+      const hasLineSelection = piece.lineSelectMode && lineSelCount > 0;
 
       return (
         <div class="flex-1 overflow-y-auto flex flex-col">
@@ -73,6 +78,52 @@ export function Score() {
               <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
             ) : null}
 
+            <button
+              class={`text-xs font-semibold rounded px-2 py-1 border ${piece.lineSelectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
+              onclick={() => piece.toggleLineSelectMode()}
+            >
+              Lines
+            </button>
+
+            {hasLineSelection ? (
+              [
+                <span class="text-xs text-gray-500 dark:text-gray-400">{lineSelCount} lines</span>,
+                <button
+                  class="text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1"
+                  onclick={() => piece.duplicateSelectedLines()}
+                >
+                  Duplicate
+                </button>,
+                <button
+                  class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
+                  onclick={() => piece.deleteSelectedLines()}
+                >
+                  Delete
+                </button>,
+                <input
+                  type="number"
+                  min="1"
+                  class="text-xs w-10 px-1 py-0.5 border border-gray-400 dark:border-gray-500 rounded bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"
+                  placeholder="×"
+                  oncreate={({ dom }) => {
+                    repeatInput = dom;
+                  }}
+                />,
+                <button
+                  class="text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1"
+                  onclick={() => {
+                    const n = parseInt(repeatInput.value, 10);
+                    if (n >= 2) piece.addBlockRepeat(n);
+                    repeatInput.value = '';
+                  }}
+                >
+                  Set ×
+                </button>,
+              ]
+            ) : piece.lineSelectMode ? (
+              <span class="text-xs text-gray-400 dark:text-gray-500">Tap lines to select</span>
+            ) : null}
+
             <div class="ml-auto flex items-center gap-1">
               <button
                 class={`text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
@@ -95,13 +146,34 @@ export function Score() {
 
           <div class="lines-container">
             {(() => {
+              const blockRepeatLineIds = new Set(
+                piece.lines
+                  .filter((item) => item.type === 'block-repeat')
+                  .flatMap((item) => item.lineIds)
+              );
               let lineOrdinal = 0;
               return piece.lines.map((item) => {
+                if (item.type === 'block-repeat') {
+                  return <BlockRepeatRow key={item.id} item={item} />;
+                }
                 if (item.type === 'heading') {
-                  return <SectionHeading key={item.id} heading={item} />;
+                  return (
+                    <SectionHeading
+                      key={item.id}
+                      heading={item}
+                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                    />
+                  );
                 }
                 lineOrdinal++;
-                return <Line key={item.id} line={item} index={lineOrdinal - 1} />;
+                return (
+                  <Line
+                    key={item.id}
+                    line={item}
+                    index={lineOrdinal - 1}
+                    inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                  />
+                );
               });
             })()}
           </div>
