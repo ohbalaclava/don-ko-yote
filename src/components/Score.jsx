@@ -4,6 +4,7 @@ import { piece } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
+import { SectionHeading } from './SectionHeading.jsx';
 
 export function Score() {
   let sortable;
@@ -93,17 +94,30 @@ export function Score() {
           </div>
 
           <div class="lines-container">
-            {piece.lines.map((line, i) => (
-              <Line key={line.id} line={line} index={i} />
-            ))}
+            {(() => {
+              let lineOrdinal = 0;
+              return piece.lines.map((item) => {
+                if (item.type === 'heading') {
+                  return <SectionHeading key={item.id} heading={item} />;
+                }
+                lineOrdinal++;
+                return <Line key={item.id} line={item} index={lineOrdinal - 1} />;
+              });
+            })()}
           </div>
 
-          <div class="px-3 py-2">
+          <div class="px-3 py-2 flex items-center gap-3">
             <button
               class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
               onclick={() => piece.addLine()}
             >
               + Add line
+            </button>
+            <button
+              class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-semibold"
+              onclick={() => piece.addHeading()}
+            >
+              + Add section
             </button>
           </div>
         </div>

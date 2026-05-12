@@ -20,14 +20,32 @@ export function exportPdf() {
   doc.text(`${piece.jiuchi}  ·  ${piece.beatsPerLine} beats/line`, margin, y);
   y += 8;
 
-  piece.lines.forEach((line, li) => {
+  let lineOrdinal = 0;
+  piece.lines.forEach((line) => {
+    if (line.type === 'heading') {
+      if (line.text) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(60);
+        doc.text(line.text, margin, y + 4);
+        doc.setTextColor(0);
+        y += 9;
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+      }
+      return;
+    }
+
     if (line.sounds.length === 0) return;
+    lineOrdinal++;
 
     // Line number
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(String(li + 1), margin, y + 4);
+    doc.text(String(lineOrdinal), margin, y + 4);
     doc.setTextColor(0);
 
     const flatSounds = line.sounds.flatMap((s) => (s.type === 'group' ? s.sounds : [s]));

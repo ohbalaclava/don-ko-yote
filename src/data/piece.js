@@ -19,6 +19,10 @@ function makeLine() {
   return { id: uid(), sounds: [], repeat: 1 };
 }
 
+function makeHeading() {
+  return { id: uid(), type: 'heading', text: '' };
+}
+
 function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
@@ -50,7 +54,7 @@ function targetLineIdx(fromIdx, duration) {
   if (!max || duration > max) return fromIdx;
   let i = fromIdx;
   while (i < piece.lines.length) {
-    if (lineDur(piece.lines[i]) + duration <= max) return i;
+    if (piece.lines[i].type !== 'heading' && lineDur(piece.lines[i]) + duration <= max) return i;
     i++;
   }
   piece.lines.push(makeLine());
@@ -108,7 +112,7 @@ export const piece = {
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
-      piece.selectedLineId = piece.lines[0]?.id ?? null;
+      piece.selectedLineId = piece.lines.find((l) => l.type !== 'heading')?.id ?? null;
     }
   },
 
@@ -280,6 +284,31 @@ export const piece = {
     m.redraw();
   },
 
+  addHeading() {
+    piece.lines.push(makeHeading());
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /**
+   * Updates the text of a section heading.
+   * @param {string} headingId
+   * @param {string} text
+   */
+  setHeadingText(headingId, text) {
+    const heading = piece.lines.find((l) => l.id === headingId);
+    if (!heading || heading.type !== 'heading') return;
+    heading.text = text;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  removeHeading(headingId) {
+    piece.lines = piece.lines.filter((l) => l.id !== headingId);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
   /**
    * Inserts a deep copy of the line immediately after it and selects the copy.
    * All sound and group IDs are replaced with fresh ones.
@@ -320,12 +349,16 @@ export const piece = {
   removeLine(lineId) {
     const idx = piece.lines.findIndex((l) => l.id === lineId);
     piece.lines = piece.lines.filter((l) => l.id !== lineId);
-    if (piece.lines.length === 0) {
+    const realLines = piece.lines.filter((l) => l.type !== 'heading');
+    if (realLines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
-      piece.selectedLineId = piece.lines[Math.min(idx, piece.lines.length - 1)].id;
+      // Select the nearest real line
+      const candidates = piece.lines.filter((l) => l.type !== 'heading');
+      const nearIdx = Math.min(idx, candidates.length - 1);
+      piece.selectedLineId = candidates[nearIdx >= 0 ? nearIdx : 0].id;
     }
     history.push(piece._snapshot());
     m.redraw();
