@@ -52,7 +52,7 @@ export function SectionHeading() {
               title="Click to edit"
             >
               {heading.text || (
-                <span class="text-gray-300 dark:text-gray-600 italic font-normal">Section</span>
+                <span class="text-gray-300 dark:text-gray-600 italic font-normal">Heading</span>
               )}
             </span>
           )}
@@ -62,7 +62,7 @@ export function SectionHeading() {
               e.stopPropagation();
               piece.removeHeading(heading.id);
             }}
-            title="Remove section"
+            title="Remove heading"
           >
             ✕
           </button>

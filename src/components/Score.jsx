@@ -117,7 +117,7 @@ export function Score() {
               class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-semibold"
               onclick={() => piece.addHeading()}
             >
-              + Add section
+              + Add heading
             </button>
           </div>
         </div>
