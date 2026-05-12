@@ -24,7 +24,7 @@ export function SectionHeading() {
             <input
               class="flex-1 text-sm font-semibold bg-transparent border-b border-indigo-400 outline-none text-gray-700 dark:text-gray-200 min-w-0"
               value={heading.text}
-              placeholder="Section name"
+              placeholder="Heading name"
               oncreate={({ dom }) => {
                 dom.focus();
                 dom.select();
