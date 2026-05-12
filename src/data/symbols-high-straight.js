@@ -1,23 +1,21 @@
-export const SYMBOLS = [
-  { name: 'TEN',  duration: 1,    hand: 'R' },
-  { name: 'KEN',  duration: 1,    hand: 'L' },
-  { name: 'TE',   duration: 1/2,  hand: 'R' },
-  { name: 'KE',   duration: 1/2,  hand: 'L' },
-  { name: 'zu',   duration: 1/2,  hand: 'R' },
-  { name: 'tsu',  duration: 1/2,  hand: 'R' },
-  { name: 'ku',   duration: 1/2,  hand: 'L' },
-  { name: 'te',   duration: 1/4,  hand: 'R' },
-  { name: 'ke',   duration: 1/4,  hand: 'L' },
-  { name: 're',   duration: 1/4,  hand: 'L' },
-  { name: 'SU',   duration: 1},
-  { name: 'su',   duration: 1/2},
-  { name: "s'",   duration: 1/4},
-  { name: "'",    duration: 1/4},
-  { name: 'HUP',  duration: 1},
-];
-
-export const JIUCHI = [
-  'Gobu Gobu',
-  'Mitsu-uchi',
-  'Shiburoku',
-];
+export const HIGH_STRAIGHT = {
+  time: 4,
+  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiburoku'],
+  symbols: [
+    { name: 'TEN', duration: 4, hand: 'R' },
+    { name: 'KEN', duration: 4, hand: 'L' },
+    { name: 'SU', duration: 4 },
+    { name: 'TE', duration: 2, hand: 'R' },
+    { name: 'KE', duration: 2, hand: 'L' },
+    { name: 'zu', duration: 2, hand: 'R' },
+    { name: 'tsu', duration: 2, hand: 'R' },
+    { name: 'ku', duration: 2, hand: 'L' },
+    { name: 'su', duration: 2 },
+    { name: 'te', duration: 1, hand: 'R' },
+    { name: 'ke', duration: 1, hand: 'L' },
+    { name: 're', duration: 1, hand: 'L' },
+    { name: "s'", duration: 1 },
+    { name: "'", duration: 1 },
+    { name: 'HUP', duration: 4 },
+  ],
+};
