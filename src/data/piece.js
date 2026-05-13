@@ -327,9 +327,43 @@ export const piece = {
   reorderLine(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
     const lines = piece.lines.slice();
-    const [line] = lines.splice(fromIndex, 1);
-    lines.splice(toIndex, 0, line);
+    const [moved] = lines.splice(fromIndex, 1);
+    lines.splice(toIndex, 0, moved);
     piece.lines = lines;
+
+    // Remove the moved item from any group it belonged to
+    for (const item of piece.lines) {
+      if (item.type === 'block-repeat') {
+        item.lineIds = item.lineIds.filter((id) => id !== moved.id);
+      }
+    }
+
+    // Add to a group only if dropped between two existing members, or between
+    // the last member and the block-repeat marker (skipping headings for adjacency)
+    const pos = piece.lines.indexOf(moved);
+    let prevIdx = pos - 1;
+    while (prevIdx >= 0 && piece.lines[prevIdx].type === 'heading') prevIdx--;
+    let nextIdx = pos + 1;
+    while (nextIdx < piece.lines.length && piece.lines[nextIdx].type === 'heading') nextIdx++;
+    const prev = prevIdx >= 0 ? piece.lines[prevIdx] : null;
+    const next = nextIdx < piece.lines.length ? piece.lines[nextIdx] : null;
+
+    if (prev) {
+      for (const item of piece.lines) {
+        if (item.type !== 'block-repeat') continue;
+        if (!item.lineIds.includes(prev.id)) continue;
+        if (next && (item.lineIds.includes(next.id) || next === item)) {
+          item.lineIds.splice(item.lineIds.indexOf(prev.id) + 1, 0, moved.id);
+          break;
+        }
+      }
+    }
+
+    // Drop groups that became empty after the move
+    piece.lines = piece.lines.filter(
+      (item) => item.type !== 'block-repeat' || item.lineIds.length > 0
+    );
+
     history.push(piece._snapshot());
     m.redraw();
   },
