@@ -55,11 +55,12 @@ export function Score() {
       return (
         <div class="flex-1 overflow-y-auto flex flex-col">
           <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
+            <span class="text-xs text-gray-400 dark:text-gray-500 select-none">Select:</span>
             <button
               class={`text-xs font-semibold rounded px-2 py-1 border ${piece.selectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
               onclick={() => piece.toggleSelectMode()}
             >
-              {piece.selectMode ? 'Cancel' : 'Select'}
+              {piece.selectMode ? 'Cancel' : 'Tiles'}
             </button>
 
             {hasSelection ? (
@@ -80,7 +81,7 @@ export function Score() {
               class={`text-xs font-semibold rounded px-2 py-1 border ${piece.lineSelectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
               onclick={() => piece.toggleLineSelectMode()}
             >
-              Lines
+              {piece.lineSelectMode ? 'Cancel' : 'Lines'}
             </button>
 
             {hasLineSelection ? (
@@ -98,24 +99,12 @@ export function Score() {
                 >
                   Delete
                 </button>,
-                <input
-                  type="number"
-                  min="1"
-                  class="text-xs w-10 px-1 py-0.5 border border-gray-400 dark:border-gray-500 rounded bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"
-                  placeholder="×"
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = parseInt(e.target.value, 10);
-                      if (n >= 2) piece.addBlockRepeat(n);
-                      e.target.value = '';
-                    }
-                  }}
-                  onblur={(e) => {
-                    const n = parseInt(e.target.value, 10);
-                    if (n >= 2) piece.addBlockRepeat(n);
-                    e.target.value = '';
-                  }}
-                />,
+                <button
+                  class="text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1"
+                  onclick={() => piece.addBlockRepeat(2)}
+                >
+                  Repeat
+                </button>,
               ]
             ) : piece.lineSelectMode ? (
               <span class="text-xs text-gray-400 dark:text-gray-500">Tap lines to select</span>

@@ -227,6 +227,10 @@ export const piece = {
     piece.selectMode = !piece.selectMode;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     piece.editingTile = null;
+    if (piece.lineSelectMode) {
+      piece.lineSelectMode = false;
+      piece.lineSelection = [];
+    }
     m.redraw();
   },
 
