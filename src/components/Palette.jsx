@@ -106,8 +106,13 @@ function SoundPaletteTile() {
         handler = dragBehaviour({
           ghostLabel: sym.name,
           ghostSub: sym.hand,
-          onTap: () => piece.selectedLineId && piece.addSound(piece.selectedLineId, sym),
-          onDrop: (lineId) => piece.addSound(lineId, sym),
+          onTap: () =>
+            !piece.selectMode &&
+            !piece.lineSelectMode &&
+            piece.selectedLineId &&
+            piece.addSound(piece.selectedLineId, sym),
+          onDrop: (lineId) =>
+            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, sym),
         });
       return (
         <div
@@ -131,8 +136,13 @@ function PatternPaletteTile() {
         handler = dragBehaviour({
           ghostLabel: pattern.name,
           ghostSub: `${pattern.sounds.length} sounds`,
-          onTap: () => piece.selectedLineId && piece.addGroup(piece.selectedLineId, pattern),
-          onDrop: (lineId) => piece.addGroup(lineId, pattern),
+          onTap: () =>
+            !piece.selectMode &&
+            !piece.lineSelectMode &&
+            piece.selectedLineId &&
+            piece.addGroup(piece.selectedLineId, pattern),
+          onDrop: (lineId) =>
+            !piece.selectMode && !piece.lineSelectMode && piece.addGroup(lineId, pattern),
         });
       return (
         <div class="flex items-center gap-1">

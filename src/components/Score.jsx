@@ -166,13 +166,15 @@ export function Score() {
 
           <div class="px-3 py-2 flex items-center gap-3">
             <button
-              class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
+              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300'}`}
+              disabled={piece.selectMode || piece.lineSelectMode}
               onclick={() => piece.addLine()}
             >
               + Add line
             </button>
             <button
-              class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-semibold"
+              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              disabled={piece.selectMode || piece.lineSelectMode}
               onclick={() => piece.addHeading()}
             >
               + Add heading
