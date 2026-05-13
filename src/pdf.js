@@ -105,14 +105,6 @@ export function exportPdf() {
       x += tileW;
     });
 
-    if ((line.repeat || 1) > 1) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(80);
-      doc.text(`× ${line.repeat}`, x + 2, y + tileH / 2 + 1.5);
-      doc.setTextColor(0);
-    }
-
     y += tileH + 3;
 
     if (y > 270) {

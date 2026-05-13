@@ -15,7 +15,7 @@ function makeSound(symbol) {
 }
 
 function makeLine() {
-  return { id: uid(), sounds: [], repeat: 1 };
+  return { id: uid(), sounds: [] };
 }
 
 function makeHeading() {
@@ -356,38 +356,6 @@ export const piece = {
   },
 
   /**
-   * Inserts a deep copy of the line immediately after it and selects the copy.
-   * All sound and group IDs are replaced with fresh ones.
-   * @param {string} lineId
-   */
-  duplicateLine(lineId) {
-    const line = piece.lines.find((l) => l.id === lineId);
-    if (!line) return;
-    const copy = {
-      id: uid(),
-      repeat: line.repeat || 1,
-      sounds: line.sounds.map((s) => ({
-        ...s,
-        id: uid(),
-        ...(s.type === 'group' ? { sounds: s.sounds.map((gs) => ({ ...gs, id: uid() })) } : {}),
-      })),
-    };
-    const idx = piece.lines.findIndex((l) => l.id === lineId);
-    piece.lines.splice(idx + 1, 0, copy);
-    piece.selectedLineId = copy.id;
-    history.push(piece._snapshot());
-    m.redraw();
-  },
-
-  setLineRepeat(lineId, value) {
-    const line = piece.lines.find((l) => l.id === lineId);
-    if (!line) return;
-    line.repeat = Math.max(1, Math.round(Number(value)) || 1);
-    history.push(piece._snapshot());
-    m.redraw();
-  },
-
-  /**
    * Removes the line. Selects the nearest remaining line when the removed line
    * was selected. Always ensures at least one line exists.
    * @param {string} lineId
@@ -429,7 +397,6 @@ export const piece = {
     if (item.type === 'block-repeat') return { ...item, id: uid() };
     return {
       id: uid(),
-      repeat: item.repeat || 1,
       sounds: item.sounds.map((s) => ({
         ...s,
         id: uid(),

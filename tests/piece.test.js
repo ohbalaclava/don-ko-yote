@@ -335,44 +335,6 @@ describe('removeLine', () => {
   });
 });
 
-// ── duplicateLine ─────────────────────────────────────────────────────────────
-
-describe('duplicateLine', () => {
-  it('inserts a copy immediately after the original', () => {
-    piece.addSound(line().id, sym('A'));
-    piece.addLine();
-    piece.addSound(piece.lines[1].id, sym('B'));
-    piece.duplicateLine(piece.lines[0].id);
-    expect(piece.lines).toHaveLength(3);
-    expect(piece.lines[1].sounds[0].name).toBe('A'); // copy
-    expect(piece.lines[2].sounds[0].name).toBe('B'); // original line 1 shifted
-  });
-
-  it('assigns fresh ids to all sounds in the copy', () => {
-    piece.addSound(line().id, sym('A'));
-    const originalSoundId = sounds()[0].id;
-    piece.duplicateLine(line().id);
-    expect(piece.lines[1].sounds[0].id).not.toBe(originalSoundId);
-  });
-
-  it('selects the new line', () => {
-    piece.duplicateLine(line().id);
-    expect(piece.selectedLineId).toBe(piece.lines[1].id);
-  });
-
-  it('deep-copies group sounds with fresh ids', () => {
-    piece.addGroup(line().id, {
-      name: 'Pat',
-      sounds: [{ name: 'X', hand: 'R', duration: 1 }],
-    });
-    const originalGroupId = sounds()[0].id;
-    const originalSubId = sounds()[0].sounds[0].id;
-    piece.duplicateLine(line().id);
-    expect(piece.lines[1].sounds[0].id).not.toBe(originalGroupId);
-    expect(piece.lines[1].sounds[0].sounds[0].id).not.toBe(originalSubId);
-  });
-});
-
 // ── reorderLine ───────────────────────────────────────────────────────────────
 
 describe('reorderLine', () => {
@@ -390,25 +352,6 @@ describe('reorderLine', () => {
     const idsBefore = piece.lines.map((l) => l.id);
     piece.reorderLine(1, 1);
     expect(piece.lines.map((l) => l.id)).toEqual(idsBefore);
-  });
-});
-
-// ── setLineRepeat ─────────────────────────────────────────────────────────────
-
-describe('setLineRepeat', () => {
-  it('sets the repeat value', () => {
-    piece.setLineRepeat(line().id, 3);
-    expect(line().repeat).toBe(3);
-  });
-
-  it('clamps to a minimum of 1', () => {
-    piece.setLineRepeat(line().id, 0);
-    expect(line().repeat).toBe(1);
-  });
-
-  it('rounds fractional values', () => {
-    piece.setLineRepeat(line().id, 2.7);
-    expect(line().repeat).toBe(3);
   });
 });
 

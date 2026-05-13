@@ -167,8 +167,6 @@ export function Line() {
   let container;
   let instructionLayouts = [];
   let wrapperPaddingBottom = 0;
-  let editingRepeat = false;
-
   let lpTimer = null;
   let lpSoundId = null;
   let lpLineId = null;
@@ -371,50 +369,6 @@ export function Line() {
                   );
                 })}
               </div>
-              <div
-                class={`shrink-0 mt-3 flex flex-row items-baseline justify-center border-2 rounded shadow-sm font-bold cursor-pointer select-none min-w-[3rem] px-2 py-1 ${editingRepeat || (line.repeat || 1) > 1 ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600'}`}
-                onclick={(e) => {
-                  if (!editingRepeat) {
-                    e.stopPropagation();
-                    editingRepeat = true;
-                    m.redraw();
-                  }
-                }}
-                title="Set repeat count"
-              >
-                <span class="text-xs leading-none mr-0.5">×</span>
-                {editingRepeat ? (
-                  <input
-                    type="number"
-                    min="1"
-                    class="w-7 text-sm text-center bg-transparent border-b border-indigo-400 outline-none font-bold"
-                    value={line.repeat || 1}
-                    onclick={(e) => e.stopPropagation()}
-                    onchange={(e) => {
-                      piece.setLineRepeat(line.id, e.target.value);
-                    }}
-                    onblur={(e) => {
-                      piece.setLineRepeat(line.id, e.target.value);
-                      editingRepeat = false;
-                      m.redraw();
-                    }}
-                    onkeydown={(e) => {
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        piece.setLineRepeat(line.id, e.target.value);
-                        editingRepeat = false;
-                        m.redraw();
-                      }
-                      e.stopPropagation();
-                    }}
-                    oncreate={({ dom }) => {
-                      dom.focus();
-                      dom.select();
-                    }}
-                  />
-                ) : (line.repeat || 1) > 1 ? (
-                  <span class="text-xl leading-none">{line.repeat}</span>
-                ) : null}
-              </div>
             </div>
             {instructionLayouts.map((layout) => (
               <span
@@ -428,16 +382,6 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
-            <button
-              class="text-base text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300"
-              onclick={(e) => {
-                e.stopPropagation();
-                piece.duplicateLine(line.id);
-              }}
-              title="Duplicate line"
-            >
-              ⊕
-            </button>
             <button
               class="text-xs text-red-400 hover:text-red-600"
               onclick={(e) => {

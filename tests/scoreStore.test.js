@@ -34,7 +34,7 @@ function makeScoreRecord(overrides = {}) {
     bpm: 120,
     author: 'Author',
     icon: null,
-    lines: [{ id: 'l1', sounds: [], repeat: 1 }],
+    lines: [{ id: 'l1', sounds: [] }],
     savedAt: Date.now(),
     ...overrides,
   };
@@ -64,7 +64,7 @@ describe('importJson', () => {
       bpm: 90,
       author: 'Me',
       icon: 'data:img',
-      lines: [{ id: 'l1', sounds: [], repeat: 1 }],
+      lines: [{ id: 'l1', sounds: [] }],
     };
     scoreStore.importJson(JSON.stringify(data));
     expect(piece.title).toBe('Test');
