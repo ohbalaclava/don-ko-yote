@@ -94,16 +94,16 @@ export function Score() {
                   Duplicate
                 </button>,
                 <button
-                  class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
-                  onclick={() => piece.deleteSelectedLines()}
-                >
-                  Delete
-                </button>,
-                <button
                   class="text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1"
                   onclick={() => piece.addBlockRepeat(2)}
                 >
                   Repeat
+                </button>,
+                <button
+                  class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
+                  onclick={() => piece.deleteSelectedLines()}
+                >
+                  Delete
                 </button>,
               ]
             ) : piece.lineSelectMode ? (
