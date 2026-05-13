@@ -1,6 +1,5 @@
 import m from 'mithril';
 import { history } from './history.js';
-import { settings } from './settings.js';
 
 let _nextId = 1;
 const uid = () => String(_nextId++);
@@ -526,24 +525,8 @@ export const piece = {
   // ── Sounds ────────────────────────────────────────────────────────────────
 
   /**
-   * Returns the max duration that can be added at the end of the line without
-   * crossing a beat boundary. Returns Infinity when beat boundaries are disabled
-   * or the line is already sitting on an integer beat position.
-   * @param {string} lineId
-   * @returns {number}
-   */
-  maxAddDuration(lineId) {
-    if (!settings.beatBoundaries) return Infinity;
-    const line = piece.lines.find((l) => l.id === lineId);
-    if (!line) return Infinity;
-    const frac = beatFractional(line.sounds, line.sounds.length);
-    return frac === 0 ? Infinity : 1 - frac;
-  },
-
-  /**
    * Adds a sound to the line. If the line is full (beatsPerLine), overflows to the
-   * next line with space, creating one if needed. Beat-boundary enforcement can
-   * silently reject the add when the sound would straddle a boundary.
+   * next line with space, creating one if needed.
    * @param {string} lineId
    * @param {{ name: string, hand: string, duration: number }} symbol
    * @param {number} [atIndex] - Insert position within the line; appends if omitted.
@@ -555,10 +538,6 @@ export const piece = {
     const tIdx = targetLineIdx(fromIdx, s.duration);
     const target = piece.lines[tIdx];
     const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
-    if (settings.beatBoundaries) {
-      const frac = beatFractional(target.sounds, insertAt);
-      if (frac > 0 && s.duration > 1 - frac) return;
-    }
     if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
     if (tIdx !== fromIdx) piece.selectedLineId = target.id;
@@ -673,10 +652,6 @@ export const piece = {
       const tIdx = targetLineIdx(fromIdx, group.duration);
       const target = piece.lines[tIdx];
       const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
-      if (settings.beatBoundaries) {
-        const frac = beatFractional(target.sounds, insertAt);
-        if (frac > 0 && group.duration > 1 - frac) return;
-      }
       if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
       else target.sounds.push(group);
       if (tIdx !== fromIdx) piece.selectedLineId = target.id;

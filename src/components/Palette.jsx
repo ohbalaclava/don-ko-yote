@@ -7,10 +7,6 @@ import { settings } from '../data/settings.js';
 export function Palette() {
   return {
     view() {
-      // Compute once and pass to tiles; otherwise each tile re-walks the
-      // selected line's sounds on every redraw.
-      const maxDur = piece.selectedLineId ? piece.maxAddDuration(piece.selectedLineId) : Infinity;
-
       return (
         <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
           <div>
@@ -19,7 +15,7 @@ export function Palette() {
             </p>
             <div class="flex flex-wrap gap-1">
               {SYMBOLS.map((sym) => (
-                <SoundPaletteTile key={sym.name} sym={sym} maxDur={maxDur} />
+                <SoundPaletteTile key={sym.name} sym={sym} />
               ))}
             </div>
           </div>
@@ -31,7 +27,7 @@ export function Palette() {
               </p>
               <div class="flex flex-wrap gap-1">
                 {patternStore.items.map((p) => (
-                  <PatternPaletteTile key={p.id} pattern={p} maxDur={maxDur} />
+                  <PatternPaletteTile key={p.id} pattern={p} />
                 ))}
               </div>
             </div>
@@ -105,7 +101,7 @@ function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
 function SoundPaletteTile() {
   let handler;
   return {
-    view({ attrs: { sym, maxDur } }) {
+    view({ attrs: { sym } }) {
       if (!handler)
         handler = dragBehaviour({
           ghostLabel: sym.name,
@@ -113,10 +109,9 @@ function SoundPaletteTile() {
           onTap: () => piece.selectedLineId && piece.addSound(piece.selectedLineId, sym),
           onDrop: (lineId) => piece.addSound(lineId, sym),
         });
-      const disabled = sym.duration > maxDur;
       return (
         <div
-          class={`flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:border-indigo-400'}`}
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] cursor-grab active:border-indigo-400"
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
@@ -130,7 +125,7 @@ function SoundPaletteTile() {
 function PatternPaletteTile() {
   let handler;
   return {
-    view({ attrs: { pattern, maxDur } }) {
+    view({ attrs: { pattern } }) {
       const beats = +pattern.sounds.reduce((s, x) => s + x.duration, 0).toFixed(2);
       if (!handler)
         handler = dragBehaviour({
@@ -139,11 +134,10 @@ function PatternPaletteTile() {
           onTap: () => piece.selectedLineId && piece.addGroup(piece.selectedLineId, pattern),
           onDrop: (lineId) => piece.addGroup(lineId, pattern),
         });
-      const disabled = beats > maxDur;
       return (
         <div class="flex items-center gap-1">
           <div
-            class={`flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:border-purple-500'}`}
+            class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] cursor-grab active:border-purple-500"
             onpointerdown={handler}
           >
             <span

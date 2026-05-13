@@ -65,19 +65,6 @@ export function SettingsModal() {
                 />
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                  <div class="font-medium dark:text-white">Enforce beat boundaries</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
-                    Block notes that would cross a beat boundary
-                  </div>
-                </div>
-                <Toggle
-                  checked={settings.beatBoundaries}
-                  onChange={(v) => settings.set('beatBoundaries', v)}
-                />
-              </div>
-
               <div class="py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium mb-3 dark:text-white">Font</div>
                 <div class="grid grid-cols-2 gap-2">

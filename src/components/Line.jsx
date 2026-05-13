@@ -15,10 +15,13 @@ function lineDuration(line) {
  * into ligature display items (non-proportional mode only).
  * Adjacent sounds qualify if they share the same duration, are in the same beat,
  * and alternate hands. Groups of one are emitted as single-sound items.
+ * In non-proportional mode, inserts { type: 'beat-marker', beat } items after any
+ * sound whose span crosses an integer beat that would otherwise go unmarked.
  * @param {Array} sounds
- * @returns {Array<{ sound: object, startPos: number } | { sounds: object[], startPos: number }>}
+ * @param {boolean} proportional
+ * @returns {Array}
  */
-function groupSoundsForDisplay(sounds) {
+function groupSoundsForDisplay(sounds, proportional) {
   const items = [];
   let pos = 0;
   let i = 0;
@@ -29,8 +32,14 @@ function groupSoundsForDisplay(sounds) {
     pos += s.duration;
     i++;
 
-    if (settings.proportionalWidth || s.type === 'group' || s.duration >= 1) {
+    if (proportional || s.type === 'group' || s.duration >= 1) {
       items.push({ sound: s, startPos });
+      if (!proportional) {
+        const end = startPos + s.duration;
+        for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
+          items.push({ type: 'beat-marker', beat });
+        }
+      }
       continue;
     }
 
@@ -54,7 +63,15 @@ function groupSoundsForDisplay(sounds) {
       }
     }
 
-    items.push(group.length === 1 ? { sound: group[0], startPos } : { sounds: group, startPos });
+    const item = group.length === 1 ? { sound: group[0], startPos } : { sounds: group, startPos };
+    items.push(item);
+
+    // Check for beat boundaries crossed by this item
+    const itemDur = group.reduce((sum, x) => sum + x.duration, 0);
+    const end = startPos + itemDur;
+    for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
+      items.push({ type: 'beat-marker', beat });
+    }
   }
 
   return items;
@@ -207,6 +224,7 @@ export function Line() {
     if (sortable) return;
     sortable = Sortable.create(container, {
       group: 'sounds',
+      filter: '.beat-marker-divider',
       animation: 150,
       ghostClass: 'opacity-30',
       onEnd(evt) {
@@ -306,7 +324,19 @@ export function Line() {
                 onpointercancel={lpEnd}
                 onpointerleave={lpEnd}
               >
-                {groupSoundsForDisplay(line.sounds).map((item) => {
+                {groupSoundsForDisplay(line.sounds, settings.proportionalWidth).map((item) => {
+                  if (item.type === 'beat-marker') {
+                    return (
+                      <span
+                        key={'bm-' + item.beat}
+                        class="beat-marker-divider self-stretch relative flex flex-col items-center pointer-events-none select-none"
+                        style="width:2px"
+                      >
+                        <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                        <span class="w-px h-full bg-gray-300 dark:bg-gray-600" />
+                      </span>
+                    );
+                  }
                   if (item.sounds) {
                     return (
                       <LigatureTile

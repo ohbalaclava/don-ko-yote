@@ -9,7 +9,6 @@ export const settings = {
   proportionalWidth: false,
   font: 'sans',
   darkMode: false,
-  beatBoundaries: true,
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -17,7 +16,6 @@ export const settings = {
       if ('proportionalWidth' in saved) settings.proportionalWidth = saved.proportionalWidth;
       if ('font' in saved) settings.font = saved.font;
       if ('darkMode' in saved) settings.darkMode = saved.darkMode;
-      if ('beatBoundaries' in saved) settings.beatBoundaries = saved.beatBoundaries;
     }
     applyToDOM();
     m.redraw();
@@ -29,7 +27,6 @@ export const settings = {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
       darkMode: settings.darkMode,
-      beatBoundaries: settings.beatBoundaries,
     });
     applyToDOM();
     m.redraw();
@@ -41,7 +38,6 @@ export const settings = {
         proportionalWidth: settings.proportionalWidth,
         font: settings.font,
         darkMode: settings.darkMode,
-        beatBoundaries: settings.beatBoundaries,
       },
       null,
       2
@@ -66,12 +62,10 @@ export const settings = {
       settings.proportionalWidth = data.proportionalWidth;
     if (['sans', 'serif', 'mono', 'script'].includes(data.font)) settings.font = data.font;
     if (typeof data.darkMode === 'boolean') settings.darkMode = data.darkMode;
-    if (typeof data.beatBoundaries === 'boolean') settings.beatBoundaries = data.beatBoundaries;
     await db.kv.set('settings', {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
       darkMode: settings.darkMode,
-      beatBoundaries: settings.beatBoundaries,
     });
     applyToDOM();
     m.redraw();

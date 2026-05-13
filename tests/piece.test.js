@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 
-const mockSettings = vi.hoisted(() => ({ beatBoundaries: false }));
+const mockSettings = vi.hoisted(() => ({}));
 vi.mock('../src/data/settings.js', () => ({ settings: mockSettings }));
 
 import { piece } from '../src/data/piece.js';
@@ -22,7 +22,6 @@ function sounds(lineIdx = 0) {
 
 beforeEach(() => {
   piece.reset('gobu-gobu', 8);
-  mockSettings.beatBoundaries = false;
 });
 
 // ── addSound ──────────────────────────────────────────────────────────────────
@@ -60,20 +59,6 @@ describe('addSound', () => {
     piece.addSound(piece.lines[1].id, sym('New'));
     expect(piece.lines).toHaveLength(3);
     expect(sounds(2)[0].name).toBe('New');
-  });
-
-  it('rejects a sound that would cross a beat boundary', () => {
-    mockSettings.beatBoundaries = true;
-    piece.addSound(line().id, sym('Half', 'R', 0.5));
-    piece.addSound(line().id, sym('Full', 'R', 1)); // straddles beat boundary
-    expect(sounds()).toHaveLength(1);
-  });
-
-  it('accepts a sound that fits within the remaining beat fraction', () => {
-    mockSettings.beatBoundaries = true;
-    piece.addSound(line().id, sym('H1', 'R', 0.5));
-    piece.addSound(line().id, sym('H2', 'R', 0.5)); // 0.5 + 0.5 = 1.0 exactly
-    expect(sounds()).toHaveLength(2);
   });
 });
 
@@ -385,44 +370,6 @@ describe('duplicateLine', () => {
     piece.duplicateLine(line().id);
     expect(piece.lines[1].sounds[0].id).not.toBe(originalGroupId);
     expect(piece.lines[1].sounds[0].sounds[0].id).not.toBe(originalSubId);
-  });
-});
-
-// ── maxAddDuration ────────────────────────────────────────────────────────────
-
-describe('maxAddDuration', () => {
-  it('returns Infinity when beatBoundaries is disabled', () => {
-    mockSettings.beatBoundaries = false;
-    piece.addSound(line().id, sym('Half', 'R', 0.5));
-    expect(piece.maxAddDuration(line().id)).toBe(Infinity);
-  });
-
-  it('returns Infinity for an unknown lineId', () => {
-    mockSettings.beatBoundaries = true;
-    expect(piece.maxAddDuration('nope')).toBe(Infinity);
-  });
-
-  it('returns Infinity when the line is empty', () => {
-    mockSettings.beatBoundaries = true;
-    expect(piece.maxAddDuration(line().id)).toBe(Infinity);
-  });
-
-  it('returns Infinity when the line ends exactly on a beat boundary', () => {
-    mockSettings.beatBoundaries = true;
-    piece.addSound(line().id, sym('A', 'R', 1));
-    expect(piece.maxAddDuration(line().id)).toBe(Infinity);
-  });
-
-  it('returns the remaining fraction when the line is mid-beat', () => {
-    mockSettings.beatBoundaries = true;
-    piece.addSound(line().id, sym('Half', 'R', 0.5));
-    expect(piece.maxAddDuration(line().id)).toBe(0.5);
-  });
-
-  it('returns 0.75 at a quarter-beat position', () => {
-    mockSettings.beatBoundaries = true;
-    piece.addSound(line().id, sym('Quarter', 'R', 0.25));
-    expect(piece.maxAddDuration(line().id)).toBe(0.75);
   });
 });
 
