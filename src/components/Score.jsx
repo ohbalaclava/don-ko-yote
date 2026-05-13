@@ -10,8 +10,6 @@ import { BlockRepeatRow } from './BlockRepeatRow.jsx';
 export function Score() {
   let sortable;
   let keydownHandler;
-  let repeatInput;
-
   async function savePattern() {
     const line = piece.lines.find((l) => l.id === piece.selection.lineId);
     if (!line) return;
@@ -105,20 +103,19 @@ export function Score() {
                   min="1"
                   class="text-xs w-10 px-1 py-0.5 border border-gray-400 dark:border-gray-500 rounded bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"
                   placeholder="×"
-                  oncreate={({ dom }) => {
-                    repeatInput = dom;
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter') {
+                      const n = parseInt(e.target.value, 10);
+                      if (n >= 2) piece.addBlockRepeat(n);
+                      e.target.value = '';
+                    }
+                  }}
+                  onblur={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    if (n >= 2) piece.addBlockRepeat(n);
+                    e.target.value = '';
                   }}
                 />,
-                <button
-                  class="text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1"
-                  onclick={() => {
-                    const n = parseInt(repeatInput.value, 10);
-                    if (n >= 2) piece.addBlockRepeat(n);
-                    repeatInput.value = '';
-                  }}
-                >
-                  Set ×
-                </button>,
               ]
             ) : piece.lineSelectMode ? (
               <span class="text-xs text-gray-400 dark:text-gray-500">Tap lines to select</span>
