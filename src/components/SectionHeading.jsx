@@ -22,7 +22,7 @@ export function SectionHeading() {
 
       return (
         <div
-          class={`flex items-center gap-2 px-3 py-1 border-b border-gray-200 dark:border-gray-700 group ${isHighlighted}`}
+          class={`flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 group ${isHighlighted}`}
         >
           <div
             class="line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none"
@@ -32,7 +32,7 @@ export function SectionHeading() {
           </div>
           {editing ? (
             <input
-              class="flex-1 text-sm font-semibold bg-transparent border-b border-indigo-400 outline-none text-gray-700 dark:text-gray-200 min-w-0"
+              class="flex-1 text-xl font-semibold bg-transparent border-b border-indigo-400 outline-none text-gray-700 dark:text-gray-200 min-w-0"
               value={heading.text}
               placeholder="Heading name"
               oncreate={({ dom }) => {
@@ -53,7 +53,7 @@ export function SectionHeading() {
             />
           ) : (
             <span
-              class="flex-1 text-sm font-semibold text-gray-600 dark:text-gray-300 cursor-text min-w-0 truncate"
+              class="flex-1 text-xl font-semibold text-gray-600 dark:text-gray-300 cursor-text min-w-0 truncate"
               onclick={(e) => {
                 e.stopPropagation();
                 if (piece.lineSelectMode) {
