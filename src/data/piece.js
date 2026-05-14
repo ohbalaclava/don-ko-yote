@@ -627,6 +627,9 @@ export const piece = {
     const s = line.sounds.find((s) => s.id === soundId);
     if (!s) return;
     Object.assign(s, patch);
+    for (const key of Object.keys(patch)) {
+      if (patch[key] === undefined) delete s[key];
+    }
     history.push(piece._snapshot());
     m.redraw();
   },

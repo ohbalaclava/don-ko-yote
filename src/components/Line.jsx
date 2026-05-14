@@ -32,7 +32,7 @@ function groupSoundsForDisplay(sounds, proportional) {
     pos += s.duration;
     i++;
 
-    if (proportional || s.type === 'group' || s.duration >= 1) {
+    if (proportional || s.type === 'group') {
       items.push({ sound: s, startPos });
       if (!proportional) {
         const end = startPos + s.duration;
@@ -48,13 +48,19 @@ function groupSoundsForDisplay(sounds, proportional) {
 
     while (i < sounds.length) {
       const next = sounds[i];
-      // next must have the same duration and start in the same beat as the last sound
-      if (
-        next.type !== 'group' &&
-        Math.abs(next.duration - dur) < 1e-9 &&
-        Math.floor(pos - dur) === Math.floor(pos) &&
-        next.hand !== group[group.length - 1].hand
-      ) {
+      if (next.type === 'group') break;
+      if (next.ligature === false) break;
+      if (next.ligature === true) {
+        // User-forced join: skip all auto-checks
+        group.push(next);
+        pos += next.duration;
+        i++;
+        continue;
+      }
+      // Auto rules: same duration, same beat, alternating hands
+      if (Math.abs(next.duration - dur) > 1e-9) break;
+      if (Math.floor(pos - dur) !== Math.floor(pos)) break;
+      if (next.hand !== group[group.length - 1].hand) {
         group.push(next);
         pos += next.duration;
         i++;
@@ -66,11 +72,13 @@ function groupSoundsForDisplay(sounds, proportional) {
     const item = group.length === 1 ? { sound: group[0], startPos } : { sounds: group, startPos };
     items.push(item);
 
-    // Check for beat boundaries crossed by this item
-    const itemDur = group.reduce((sum, x) => sum + x.duration, 0);
-    const end = startPos + itemDur;
-    for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
-      items.push({ type: 'beat-marker', beat });
+    // Beat markers for boundaries crossed by a single tile; ligature tiles use
+    // internal beat dots so no external marker is needed for groups of 2+
+    if (group.length === 1) {
+      const end = startPos + group[0].duration;
+      for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
+        items.push({ type: 'beat-marker', beat });
+      }
     }
   }
 

@@ -77,6 +77,27 @@ export function SoundTile() {
 export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
+      let showLigature = false;
+      let isLigated = false;
+      if (!settings.proportionalWidth) {
+        const line = piece.lines.find((l) => l.id === lineId);
+        if (line) {
+          const idx = line.sounds.findIndex((s) => s.id === sound.id);
+          if (idx >= 1) {
+            const prev = line.sounds[idx - 1];
+            if (prev && prev.type !== 'group') {
+              showLigature = true;
+              const sameDur = Math.abs(prev.duration - sound.duration) < 1e-9;
+              const prevStart = line.sounds.slice(0, idx - 1).reduce((s, x) => s + x.duration, 0);
+              const sameBeat = Math.floor(prevStart) === Math.floor(prevStart + prev.duration);
+              const autoWouldJoin =
+                sameDur && sameBeat && prev.duration < 1 && prev.hand !== sound.hand;
+              isLigated = sound.ligature === true || (autoWouldJoin && sound.ligature !== false);
+            }
+          }
+        }
+      }
+
       return [
         <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
         <div
@@ -114,6 +135,24 @@ export function SoundEditor() {
           >
             Accent
           </button>
+          {showLigature && (
+            <button
+              class="mt-1 text-xs text-left text-gray-700 dark:text-gray-300"
+              onclick={() =>
+                piece.updateSound(lineId, sound.id, { ligature: isLigated ? false : true })
+              }
+            >
+              {isLigated ? 'Break join' : '← join'}
+            </button>
+          )}
+          {showLigature && sound.ligature != null && (
+            <button
+              class="text-xs text-left text-gray-400 dark:text-gray-500"
+              onclick={() => piece.updateSound(lineId, sound.id, { ligature: undefined })}
+            >
+              Auto
+            </button>
+          )}
           <button
             class="mt-1 text-xs text-red-500 hover:text-red-700 text-left"
             onclick={() => {
