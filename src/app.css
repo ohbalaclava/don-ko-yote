@@ -27,6 +27,6 @@ body {
   opacity: 0.3;
 }
 
-.sortable-chosen .beat-dot {
+.sortable-drag .beat-dot {
   display: none;
 }
