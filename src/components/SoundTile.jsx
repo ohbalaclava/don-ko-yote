@@ -158,14 +158,14 @@ export function SoundEditor() {
             placeholder="e.g. step left"
           />
           <button
-            class={`mt-1 text-xs text-left text-gray-700 dark:text-gray-300 ${sound.emphasis ? 'font-bold' : 'font-normal'}`}
+            class={`mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
             onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
           >
             Accent
           </button>
           {showLigature && (
             <button
-              class="mt-1 text-xs text-left text-gray-700 dark:text-gray-300"
+              class="mt-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onclick={() =>
                 piece.updateSound(lineId, sound.id, { ligature: isLigated ? false : true })
               }
@@ -175,14 +175,14 @@ export function SoundEditor() {
           )}
           {showLigature && sound.ligature != null && (
             <button
-              class="text-xs text-left text-gray-400 dark:text-gray-500"
+              class="text-xs rounded border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onclick={() => piece.updateSound(lineId, sound.id, { ligature: undefined })}
             >
               Auto
             </button>
           )}
           <button
-            class="mt-1 text-xs text-red-500 hover:text-red-700 text-left"
+            class="mt-1 text-xs rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-2 py-1 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             onclick={() => {
               piece.removeSound(lineId, sound.id);
               piece.setEditingTile(null);
