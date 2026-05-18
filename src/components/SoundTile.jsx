@@ -105,6 +105,31 @@ export function SoundEditor() {
           class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]"
           onclick={(e) => e.stopPropagation()}
         >
+          {sound.implicit && (
+            <div class="flex items-center justify-center gap-2">
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  const cur = parseInt(sound.name, 10) || 1;
+                  if (cur > 1) piece.updateSound(lineId, sound.id, { name: String(cur - 1) });
+                }}
+              >
+                −
+              </button>
+              <span class="font-bold w-4 text-center text-gray-900 dark:text-gray-200">
+                {sound.name}
+              </span>
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  const cur = parseInt(sound.name, 10) || 1;
+                  if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
+                }}
+              >
+                +
+              </button>
+            </div>
+          )}
           {sound.hand != null && (
             <div>
               <div class="flex gap-1">

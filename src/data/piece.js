@@ -11,6 +11,7 @@ function makeSound(symbol) {
     hand: symbol.hand,
     duration: symbol.duration,
     instruction: '',
+    ...(symbol.implicit && { implicit: true }),
   };
 }
 
