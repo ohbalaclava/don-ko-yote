@@ -23,6 +23,10 @@ function makeHeading() {
   return { id: uid(), type: 'heading', text: '' };
 }
 
+function makeNote() {
+  return { id: uid(), type: 'note', text: '' };
+}
+
 function makeBlockRepeat(count, lineIds) {
   return { id: uid(), type: 'block-repeat', count, lineIds };
 }
@@ -59,7 +63,12 @@ function targetLineIdx(fromIdx, duration) {
   let i = fromIdx;
   while (i < piece.lines.length) {
     const item = piece.lines[i];
-    if (item.type !== 'heading' && item.type !== 'block-repeat' && lineDur(item) + duration <= max)
+    if (
+      item.type !== 'heading' &&
+      item.type !== 'note' &&
+      item.type !== 'block-repeat' &&
+      lineDur(item) + duration <= max
+    )
       return i;
     i++;
   }
@@ -125,7 +134,9 @@ export const piece = {
     piece.lineSelection = [];
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId =
-        piece.lines.find((l) => l.type !== 'heading' && l.type !== 'block-repeat')?.id ?? null;
+        piece.lines.find(
+          (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
+        )?.id ?? null;
     }
   },
 
@@ -343,9 +354,17 @@ export const piece = {
     // the last member and the block-repeat marker (skipping headings for adjacency)
     const pos = piece.lines.indexOf(moved);
     let prevIdx = pos - 1;
-    while (prevIdx >= 0 && piece.lines[prevIdx].type === 'heading') prevIdx--;
+    while (
+      prevIdx >= 0 &&
+      (piece.lines[prevIdx].type === 'heading' || piece.lines[prevIdx].type === 'note')
+    )
+      prevIdx--;
     let nextIdx = pos + 1;
-    while (nextIdx < piece.lines.length && piece.lines[nextIdx].type === 'heading') nextIdx++;
+    while (
+      nextIdx < piece.lines.length &&
+      (piece.lines[nextIdx].type === 'heading' || piece.lines[nextIdx].type === 'note')
+    )
+      nextIdx++;
     const prev = prevIdx >= 0 ? piece.lines[prevIdx] : null;
     const next = nextIdx < piece.lines.length ? piece.lines[nextIdx] : null;
 
@@ -394,6 +413,31 @@ export const piece = {
     m.redraw();
   },
 
+  addNote() {
+    piece.lines.push(makeNote());
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  /**
+   * Updates the text of a note.
+   * @param {string} noteId
+   * @param {string} text
+   */
+  setNoteText(noteId, text) {
+    const note = piece.lines.find((l) => l.id === noteId);
+    if (!note || note.type !== 'note') return;
+    note.text = text;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  removeNote(noteId) {
+    piece.lines = piece.lines.filter((l) => l.id !== noteId);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
   /**
    * Removes the line. Selects the nearest remaining line when the removed line
    * was selected. Always ensures at least one line exists.
@@ -408,14 +452,16 @@ export const piece = {
       item.lineIds = item.lineIds.filter((id) => id !== lineId);
       return item.lineIds.length > 0;
     });
-    const realLines = piece.lines.filter((l) => l.type !== 'heading' && l.type !== 'block-repeat');
+    const realLines = piece.lines.filter(
+      (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
+    );
     if (realLines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
       const candidates = piece.lines.filter(
-        (l) => l.type !== 'heading' && l.type !== 'block-repeat'
+        (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
       );
       const nearIdx = Math.min(idx, candidates.length - 1);
       piece.selectedLineId = candidates[nearIdx >= 0 ? nearIdx : 0].id;
@@ -433,6 +479,7 @@ export const piece = {
    */
   _cloneItem(item) {
     if (item.type === 'heading') return { ...item, id: uid() };
+    if (item.type === 'note') return { ...item, id: uid() };
     if (item.type === 'block-repeat') return { ...item, id: uid() };
     return {
       id: uid(),
@@ -476,7 +523,7 @@ export const piece = {
     });
     piece.lineSelection = [];
     const realLines = piece.lines.filter(
-      (item) => item.type !== 'heading' && item.type !== 'block-repeat'
+      (item) => item.type !== 'heading' && item.type !== 'note' && item.type !== 'block-repeat'
     );
     if (realLines.length === 0) {
       const line = makeLine();

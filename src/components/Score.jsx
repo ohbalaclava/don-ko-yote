@@ -5,6 +5,7 @@ import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
+import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
 
 export function Score() {
@@ -151,6 +152,15 @@ export function Score() {
                     />
                   );
                 }
+                if (item.type === 'note') {
+                  return (
+                    <NoteRow
+                      key={item.id}
+                      note={item}
+                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                    />
+                  );
+                }
                 lineOrdinal++;
                 return (
                   <Line
@@ -178,6 +188,13 @@ export function Score() {
               onclick={() => piece.addHeading()}
             >
               + Add heading
+            </button>
+            <button
+              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              disabled={piece.selectMode || piece.lineSelectMode}
+              onclick={() => piece.addNote()}
+            >
+              + Add note
             </button>
           </div>
         </div>
