@@ -128,7 +128,7 @@ function SoundPaletteTile() {
   };
 }
 
-const IMPLICIT_SYM = { name: '1', duration: 1, implicit: true };
+const IMPLICIT_SYM = { name: '—', duration: 1, implicit: true };
 
 function ImplicitPaletteTile() {
   let handler;
@@ -136,7 +136,7 @@ function ImplicitPaletteTile() {
     view() {
       if (!handler)
         handler = dragBehaviour({
-          ghostLabel: '1',
+          ghostLabel: '—',
           ghostSub: '',
           onTap: () =>
             !piece.selectMode &&
@@ -151,7 +151,7 @@ function ImplicitPaletteTile() {
           class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] cursor-grab active:border-indigo-400"
           onpointerdown={handler}
         >
-          <span class={`font-bold text-base leading-tight font-${settings.font}`}>1</span>
+          <span class={`font-bold text-base leading-tight font-${settings.font}`}>—</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">1–8</span>
         </div>
       );

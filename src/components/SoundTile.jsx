@@ -110,8 +110,11 @@ export function SoundEditor() {
               <button
                 class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
                 onclick={() => {
-                  const cur = parseInt(sound.name, 10) || 1;
-                  if (cur > 1) piece.updateSound(lineId, sound.id, { name: String(cur - 1) });
+                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
+                  if (cur > 0)
+                    piece.updateSound(lineId, sound.id, {
+                      name: cur === 1 ? '—' : String(cur - 1),
+                    });
                 }}
               >
                 −
@@ -122,7 +125,7 @@ export function SoundEditor() {
               <button
                 class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
                 onclick={() => {
-                  const cur = parseInt(sound.name, 10) || 1;
+                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
                   if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
                 }}
               >
