@@ -47,13 +47,16 @@ export function SoundTile() {
                 const isHB = isIntegerBeat(absPos);
                 return (
                   <span
-                    class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
-                    style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem`}
+                    class={`absolute -top-3 -translate-x-1/2 rounded-full pointer-events-none ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
+                    style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem;will-change:transform`}
                   />
                 );
               })
             ) : startPos != null && isIntegerBeat(startPos) ? (
-              <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+              <span
+                class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100 pointer-events-none"
+                style="will-change:transform"
+              />
             ) : null}
           </div>
           <div
