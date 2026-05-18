@@ -157,12 +157,14 @@ export function SoundEditor() {
             oninput={(e) => piece.updateSound(lineId, sound.id, { instruction: e.target.value })}
             placeholder="e.g. step left"
           />
-          <button
-            class={`mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-            onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
-          >
-            Accent
-          </button>
+          {!sound.implicit && (
+            <button
+              class={`mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
+            >
+              Accent
+            </button>
+          )}
           {showLigature && (
             <button
               class="mt-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
