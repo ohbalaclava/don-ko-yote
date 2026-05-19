@@ -89,7 +89,7 @@ export function SoundEditor() {
             const prev = line.sounds[idx - 1];
             if (prev && prev.type !== 'group') {
               showLigature = true;
-              const sameDur = prev.duration === sound.duration;
+              const sameDur = time % 2 !== 0 || prev.duration === sound.duration;
               const prevStart = line.sounds.slice(0, idx - 1).reduce((s, x) => s + x.duration, 0);
               const sameBeat =
                 Math.floor(prevStart / time) === Math.floor((prevStart + prev.duration) / time);

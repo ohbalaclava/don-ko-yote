@@ -11,10 +11,10 @@ function lineDuration(line) {
 }
 
 /**
- * Groups consecutive sub-beat sounds of equal duration within the same beat
- * into ligature display items (non-proportional mode only).
- * Adjacent sounds qualify if they share the same duration, are in the same beat,
- * and alternate hands. Groups of one are emitted as single-sound items.
+ * Groups consecutive sub-beat sounds within the same beat into ligature display
+ * items (non-proportional mode only). Adjacent sounds qualify if they are in the
+ * same beat, alternate hands, and (when time is even) share the same duration.
+ * Groups of one are emitted as single-sound items.
  * In non-proportional mode, inserts { type: 'beat-marker', beat } items after any
  * sound whose span crosses an integer beat that would otherwise go unmarked.
  * Positions are in divisions; `time` is the number of divisions per beat.
@@ -62,8 +62,8 @@ function groupSoundsForDisplay(sounds, proportional, time) {
         i++;
         continue;
       }
-      // Auto rules: same duration, same beat, alternating hands
-      if (next.duration !== dur) break;
+      // Auto rules: same duration (even time only), same beat, alternating hands
+      if (time % 2 === 0 && next.duration !== dur) break;
       if (Math.floor((pos - dur) / time) !== Math.floor(pos / time)) break;
       if (next.hand !== group[group.length - 1].hand) {
         group.push(next);
