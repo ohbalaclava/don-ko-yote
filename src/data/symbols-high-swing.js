@@ -17,8 +17,9 @@ export const HIGH_SWING = {
       alternatives: [
         { hand: 'R', duration: 2 },
         { hand: 'L', duration: 1 },
-        { hand: 'B', duration: 2, editable: true },
+        { hand: 'B', duration: 3 },
       ],
+      editable: true,
     },
     { name: 'tsu', duration: 2, hand: 'R' },
     { name: 'ku', duration: 1, hand: 'L' },

@@ -21,8 +21,7 @@ function makeSound(symbol) {
       duration: alt.duration,
       instruction: '',
       alternatives: symbol.alternatives,
-      selectedAlternative: 0,
-      ...(alt.editable && { editable: true }),
+      ...((symbol.editable || alt.editable) && { editable: true }),
       ...(symbol.implicit && { implicit: true }),
     };
   }

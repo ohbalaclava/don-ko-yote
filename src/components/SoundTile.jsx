@@ -101,9 +101,9 @@ export function SoundEditor() {
         }
       }
 
-      const showHand = sound.hand === 'L' || sound.hand === 'R';
+      const showHand = !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R';
       const showDuration = sound.editable === true && !sound.implicit;
-      const maxDuration = 8 * time;
+      const maxDuration = time;
 
       return [
         <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
@@ -140,41 +140,33 @@ export function SoundEditor() {
               </button>
             </div>
           )}
-          {sound.alternatives && (
-            <div class="flex flex-wrap gap-1">
-              {sound.alternatives.map((alt, idx) => {
-                const active = sound.selectedAlternative === idx;
-                return (
-                  <button
-                    key={idx}
-                    class={`rounded border px-2 py-0.5 text-xs font-medium ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    onclick={() =>
-                      piece.updateSound(lineId, sound.id, {
-                        hand: alt.hand,
-                        duration: alt.duration,
-                        editable: alt.editable === true ? true : undefined,
-                        selectedAlternative: idx,
-                      })
-                    }
-                  >
-                    {alt.hand ?? ''} · {alt.duration}
-                  </button>
-                );
-              })}
-            </div>
-          )}
           {showHand && (
             <div>
               <div class="flex gap-1">
-                {['L', 'B', 'R'].map((h) => (
-                  <button
-                    key={h}
-                    class={`${h === 'B' ? 'w-6' : 'flex-1'} rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                    onclick={() => piece.updateSound(lineId, sound.id, { hand: h })}
-                  >
-                    {h}
-                  </button>
-                ))}
+                {['L', 'B', 'R']
+                  .filter(
+                    (h) => !sound.alternatives || sound.alternatives.some((a) => a.hand === h)
+                  )
+                  .map((h) => (
+                    <button
+                      key={h}
+                      class={`${h === 'B' ? 'w-6' : 'flex-1'} rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
+                      onclick={() => {
+                        if (sound.alternatives) {
+                          const alt = sound.alternatives.find((a) => a.hand === h);
+                          if (alt)
+                            piece.updateSound(lineId, sound.id, {
+                              hand: alt.hand,
+                              duration: alt.duration,
+                            });
+                        } else {
+                          piece.updateSound(lineId, sound.id, { hand: h });
+                        }
+                      }}
+                    >
+                      {h}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
