@@ -30,7 +30,7 @@ export const HIGH_SWING = {
     { name: "'", duration: 1 },
     { name: 'un', duration: 1 },
     { name: 'HUP', duration: 3, editable: true },
-    { name: 'SO', duration: 1, editable: true },
-    { name: 'RE', duration: 1, editable: true },
+    { name: 'SO', duration: 3, editable: true },
+    { name: 'RE', duration: 3, editable: true },
   ],
 };

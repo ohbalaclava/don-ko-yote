@@ -23,9 +23,9 @@ export const LOW_SWING = {
     { name: 'ra', duration: 1, hand: 'L' },
     { name: 'un', duration: 1 },
     { name: "'", duration: 1 },
-    { name: 'HUP', duration: 4, editable: true },
-    { name: 'HA', duration: 4, editable: true },
-    { name: 'SO', duration: 4, editable: true },
-    { name: 'RE', duration: 4, editable: true },
+    { name: 'HUP', duration: 3, editable: true },
+    { name: 'HA', duration: 3, editable: true },
+    { name: 'SO', duration: 3, editable: true },
+    { name: 'RE', duration: 3, editable: true },
   ],
 };
