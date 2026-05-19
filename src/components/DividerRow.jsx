@@ -1,20 +1,23 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { repeatDecoration } from './repeatDecoration.js';
 
 export function DividerRow() {
   return {
-    view({ attrs: { divider, inBlockRepeat } }) {
-      const isSelected = piece.lineSelection.includes(divider.id);
-      const isHighlighted =
-        piece.lineSelectMode && isSelected
-          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-400'
-          : inBlockRepeat
-            ? 'border-l-4 border-l-orange-400 bg-orange-50/40 dark:bg-orange-900/10'
-            : 'border-l-4 border-l-transparent';
+    view({ attrs: { divider, repeatDepth = 0 } }) {
+      const isLineSelected = piece.lineSelectMode && piece.lineSelection.includes(divider.id);
+      const inRepeat = !isLineSelected && repeatDepth > 0;
+      const sideClass = isLineSelected
+        ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
+        : inRepeat
+          ? 'bg-orange-50/20 dark:bg-orange-900/5'
+          : 'border-l-4 border-l-transparent';
+      const decoration = inRepeat ? repeatDecoration(repeatDepth) : null;
 
       return (
         <div
-          class={`flex items-center gap-2 px-3 py-1 border-b border-gray-200 dark:border-gray-700 group ${isHighlighted}`}
+          class={`flex items-center gap-2 py-1 pr-3 border-b border-gray-200 dark:border-gray-700 group ${sideClass}`}
+          style={decoration ?? { paddingLeft: '12px' }}
           onclick={() => {
             if (piece.lineSelectMode) piece.toggleLineSelection(divider.id);
           }}

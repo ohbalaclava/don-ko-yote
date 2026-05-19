@@ -5,6 +5,7 @@ import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { GroupTile } from './GroupTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
+import { repeatDecoration } from './repeatDecoration.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -276,7 +277,7 @@ export function Line() {
     onremove() {
       if (sortable) sortable.destroy();
     },
-    view({ attrs: { line, index, inBlockRepeat } }) {
+    view({ attrs: { line, index, repeatDepth = 0 } }) {
       const time = piece.time;
       const beats = lineDuration(line) / time;
       const selected = piece.selectedLineId === line.id;
@@ -286,18 +287,24 @@ export function Line() {
           ? new Set(piece.selection.soundIds)
           : null;
 
-      const isHighlighted =
+      const showRepeatBars =
+        repeatDepth > 0 &&
+        !(piece.lineSelectMode && isLineSelected) &&
+        !(!piece.lineSelectMode && selected);
+      const sideClass =
         piece.lineSelectMode && isLineSelected
-          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-400'
+          ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
           : !piece.lineSelectMode && selected
-            ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-400'
-            : inBlockRepeat
-              ? 'border-l-4 border-l-orange-400 bg-orange-50/40 dark:bg-orange-900/10'
+            ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
+            : showRepeatBars
+              ? 'bg-orange-50/20 dark:bg-orange-900/5'
               : 'border-l-4 border-l-transparent';
+      const decoration = showRepeatBars ? repeatDecoration(repeatDepth) : null;
 
       return (
         <div
-          class={`flex items-start gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${isHighlighted}`}
+          class={`flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${sideClass}`}
+          style={decoration ?? { paddingLeft: '12px' }}
           onclick={() => {
             if (piece.lineSelectMode) {
               piece.toggleLineSelection(line.id);

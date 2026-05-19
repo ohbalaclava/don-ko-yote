@@ -1,11 +1,22 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 
 export function BlockRepeatRow() {
   return {
-    view({ attrs: { item } }) {
+    view({ attrs: { item, depth = 0 } }) {
+      // Marker row shows its own bar plus one for each enclosing repeat.
+      const bars = depth + 1;
+      const barsWidth = repeatBarsWidth(bars);
+      const style = {
+        ...repeatDecoration(bars),
+        paddingLeft: `${barsWidth + 16}px`,
+      };
       return (
-        <div class="block-repeat-row flex items-center pl-5 pr-3 py-0.5 border-b border-l-4 border-l-orange-400 border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/10">
+        <div
+          class="block-repeat-row flex items-center pr-3 py-0.5 border-b border-gray-200 dark:border-gray-700 bg-orange-50/20 dark:bg-orange-900/5"
+          style={style}
+        >
           <div class="flex-1 flex items-center gap-1">
             <button
               class="text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30 disabled:opacity-40 disabled:cursor-not-allowed"
