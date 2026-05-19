@@ -24,7 +24,7 @@ export function NoteRow() {
       const sideClass = isLineSelected
         ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
         : inRepeat
-          ? 'bg-orange-50/20 dark:bg-orange-900/5'
+          ? 'bg-orange-50 dark:bg-orange-900/20'
           : 'border-l-4 border-l-transparent';
       const decoration = inRepeat ? repeatDecoration(repeatDepth) : null;
 

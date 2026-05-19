@@ -297,7 +297,7 @@ export function Line() {
           : !piece.lineSelectMode && selected
             ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
             : showRepeatBars
-              ? 'bg-orange-50/20 dark:bg-orange-900/5'
+              ? 'bg-orange-50 dark:bg-orange-900/20'
               : 'border-l-4 border-l-transparent';
       const decoration = showRepeatBars ? repeatDecoration(repeatDepth) : null;
 

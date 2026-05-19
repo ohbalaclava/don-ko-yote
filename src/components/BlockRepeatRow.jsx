@@ -14,7 +14,7 @@ export function BlockRepeatRow() {
       };
       return (
         <div
-          class="block-repeat-row flex items-center pr-3 py-0.5 border-b border-gray-200 dark:border-gray-700 bg-orange-50/20 dark:bg-orange-900/5"
+          class="block-repeat-row flex items-center pr-3 py-0.5 border-b border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/20"
           style={style}
         >
           <div class="flex-1 flex items-center gap-1">

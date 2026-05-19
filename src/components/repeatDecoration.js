@@ -17,6 +17,9 @@ export function repeatDecoration(depth) {
       stops.push(`transparent ${start + BAR}px ${start + BAR + GAP}px`);
     }
   }
+  // Terminal transparent stop so the gradient doesn't bleed across the whole row.
+  const lastBarEnd = (depth - 1) * (BAR + GAP) + BAR;
+  stops.push(`transparent ${lastBarEnd}px`);
   const barsWidth = depth * (BAR + GAP) - GAP;
   return {
     backgroundImage: `linear-gradient(to right, ${stops.join(', ')})`,
