@@ -17,7 +17,7 @@ export function exportPdf() {
   // Subtitle
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text(`${piece.jiuchi}  ·  ${piece.beatsPerLine} beats/line`, margin, y);
+  doc.text(`${piece.taiko}  ·  ${piece.jiuchi}  ·  ${piece.beatsPerLine} beats/line`, margin, y);
   y += 8;
 
   let lineOrdinal = 0;

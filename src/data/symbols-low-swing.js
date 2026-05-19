@@ -1,5 +1,11 @@
 export const LOW_SWING = {
   time: 3,
+  taiko: [
+    { name: 'Nagado', skins: 1 },
+    { name: 'Okedo', skins: 1 },
+    { name: 'Odaiko', skins: 1 },
+  ],
+  jiuchis: ['Shichisan'],
   symbols: [
     { name: 'DON', duration: 3, hand: 'R' },
     { name: 'KON', duration: 3, hand: 'L' },
@@ -22,5 +28,4 @@ export const LOW_SWING = {
     { name: 'SO', duration: 4, editable: true },
     { name: 'RE', duration: 4, editable: true },
   ],
-  jiuchis: ['Shichisan'],
 };

@@ -1,5 +1,4 @@
 import m from 'mithril';
-import { SYMBOLS } from '../data/symbols.js';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
@@ -14,7 +13,7 @@ export function Palette() {
               Sounds — tap to add · drag to line
             </p>
             <div class="flex flex-wrap gap-1">
-              {SYMBOLS.map((sym) => (
+              {piece.symbolSet.symbols.map((sym) => (
                 <SoundPaletteTile key={sym.name} sym={sym} />
               ))}
               <ImplicitPaletteTile />
@@ -99,14 +98,22 @@ function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
   };
 }
 
+/** Returns the hand to display on a palette tile (top-level or first alternative). */
+function paletteHand(sym) {
+  if (sym.hand) return sym.hand;
+  if (sym.alternatives && sym.alternatives.length > 0) return sym.alternatives[0].hand ?? '';
+  return '';
+}
+
 function SoundPaletteTile() {
   let handler;
   return {
     view({ attrs: { sym } }) {
+      const hand = paletteHand(sym);
       if (!handler)
         handler = dragBehaviour({
           ghostLabel: sym.name,
-          ghostSub: sym.hand,
+          ghostSub: hand,
           onTap: () =>
             !piece.selectMode &&
             !piece.lineSelectMode &&
@@ -121,14 +128,17 @@ function SoundPaletteTile() {
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sym.hand}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{hand}</span>
         </div>
       );
     },
   };
 }
 
-const IMPLICIT_SYM = { name: '—', duration: 1, implicit: true };
+/** Builds an implicit-tile symbol whose duration matches the current time signature. */
+function implicitSym() {
+  return { name: '—', duration: piece.time, implicit: true };
+}
 
 function ImplicitPaletteTile() {
   let handler;
@@ -142,9 +152,9 @@ function ImplicitPaletteTile() {
             !piece.selectMode &&
             !piece.lineSelectMode &&
             piece.selectedLineId &&
-            piece.addSound(piece.selectedLineId, IMPLICIT_SYM),
+            piece.addSound(piece.selectedLineId, implicitSym()),
           onDrop: (lineId) =>
-            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, IMPLICIT_SYM),
+            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, implicitSym()),
         });
       return (
         <div

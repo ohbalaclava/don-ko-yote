@@ -19,6 +19,7 @@ vi.mock('jspdf', () => ({
 
 const mockPiece = vi.hoisted(() => ({
   title: 'Test Song',
+  taiko: 'Shime',
   jiuchi: '七三',
   beatsPerLine: 4,
   lines: [],
@@ -31,6 +32,7 @@ import { exportPdf } from '../src/pdf.js';
 beforeEach(() => {
   vi.clearAllMocks();
   mockPiece.title = 'Test Song';
+  mockPiece.taiko = 'Shime';
   mockPiece.jiuchi = '七三';
   mockPiece.beatsPerLine = 4;
   mockPiece.lines = [];
@@ -74,10 +76,10 @@ describe('exportPdf', () => {
       expect(texts).toContain('Untitled');
     });
 
-    it('renders subtitle with jiuchi and beatsPerLine', () => {
+    it('renders subtitle with taiko, jiuchi and beatsPerLine', () => {
       exportPdf();
       const texts = mockDoc.text.mock.calls.map(([t]) => t);
-      expect(texts).toContain('七三  ·  4 beats/line');
+      expect(texts).toContain('Shime  ·  七三  ·  4 beats/line');
     });
   });
 

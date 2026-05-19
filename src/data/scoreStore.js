@@ -10,6 +10,7 @@ function snapshot() {
     id: piece.id || undefined,
     title: piece.title || 'Untitled',
     savedAt: Date.now(),
+    taiko: piece.taiko,
     jiuchi: piece.jiuchi,
     beatsPerLine: piece.beatsPerLine,
     bpm: piece.bpm,
@@ -58,6 +59,7 @@ export const scoreStore = {
     if (!score) return;
     piece.id = score.id;
     piece.title = score.title;
+    piece.taiko = score.taiko ?? piece.taiko;
     piece.jiuchi = score.jiuchi;
     piece.beatsPerLine = score.beatsPerLine;
     piece.bpm = score.bpm ?? 120;
@@ -106,6 +108,7 @@ export const scoreStore = {
     const data = JSON.parse(text);
     piece.id = null;
     piece.title = data.title ?? 'Untitled';
+    piece.taiko = data.taiko ?? piece.taiko;
     piece.jiuchi = data.jiuchi ?? piece.jiuchi;
     piece.beatsPerLine = data.beatsPerLine ?? piece.beatsPerLine;
     piece.bpm = data.bpm ?? 120;

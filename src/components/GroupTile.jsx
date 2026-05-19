@@ -3,14 +3,15 @@ import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { isIntegerBeat } from '../util.js';
 
-const TE_WIDTH_REM = 2;
-const BEAT_WIDTH_REM = TE_WIDTH_REM * 4;
+const SUBDIV_WIDTH_REM = 2;
 
 export function GroupTile() {
   return {
     view({ attrs: { sound, lineId, startPos, isSelected } }) {
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
+      const time = piece.time;
+      const beatWidthRem = SUBDIV_WIDTH_REM * time;
 
       const borderClass = isSelected
         ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/40'
@@ -34,10 +35,10 @@ export function GroupTile() {
           }}
         >
           {sound.sounds.map((s, i) => {
-            const isHeadBeat = isIntegerBeat(subPos);
+            const isHeadBeat = isIntegerBeat(subPos, time);
             subPos += s.duration;
             const widthStyle = settings.proportionalWidth
-              ? `width: ${s.duration * BEAT_WIDTH_REM}rem`
+              ? `width: ${(s.duration / time) * beatWidthRem}rem`
               : undefined;
             return (
               <div

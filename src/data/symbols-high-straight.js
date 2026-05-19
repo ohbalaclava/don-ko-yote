@@ -1,5 +1,10 @@
 export const HIGH_STRAIGHT = {
   time: 4,
+  taiko: [
+    { name: 'Shime', skins: 1 },
+    { name: 'Katsugi', skins: 2 },
+    { name: 'Kane', skins: 1 },
+  ],
   jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiburoku'],
   symbols: [
     { name: 'TEN', duration: 4, hand: 'R' },

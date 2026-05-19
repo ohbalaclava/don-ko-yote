@@ -1,5 +1,11 @@
 export const LOW_STRAIGHT = {
   time: 4,
+  taiko: [
+    { name: 'Nagado', skins: 1 },
+    { name: 'Okedo', skins: 1 },
+    { name: 'Odaiko', skins: 1 },
+  ],
+  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiburoku'],
   symbols: [
     { name: 'DON', duration: 4, hand: 'R' },
     { name: 'KON', duration: 4, hand: 'L' },
@@ -22,5 +28,4 @@ export const LOW_STRAIGHT = {
     { name: 'SO', duration: 4, editable: true },
     { name: 'RE', duration: 4, editable: true },
   ],
-  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiburoku'],
 };

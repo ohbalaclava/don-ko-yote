@@ -29,7 +29,8 @@ function makeScoreRecord(overrides = {}) {
   return {
     id: 'score-1',
     title: 'My Song',
-    jiuchi: 'gobu-gobu',
+    taiko: 'Shime',
+    jiuchi: 'Gobu Gobu',
     beatsPerLine: 8,
     bpm: 120,
     author: 'Author',
@@ -50,7 +51,7 @@ beforeEach(() => {
   }));
   fakeDb.scores.delete.mockResolvedValue(undefined);
   scoreStore.items = [];
-  piece.reset('gobu-gobu', 8);
+  piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8 });
 });
 
 // ── importJson ────────────────────────────────────────────────────────────────
@@ -59,7 +60,8 @@ describe('importJson', () => {
   it('sets all piece fields from the JSON', () => {
     const data = {
       title: 'Test',
-      jiuchi: 'shichisan',
+      taiko: 'Shime',
+      jiuchi: 'Shichisan',
       beatsPerLine: 4,
       bpm: 90,
       author: 'Me',
@@ -68,7 +70,8 @@ describe('importJson', () => {
     };
     scoreStore.importJson(JSON.stringify(data));
     expect(piece.title).toBe('Test');
-    expect(piece.jiuchi).toBe('shichisan');
+    expect(piece.taiko).toBe('Shime');
+    expect(piece.jiuchi).toBe('Shichisan');
     expect(piece.beatsPerLine).toBe(4);
     expect(piece.bpm).toBe(90);
     expect(piece.author).toBe('Me');
@@ -85,15 +88,15 @@ describe('importJson', () => {
   });
 
   it('keeps the current jiuchi and beatsPerLine when absent from JSON', () => {
-    piece.jiuchi = 'shichisan';
+    piece.jiuchi = 'Shichisan';
     piece.beatsPerLine = 4;
     scoreStore.importJson(JSON.stringify({ title: 'X' }));
-    expect(piece.jiuchi).toBe('shichisan');
+    expect(piece.jiuchi).toBe('Shichisan');
     expect(piece.beatsPerLine).toBe(4);
   });
 
   it('does not replace lines when JSON has no lines array', () => {
-    piece.addSound(piece.lines[0].id, { name: 'Don', hand: 'R', duration: 1 });
+    piece.addSound(piece.lines[0].id, { name: 'Don', hand: 'R', duration: 4 });
     const existingLines = piece.lines;
     scoreStore.importJson(JSON.stringify({ title: 'No lines', lines: [] }));
     // Empty array → condition `data.lines.length` is falsy, lines unchanged
@@ -124,7 +127,8 @@ describe('save', () => {
     expect(fakeDb.scores.save).toHaveBeenCalledOnce();
     const saved = fakeDb.scores.save.mock.calls[0][0];
     expect(saved.title).toBe('My Score');
-    expect(saved.jiuchi).toBe('gobu-gobu');
+    expect(saved.taiko).toBe('Shime');
+    expect(saved.jiuchi).toBe('Gobu Gobu');
     expect(saved.lines).toBe(piece.lines);
   });
 
@@ -164,7 +168,8 @@ describe('loadScore', () => {
     await scoreStore.loadScore('score-1');
     expect(piece.id).toBe('score-1');
     expect(piece.title).toBe('My Song');
-    expect(piece.jiuchi).toBe('gobu-gobu');
+    expect(piece.taiko).toBe('Shime');
+    expect(piece.jiuchi).toBe('Gobu Gobu');
     expect(piece.beatsPerLine).toBe(8);
     expect(piece.bpm).toBe(120);
     expect(piece.author).toBe('Author');

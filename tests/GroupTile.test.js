@@ -15,6 +15,7 @@ vi.mock('react/jsx-dev-runtime', () => ({
 const mockPiece = vi.hoisted(() => ({
   editingTile: null,
   selectMode: false,
+  time: 4,
   setEditingTile: vi.fn(),
   toggleSoundSelection: vi.fn(),
   expandGroup: vi.fn(),
@@ -40,8 +41,8 @@ function makeGroup(sounds) {
 }
 
 const TWO_SOUNDS = [
-  { id: 's1', name: 'Don', hand: 'R', duration: 1 },
-  { id: 's2', name: 'Ko', hand: 'L', duration: 1 },
+  { id: 's1', name: 'Don', hand: 'R', duration: 4 },
+  { id: 's2', name: 'Ko', hand: 'L', duration: 4 },
 ];
 
 beforeEach(() => {
@@ -111,11 +112,11 @@ describe('GroupTile', () => {
       expect(dot).toBeDefined();
     });
 
-    it('omits the dot when startPos is not an integer', () => {
+    it('omits the dot when startPos is not on a beat', () => {
       const vnode = render({
         sound: makeGroup(TWO_SOUNDS),
         lineId,
-        startPos: 0.5,
+        startPos: 2,
         isSelected: false,
       });
       const firstDiv = vnode.children[0];
@@ -125,11 +126,11 @@ describe('GroupTile', () => {
 
     it('tracks cumulative position across sub-sounds', () => {
       const sounds = [
-        { id: 's1', name: 'Don', hand: 'R', duration: 0.5 },
-        { id: 's2', name: 'Ko', hand: 'L', duration: 0.5 },
-        { id: 's3', name: 'Ka', hand: 'L', duration: 0.5 },
+        { id: 's1', name: 'Don', hand: 'R', duration: 2 },
+        { id: 's2', name: 'Ko', hand: 'L', duration: 2 },
+        { id: 's3', name: 'Ka', hand: 'L', duration: 2 },
       ];
-      // s1 at pos 0 (beat), s2 at 0.5 (not), s3 at 1.0 (beat)
+      // time=4: s1 at pos 0 (beat), s2 at 2 (not), s3 at 4 (beat)
       const vnode = render({ sound: makeGroup(sounds), lineId, startPos: 0, isSelected: false });
       const divs = vnode.children.filter((c) => c?.tag === 'div');
       const hasDot = (div) => div.children.some((c) => c?.attrs?.class?.includes('rounded-full'));

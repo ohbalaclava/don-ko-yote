@@ -102,7 +102,6 @@ export function HelpSheet() {
               </Section>
 
               <Section title="Score settings ♩">
-                <Row label="Jiuchi" desc="The rhythmic structure (displayed in the header)." />
                 <Row label="Beats per line" desc="Maximum beats before wrapping to a new line." />
                 <Row label="BPM" desc="Tempo in beats per minute." />
                 <Row label="Author" desc="Composer name, included in exports." />
@@ -116,7 +115,10 @@ export function HelpSheet() {
               </Section>
 
               <Section title="Menu ☰">
-                <Row label="New" desc="Start a fresh score, choosing jiuchi and beats per line." />
+                <Row
+                  label="New"
+                  desc="Start a fresh score: choose a taiko, a jiuchi, BPM, and beats per line."
+                />
                 <Row label="Save / Load" desc="Persist scores to browser storage." />
                 <Row
                   label="Export / Import score"

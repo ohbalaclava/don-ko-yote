@@ -8,8 +8,10 @@ vi.mock('../src/data/settings.js', () => ({ settings: mockSettings }));
 import { piece } from '../src/data/piece.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Each sound's default duration of 4 represents one full beat in the default
+// straight-time symbol set (time=4 divisions per beat).
 
-function sym(name = 'Don', hand = 'R', duration = 1) {
+function sym(name = 'Don', hand = 'R', duration = 4) {
   return { name, hand, duration };
 }
 
@@ -21,7 +23,7 @@ function sounds(lineIdx = 0) {
 }
 
 beforeEach(() => {
-  piece.reset('gobu-gobu', 8);
+  piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8 });
 });
 
 // ── addSound ──────────────────────────────────────────────────────────────────
@@ -177,8 +179,8 @@ describe('addGroup', () => {
   const twoBeats = {
     name: 'Pat',
     sounds: [
-      { name: 'A', hand: 'R', duration: 1 },
-      { name: 'B', hand: 'L', duration: 1 },
+      { name: 'A', hand: 'R', duration: 4 },
+      { name: 'B', hand: 'L', duration: 4 },
     ],
   };
 
@@ -187,7 +189,7 @@ describe('addGroup', () => {
     expect(sounds()).toHaveLength(1);
     expect(sounds()[0].type).toBe('group');
     expect(sounds()[0].name).toBe('Pat');
-    expect(sounds()[0].duration).toBe(2);
+    expect(sounds()[0].duration).toBe(8);
   });
 
   it('inserts at a specific index', () => {
@@ -198,13 +200,13 @@ describe('addGroup', () => {
   });
 
   it('distributes individual sounds across lines when pattern exceeds beatsPerLine', () => {
-    piece.reset('gobu-gobu', 2);
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 2 });
     const threeBeat = {
       name: 'Big',
       sounds: [
-        { name: 'A', hand: 'R', duration: 1 },
-        { name: 'B', hand: 'L', duration: 1 },
-        { name: 'C', hand: 'R', duration: 1 },
+        { name: 'A', hand: 'R', duration: 4 },
+        { name: 'B', hand: 'L', duration: 4 },
+        { name: 'C', hand: 'R', duration: 4 },
       ],
     };
     piece.addGroup(line().id, threeBeat);
@@ -223,8 +225,8 @@ describe('expandGroup', () => {
     piece.addGroup(line().id, {
       name: 'Pat',
       sounds: [
-        { name: 'A', hand: 'R', duration: 1 },
-        { name: 'B', hand: 'L', duration: 1 },
+        { name: 'A', hand: 'R', duration: 4 },
+        { name: 'B', hand: 'L', duration: 4 },
       ],
     });
     piece.expandGroup(line().id, sounds()[0].id);
@@ -238,8 +240,8 @@ describe('expandGroup', () => {
     piece.addGroup(line().id, {
       name: 'Pat',
       sounds: [
-        { id: originalIds[0], name: 'A', hand: 'R', duration: 1 },
-        { id: originalIds[1], name: 'B', hand: 'L', duration: 1 },
+        { id: originalIds[0], name: 'A', hand: 'R', duration: 4 },
+        { id: originalIds[1], name: 'B', hand: 'L', duration: 4 },
       ],
     });
     piece.expandGroup(line().id, sounds()[0].id);

@@ -1,5 +1,10 @@
 export const HIGH_SWING = {
   time: 3,
+  taiko: [
+    { name: 'Shime', skins: 1 },
+    { name: 'Katsugi', skins: 2 },
+    { name: 'Kane', skins: 1 },
+  ],
   jiuchis: ['Shichisan'],
   symbols: [
     { name: 'TEN', duration: 3, hand: 'R' },
@@ -11,7 +16,8 @@ export const HIGH_SWING = {
       name: 'zu',
       alternatives: [
         { hand: 'R', duration: 2 },
-        { hand: 'R', duration: 1 },
+        { hand: 'L', duration: 1 },
+        { hand: 'B', duration: 2, editable: true },
       ],
     },
     { name: 'tsu', duration: 2, hand: 'R' },

@@ -1,16 +1,38 @@
 import m from 'mithril';
 import { history } from './history.js';
+import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
 
 let _nextId = 1;
 const uid = () => String(_nextId++);
 
+/**
+ * Creates a new sound object from a palette symbol. Symbols with `alternatives`
+ * default to the first alternative; `editable` is propagated onto the sound so
+ * the inline editor knows to expose duration controls.
+ * @param {object} symbol
+ */
 function makeSound(symbol) {
+  if (symbol.alternatives && symbol.alternatives.length > 0) {
+    const alt = symbol.alternatives[0];
+    return {
+      id: uid(),
+      name: symbol.name,
+      hand: alt.hand,
+      duration: alt.duration,
+      instruction: '',
+      alternatives: symbol.alternatives,
+      selectedAlternative: 0,
+      ...(alt.editable && { editable: true }),
+      ...(symbol.implicit && { implicit: true }),
+    };
+  }
   return {
     id: uid(),
     name: symbol.name,
     hand: symbol.hand,
     duration: symbol.duration,
     instruction: '',
+    ...(symbol.editable && { editable: true }),
     ...(symbol.implicit && { implicit: true }),
   };
 }
@@ -36,30 +58,17 @@ function lineDur(line) {
 }
 
 /**
- * Returns the fractional beat offset at the given insertion index.
- * E.g. after 1.5 beats of sounds, returns 0.5; at an integer boundary, returns 0.
- * @param {Array<{ duration: number }>} sounds
- * @param {number} idx - Index to measure up to (sounds.length = after last sound).
- * @returns {number} Fractional part of cumulative beats, rounded to the nearest 0.25.
- */
-function beatFractional(sounds, idx) {
-  let total = 0;
-  for (let i = 0; i < idx; i++) total += sounds[i].duration;
-  return Math.round((total % 1) * 4) / 4;
-}
-
-/**
  * Returns the index of the first line (starting from fromIdx) that can fit
- * `duration` beats. Creates a new line at the end when all lines are full.
+ * `duration` divisions. Creates a new line at the end when all lines are full.
  * When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
  * returns fromIdx unchanged.
  * @param {number} fromIdx - Starting line index.
- * @param {number} duration - Beat duration to accommodate.
+ * @param {number} duration - Duration to accommodate, in divisions.
  * @returns {number} Index of the target line.
  */
 function targetLineIdx(fromIdx, duration) {
-  const max = piece.beatsPerLine;
-  if (!max || duration > max) return fromIdx;
+  const max = piece.beatsPerLine * piece.time;
+  if (!piece.beatsPerLine || duration > max) return fromIdx;
   let i = fromIdx;
   while (i < piece.lines.length) {
     const item = piece.lines[i];
@@ -77,17 +86,31 @@ function targetLineIdx(fromIdx, duration) {
 }
 
 const _firstLine = makeLine();
+const _defaultSet = SYMBOL_SETS[0];
+const _defaultTaiko = _defaultSet.taiko[0].name;
+const _defaultJiuchi = _defaultSet.jiuchis[0];
 
 export const piece = {
   id: null,
   title: 'Untitled',
-  jiuchi: 'gobu-gobu',
+  taiko: _defaultTaiko,
+  jiuchi: _defaultJiuchi,
   beatsPerLine: 8,
   bpm: 120,
   author: '',
   icon: null,
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
+
+  /** Active symbol set, resolved lazily from (taiko, jiuchi). */
+  get symbolSet() {
+    return getSymbolSet(this.taiko, this.jiuchi) ?? _defaultSet;
+  },
+
+  /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
+  get time() {
+    return this.symbolSet.time;
+  },
 
   /** @type {{ lineId: string, soundId: string } | null} Which tile has its popup open. */
   editingTile: null,
@@ -105,6 +128,7 @@ export const piece = {
   _snapshot() {
     return {
       title: piece.title,
+      taiko: piece.taiko,
       jiuchi: piece.jiuchi,
       beatsPerLine: piece.beatsPerLine,
       bpm: piece.bpm,
@@ -117,10 +141,11 @@ export const piece = {
   /**
    * Applies a history snapshot to the piece and resets all transient UI state
    * (editing tile, select mode). Corrects selectedLineId if it no longer exists.
-   * @param {{ title: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, icon: string|null, lines: Array }} state
+   * @param {{ title: string, taiko: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, icon: string|null, lines: Array }} state
    */
   _restore(state) {
     piece.title = state.title;
+    piece.taiko = state.taiko;
     piece.jiuchi = state.jiuchi;
     piece.beatsPerLine = state.beatsPerLine;
     piece.bpm = state.bpm;
@@ -156,13 +181,18 @@ export const piece = {
 
   // ── Settings ──────────────────────────────────────────────────────────────
 
-  reset(jiuchi, beatsPerLine) {
+  /**
+   * Resets the piece for a brand-new score.
+   * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number }} opts
+   */
+  reset(opts = {}) {
     const line = makeLine();
     piece.id = null;
     piece.title = 'Untitled';
-    piece.jiuchi = jiuchi;
-    piece.beatsPerLine = beatsPerLine;
-    piece.bpm = 120;
+    piece.taiko = opts.taiko ?? _defaultTaiko;
+    piece.jiuchi = opts.jiuchi ?? _defaultJiuchi;
+    piece.beatsPerLine = opts.beatsPerLine ?? 8;
+    piece.bpm = opts.bpm ?? 120;
     piece.author = '';
     piece.icon = null;
     piece.lines = [line];
@@ -191,6 +221,11 @@ export const piece = {
 
   setTitle(v) {
     piece.title = v;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setTaiko(v) {
+    piece.taiko = v;
     history.push(piece._snapshot());
     m.redraw();
   },
@@ -617,7 +652,7 @@ export const piece = {
     if (
       fromLineId !== toLineId &&
       piece.beatsPerLine > 0 &&
-      lineDur(toLine) + sound.duration > piece.beatsPerLine
+      lineDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
     ) {
       m.redraw(); // revert SortableJS DOM change
       return;
@@ -644,7 +679,7 @@ export const piece = {
     if (sounds.length !== soundIds.length) return;
     if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
       const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
-      if (lineDur(toLine) + totalDur > piece.beatsPerLine) {
+      if (lineDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
         m.redraw();
         return;
       }
@@ -695,9 +730,9 @@ export const piece = {
     const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     const patternDur = pattern.sounds.reduce((sum, s) => sum + s.duration, 0);
-    const max = piece.beatsPerLine;
+    const max = piece.beatsPerLine * piece.time;
 
-    if (!max || patternDur <= max) {
+    if (!piece.beatsPerLine || patternDur <= max) {
       const group = {
         id: uid(),
         type: 'group',

@@ -17,14 +17,24 @@ function lineDuration(line) {
  * and alternate hands. Groups of one are emitted as single-sound items.
  * In non-proportional mode, inserts { type: 'beat-marker', beat } items after any
  * sound whose span crosses an integer beat that would otherwise go unmarked.
+ * Positions are in divisions; `time` is the number of divisions per beat.
  * @param {Array} sounds
  * @param {boolean} proportional
+ * @param {number} time
  * @returns {Array}
  */
-function groupSoundsForDisplay(sounds, proportional) {
+function groupSoundsForDisplay(sounds, proportional, time) {
   const items = [];
   let pos = 0;
   let i = 0;
+
+  // Emits beat markers for every beat boundary strictly inside the span [start, end).
+  function pushBeatMarkers(start, end) {
+    const firstBeat = Math.floor(start / time) + 1;
+    for (let beat = firstBeat; beat * time < end; beat++) {
+      items.push({ type: 'beat-marker', beat });
+    }
+  }
 
   while (i < sounds.length) {
     const s = sounds[i];
@@ -34,12 +44,7 @@ function groupSoundsForDisplay(sounds, proportional) {
 
     if (proportional || s.type === 'group') {
       items.push({ sound: s, startPos });
-      if (!proportional) {
-        const end = startPos + s.duration;
-        for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
-          items.push({ type: 'beat-marker', beat });
-        }
-      }
+      if (!proportional) pushBeatMarkers(startPos, startPos + s.duration);
       continue;
     }
 
@@ -58,8 +63,8 @@ function groupSoundsForDisplay(sounds, proportional) {
         continue;
       }
       // Auto rules: same duration, same beat, alternating hands
-      if (Math.abs(next.duration - dur) > 1e-9) break;
-      if (Math.floor(pos - dur) !== Math.floor(pos)) break;
+      if (next.duration !== dur) break;
+      if (Math.floor((pos - dur) / time) !== Math.floor(pos / time)) break;
       if (next.hand !== group[group.length - 1].hand) {
         group.push(next);
         pos += next.duration;
@@ -74,12 +79,7 @@ function groupSoundsForDisplay(sounds, proportional) {
 
     // Beat markers for boundaries crossed by a single tile; ligature tiles use
     // internal beat dots so no external marker is needed for groups of 2+
-    if (group.length === 1) {
-      const end = startPos + group[0].duration;
-      for (let beat = Math.floor(startPos) + 1; beat < end - 1e-9; beat++) {
-        items.push({ type: 'beat-marker', beat });
-      }
-    }
+    if (group.length === 1) pushBeatMarkers(startPos, startPos + group[0].duration);
   }
 
   return items;
@@ -277,7 +277,8 @@ export function Line() {
       if (sortable) sortable.destroy();
     },
     view({ attrs: { line, index, inBlockRepeat } }) {
-      const beats = lineDuration(line);
+      const time = piece.time;
+      const beats = lineDuration(line) / time;
       const selected = piece.selectedLineId === line.id;
       const isLineSelected = piece.lineSelection.includes(line.id);
       const selectionIds =
@@ -330,34 +331,45 @@ export function Line() {
                 onpointercancel={lpEnd}
                 onpointerleave={lpEnd}
               >
-                {groupSoundsForDisplay(line.sounds, settings.proportionalWidth).map((item) => {
-                  if (item.type === 'beat-marker') {
+                {groupSoundsForDisplay(line.sounds, settings.proportionalWidth, time).map(
+                  (item) => {
+                    if (item.type === 'beat-marker') {
+                      return (
+                        <span
+                          key={'bm-' + item.beat}
+                          class="beat-marker-divider self-stretch relative flex flex-col items-center pointer-events-none select-none"
+                          style="width:2px"
+                        >
+                          <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                          <span class="w-px h-full bg-gray-300 dark:bg-gray-600" />
+                        </span>
+                      );
+                    }
+                    if (item.sounds) {
+                      return (
+                        <LigatureTile
+                          key={item.sounds[0].id}
+                          sounds={item.sounds}
+                          lineId={line.id}
+                          startPos={item.startPos}
+                          selectionIds={selectionIds}
+                        />
+                      );
+                    }
+                    const s = item.sound;
+                    if (s.type === 'group') {
+                      return (
+                        <GroupTile
+                          key={s.id}
+                          sound={s}
+                          lineId={line.id}
+                          startPos={item.startPos}
+                          isSelected={selectionIds ? selectionIds.has(s.id) : false}
+                        />
+                      );
+                    }
                     return (
-                      <span
-                        key={'bm-' + item.beat}
-                        class="beat-marker-divider self-stretch relative flex flex-col items-center pointer-events-none select-none"
-                        style="width:2px"
-                      >
-                        <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                        <span class="w-px h-full bg-gray-300 dark:bg-gray-600" />
-                      </span>
-                    );
-                  }
-                  if (item.sounds) {
-                    return (
-                      <LigatureTile
-                        key={item.sounds[0].id}
-                        sounds={item.sounds}
-                        lineId={line.id}
-                        startPos={item.startPos}
-                        selectionIds={selectionIds}
-                      />
-                    );
-                  }
-                  const s = item.sound;
-                  if (s.type === 'group') {
-                    return (
-                      <GroupTile
+                      <SoundTile
                         key={s.id}
                         sound={s}
                         lineId={line.id}
@@ -366,16 +378,7 @@ export function Line() {
                       />
                     );
                   }
-                  return (
-                    <SoundTile
-                      key={s.id}
-                      sound={s}
-                      lineId={line.id}
-                      startPos={item.startPos}
-                      isSelected={selectionIds ? selectionIds.has(s.id) : false}
-                    />
-                  );
-                })}
+                )}
               </div>
             </div>
             {instructionLayouts.map((layout) => (

@@ -8,6 +8,7 @@ export function LigatureTile() {
   return {
     view({ attrs: { sounds, lineId, startPos, selectionIds } }) {
       const et = piece.editingTile;
+      const time = piece.time;
       let subPos = startPos;
 
       return (
@@ -19,7 +20,7 @@ export function LigatureTile() {
           {sounds.map((sound, idx) => {
             const pos = subPos;
             subPos += sound.duration;
-            const isHeadBeat = isIntegerBeat(pos);
+            const isHeadBeat = isIntegerBeat(pos, time);
             const isEditing =
               !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
             const isSelected = selectionIds ? selectionIds.has(sound.id) : false;

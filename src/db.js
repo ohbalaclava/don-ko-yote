@@ -1,5 +1,7 @@
 const DB_NAME = 'don-ko-yote';
-const DB_VERSION = 1;
+// Bumped from 1 → 2 for the multi-symbol-set refactor: scores and patterns
+// stored under the old fractional-duration schema are wiped on upgrade.
+const DB_VERSION = 2;
 
 let _db = null;
 
@@ -7,7 +9,7 @@ function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-    req.onupgradeneeded = ({ target: { result: db } }) => {
+    req.onupgradeneeded = ({ target: { result: db, transaction } }) => {
       // Key-value store for singleton data (app settings, score settings)
       if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
 
@@ -16,6 +18,13 @@ function openDB() {
         db.createObjectStore('scores', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('patterns'))
         db.createObjectStore('patterns', { keyPath: 'id' });
+
+      // Wipe legacy data when upgrading from v1: durations and jiuchi IDs no
+      // longer match the new schema, so existing scores/patterns are unusable.
+      if (transaction && db.objectStoreNames.contains('scores'))
+        transaction.objectStore('scores').clear();
+      if (transaction && db.objectStoreNames.contains('patterns'))
+        transaction.objectStore('patterns').clear();
     };
 
     req.onsuccess = ({ target: { result } }) => resolve(result);

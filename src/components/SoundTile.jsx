@@ -3,26 +3,27 @@ import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { isIntegerBeat } from '../util.js';
 
-const TE_WIDTH_REM = 2; // te/ke (duration=1/4) are the reference unit
-const BEAT_WIDTH_REM = TE_WIDTH_REM * 4; // one full beat = 4× a te tile
-const PROP_PAD_REM = 0.25; // left padding in proportional mode for non-quarter tiles
+const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
+const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
 
 export function SoundTile() {
   return {
     view({ attrs: { sound, lineId, startPos, isSelected } }) {
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
+      const time = piece.time;
+      const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
       const borderClass = isSelected
         ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/40'
         : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = settings.proportionalWidth
-        ? `width: ${sound.duration * BEAT_WIDTH_REM}rem`
+        ? `width: ${(sound.duration / time) * beatWidthRem}rem`
         : undefined;
 
       const prop = settings.proportionalWidth;
-      const propPad = prop && sound.duration > 1 / 4 ? PROP_PAD_REM : 0;
+      const propPad = prop && sound.duration > 1 ? PROP_PAD_REM : 0;
 
       return (
         <div
@@ -42,23 +43,23 @@ export function SoundTile() {
         >
           <div class="contents">
             {prop ? (
-              Array.from({ length: Math.round(sound.duration * 4) }, (_, i) => {
-                const absPos = (startPos ?? 0) + i * 0.25;
-                const isHB = isIntegerBeat(absPos);
+              Array.from({ length: sound.duration }, (_, i) => {
+                const absPos = (startPos ?? 0) + i;
+                const isHB = isIntegerBeat(absPos, time);
                 return (
                   <span
                     class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
-                    style={`left:${propPad + TE_WIDTH_REM * (i + 0.5)}rem`}
+                    style={`left:${propPad + SUBDIV_WIDTH_REM * (i + 0.5)}rem`}
                   />
                 );
               })
-            ) : startPos != null && isIntegerBeat(startPos) ? (
+            ) : startPos != null && isIntegerBeat(startPos, time) ? (
               <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
             ) : null}
           </div>
           <div
             class={prop ? 'flex flex-col items-center py-0' : 'contents'}
-            style={prop ? `width: ${TE_WIDTH_REM}rem` : undefined}
+            style={prop ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined}
           >
             <span
               class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}
@@ -77,6 +78,7 @@ export function SoundTile() {
 export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
+      const time = piece.time;
       let showLigature = false;
       let isLigated = false;
       if (!settings.proportionalWidth) {
@@ -87,16 +89,21 @@ export function SoundEditor() {
             const prev = line.sounds[idx - 1];
             if (prev && prev.type !== 'group') {
               showLigature = true;
-              const sameDur = Math.abs(prev.duration - sound.duration) < 1e-9;
+              const sameDur = prev.duration === sound.duration;
               const prevStart = line.sounds.slice(0, idx - 1).reduce((s, x) => s + x.duration, 0);
-              const sameBeat = Math.floor(prevStart) === Math.floor(prevStart + prev.duration);
+              const sameBeat =
+                Math.floor(prevStart / time) === Math.floor((prevStart + prev.duration) / time);
               const autoWouldJoin =
-                sameDur && sameBeat && prev.duration < 1 && prev.hand !== sound.hand;
+                sameDur && sameBeat && prev.duration < time && prev.hand !== sound.hand;
               isLigated = sound.ligature === true || (autoWouldJoin && sound.ligature !== false);
             }
           }
         }
       }
+
+      const showHand = sound.hand === 'L' || sound.hand === 'R';
+      const showDuration = sound.editable === true && !sound.implicit;
+      const maxDuration = 8 * time;
 
       return [
         <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
@@ -133,7 +140,30 @@ export function SoundEditor() {
               </button>
             </div>
           )}
-          {sound.hand != null && (
+          {sound.alternatives && (
+            <div class="flex flex-wrap gap-1">
+              {sound.alternatives.map((alt, idx) => {
+                const active = sound.selectedAlternative === idx;
+                return (
+                  <button
+                    key={idx}
+                    class={`rounded border px-2 py-0.5 text-xs font-medium ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                    onclick={() =>
+                      piece.updateSound(lineId, sound.id, {
+                        hand: alt.hand,
+                        duration: alt.duration,
+                        editable: alt.editable === true ? true : undefined,
+                        selectedAlternative: idx,
+                      })
+                    }
+                  >
+                    {alt.hand ?? ''} · {alt.duration}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {showHand && (
             <div>
               <div class="flex gap-1">
                 {['L', 'B', 'R'].map((h) => (
@@ -146,6 +176,31 @@ export function SoundEditor() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+          {showDuration && (
+            <div class="flex items-center justify-center gap-2">
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  if (sound.duration > 1)
+                    piece.updateSound(lineId, sound.id, { duration: sound.duration - 1 });
+                }}
+              >
+                −
+              </button>
+              <span class="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400">
+                {sound.duration}/{time}
+              </span>
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  if (sound.duration < maxDuration)
+                    piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
+                }}
+              >
+                +
+              </button>
             </div>
           )}
           <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1">
