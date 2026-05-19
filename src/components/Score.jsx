@@ -7,6 +7,7 @@ import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
+import { DividerRow } from './DividerRow.jsx';
 
 export function Score() {
   let sortable;
@@ -161,6 +162,15 @@ export function Score() {
                     />
                   );
                 }
+                if (item.type === 'divider') {
+                  return (
+                    <DividerRow
+                      key={item.id}
+                      divider={item}
+                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                    />
+                  );
+                }
                 lineOrdinal++;
                 return (
                   <Line
@@ -195,6 +205,13 @@ export function Score() {
               onclick={() => piece.addNote()}
             >
               + Add note
+            </button>
+            <button
+              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              disabled={piece.selectMode || piece.lineSelectMode}
+              onclick={() => piece.addDivider()}
+            >
+              + Add divider
             </button>
           </div>
         </div>

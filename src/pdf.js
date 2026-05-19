@@ -38,6 +38,17 @@ export function exportPdf() {
       return;
     }
 
+    if (line.type === 'divider') {
+      doc.setDrawColor(180);
+      doc.line(margin, y + 2, margin + usableW, y + 2);
+      y += 6;
+      if (y > 270) {
+        doc.addPage();
+        y = margin;
+      }
+      return;
+    }
+
     if (line.type === 'block-repeat') {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);

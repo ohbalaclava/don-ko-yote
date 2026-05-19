@@ -48,6 +48,10 @@ function makeNote() {
   return { id: uid(), type: 'note', text: '' };
 }
 
+function makeDivider() {
+  return { id: uid(), type: 'divider' };
+}
+
 function makeBlockRepeat(count, lineIds) {
   return { id: uid(), type: 'block-repeat', count, lineIds };
 }
@@ -74,6 +78,7 @@ function targetLineIdx(fromIdx, duration) {
     if (
       item.type !== 'heading' &&
       item.type !== 'note' &&
+      item.type !== 'divider' &&
       item.type !== 'block-repeat' &&
       lineDur(item) + duration <= max
     )
@@ -164,7 +169,11 @@ export const piece = {
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId =
         piece.lines.find(
-          (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
+          (l) =>
+            l.type !== 'heading' &&
+            l.type !== 'note' &&
+            l.type !== 'divider' &&
+            l.type !== 'block-repeat'
         )?.id ?? null;
     }
   },
@@ -477,6 +486,18 @@ export const piece = {
     m.redraw();
   },
 
+  addDivider() {
+    piece.lines.push(makeDivider());
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
+  removeDivider(dividerId) {
+    piece.lines = piece.lines.filter((l) => l.id !== dividerId);
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
   /**
    * Removes the line. Selects the nearest remaining line when the removed line
    * was selected. Always ensures at least one line exists.
@@ -492,7 +513,11 @@ export const piece = {
       return item.lineIds.length > 0;
     });
     const realLines = piece.lines.filter(
-      (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
+      (l) =>
+        l.type !== 'heading' &&
+        l.type !== 'note' &&
+        l.type !== 'divider' &&
+        l.type !== 'block-repeat'
     );
     if (realLines.length === 0) {
       const line = makeLine();
@@ -500,7 +525,11 @@ export const piece = {
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
       const candidates = piece.lines.filter(
-        (l) => l.type !== 'heading' && l.type !== 'note' && l.type !== 'block-repeat'
+        (l) =>
+          l.type !== 'heading' &&
+          l.type !== 'note' &&
+          l.type !== 'divider' &&
+          l.type !== 'block-repeat'
       );
       const nearIdx = Math.min(idx, candidates.length - 1);
       piece.selectedLineId = candidates[nearIdx >= 0 ? nearIdx : 0].id;
@@ -519,6 +548,7 @@ export const piece = {
   _cloneItem(item) {
     if (item.type === 'heading') return { ...item, id: uid() };
     if (item.type === 'note') return { ...item, id: uid() };
+    if (item.type === 'divider') return { ...item, id: uid() };
     if (item.type === 'block-repeat') return { ...item, id: uid() };
     return {
       id: uid(),
@@ -562,7 +592,11 @@ export const piece = {
     });
     piece.lineSelection = [];
     const realLines = piece.lines.filter(
-      (item) => item.type !== 'heading' && item.type !== 'note' && item.type !== 'block-repeat'
+      (item) =>
+        item.type !== 'heading' &&
+        item.type !== 'note' &&
+        item.type !== 'divider' &&
+        item.type !== 'block-repeat'
     );
     if (realLines.length === 0) {
       const line = makeLine();
