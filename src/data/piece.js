@@ -111,6 +111,11 @@ export const piece = {
     return this.symbolSet.time;
   },
 
+  /** Number of skins on the active taiko (1 or 2). Sounds with a hand can target either skin when 2. */
+  get skins() {
+    return this.symbolSet.taiko.find((t) => t.name === this.taiko)?.skins ?? 1;
+  },
+
   /** @type {{ lineId: string, soundId: string } | null} Which tile has its popup open. */
   editingTile: null,
 

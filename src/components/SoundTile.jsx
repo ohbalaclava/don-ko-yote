@@ -62,7 +62,7 @@ export function SoundTile() {
             style={prop ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined}
           >
             <span
-              class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}`}
+              class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}${sound.skin === 'back' ? ' italic' : ''}`}
             >
               {sound.name}
             </span>
@@ -102,6 +102,7 @@ export function SoundEditor() {
       }
 
       const showHand = !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R';
+      const showSkin = piece.skins === 2 && !!sound.hand;
       const showDuration = sound.editable === true && !sound.implicit;
       const maxDuration = time;
 
@@ -210,6 +211,18 @@ export function SoundEditor() {
               onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
             >
               Accent
+            </button>
+          )}
+          {showSkin && (
+            <button
+              class={`text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.skin === 'back' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              onclick={() =>
+                piece.updateSound(lineId, sound.id, {
+                  skin: sound.skin === 'back' ? undefined : 'back',
+                })
+              }
+            >
+              Back skin
             </button>
           )}
           {showLigature && (
