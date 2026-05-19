@@ -1,0 +1,30 @@
+export const HIGH_SWING = {
+  time: 3,
+  jiuchis: ['Shichisan'],
+  symbols: [
+    { name: 'TEN', duration: 3, hand: 'R' },
+    { name: 'KEN', duration: 3, hand: 'L' },
+    { name: 'SU', duration: 3, editable: true },
+    { name: 'TE', duration: 2, hand: 'R' },
+    { name: 'KE', duration: 1, hand: 'L' },
+    {
+      name: 'zu',
+      alternatives: [
+        { hand: 'R', duration: 2 },
+        { hand: 'R', duration: 1 },
+      ],
+    },
+    { name: 'tsu', duration: 2, hand: 'R' },
+    { name: 'ku', duration: 1, hand: 'L' },
+    { name: 'su', duration: 2 },
+    { name: 'te', duration: 1, hand: 'R' },
+    { name: 'ke', duration: 1, hand: 'L' },
+    { name: 're', duration: 1, hand: 'L' },
+    { name: "s'", duration: 1 },
+    { name: "'", duration: 1 },
+    { name: 'un', duration: 1 },
+    { name: 'HUP', duration: 3, editable: true },
+    { name: 'SO', duration: 1, editable: true },
+    { name: 'RE', duration: 1, editable: true },
+  ],
+};
