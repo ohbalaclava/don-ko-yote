@@ -20,18 +20,23 @@ export function Palette() {
             </div>
           </div>
 
-          {patternStore.items.length > 0 ? (
-            <div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
-                Patterns
-              </p>
-              <div class="flex flex-wrap gap-1">
-                {patternStore.items.map((p) => (
-                  <PatternPaletteTile key={p.id} pattern={p} />
-                ))}
+          {(() => {
+            const visiblePatterns = patternStore.items.filter(
+              (p) => p.symbolSetId === piece.symbolSet.id
+            );
+            return visiblePatterns.length > 0 ? (
+              <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
+                  Patterns
+                </p>
+                <div class="flex flex-wrap gap-1">
+                  {visiblePatterns.map((p) => (
+                    <PatternPaletteTile key={p.id} pattern={p} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null;
+          })()}
         </aside>
       );
     },

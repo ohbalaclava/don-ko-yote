@@ -19,7 +19,7 @@ export function Score() {
       .filter((s) => selectedSet.has(s.id))
       .map(({ id: _id, ...rest }) => rest);
     const name = sounds.map((s) => s.name).join(' ');
-    await patternStore.save(name, sounds);
+    await patternStore.save(name, sounds, piece.symbolSet.id);
     piece.clearSelection();
   }
 

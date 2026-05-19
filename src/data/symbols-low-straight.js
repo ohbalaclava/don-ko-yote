@@ -1,4 +1,5 @@
 export const LOW_STRAIGHT = {
+  id: 'low-straight',
   time: 4,
   taiko: [
     { name: 'Nagado', skins: 1 },

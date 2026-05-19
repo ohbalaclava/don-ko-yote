@@ -9,8 +9,8 @@ export const patternStore = {
     m.redraw();
   },
 
-  async save(name, sounds) {
-    const record = await db.patterns.save({ name, sounds });
+  async save(name, sounds, symbolSetId) {
+    const record = await db.patterns.save({ name, sounds, symbolSetId });
     patternStore.items = await db.patterns.all();
     m.redraw();
     return record;
@@ -41,8 +41,8 @@ export const patternStore = {
   async importJson(text) {
     const data = JSON.parse(text);
     if (!Array.isArray(data)) return;
-    for (const { name, sounds } of data) {
-      if (name && Array.isArray(sounds)) await db.patterns.save({ name, sounds });
+    for (const { name, sounds, symbolSetId } of data) {
+      if (name && Array.isArray(sounds)) await db.patterns.save({ name, sounds, symbolSetId });
     }
     patternStore.items = await db.patterns.all();
     m.redraw();

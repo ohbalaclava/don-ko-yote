@@ -1,4 +1,5 @@
 export const LOW_SWING = {
+  id: 'low-swing',
   time: 3,
   taiko: [
     { name: 'Nagado', skins: 1 },

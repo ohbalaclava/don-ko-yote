@@ -1,4 +1,5 @@
 export const HIGH_STRAIGHT = {
+  id: 'high-straight',
   time: 4,
   taiko: [
     { name: 'Shime', skins: 1 },

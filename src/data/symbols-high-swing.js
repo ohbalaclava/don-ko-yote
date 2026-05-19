@@ -1,4 +1,5 @@
 export const HIGH_SWING = {
+  id: 'high-swing',
   time: 3,
   taiko: [
     { name: 'Shime', skins: 1 },
