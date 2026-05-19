@@ -6,6 +6,28 @@ let _nextId = 1;
 const uid = () => String(_nextId++);
 
 /**
+ * Returns the nesting depth of a block-repeat marker: the count of other markers
+ * in `markers` whose `lineIds` is a strict superset of this marker's `lineIds`.
+ * Used to indent the marker row past any outer repeats that enclose it.
+ */
+export function markerDepth(marker, markers) {
+  return markers.filter(
+    (n) =>
+      n.id !== marker.id &&
+      n.lineIds.length > marker.lineIds.length &&
+      marker.lineIds.every((id) => n.lineIds.includes(id))
+  ).length;
+}
+
+/**
+ * Returns the number of block-repeat markers whose `lineIds` includes `id`.
+ * A line in a nested repeat shows one orange bar per containing repeat.
+ */
+export function lineDepth(id, markers) {
+  return markers.filter((m) => m.lineIds.includes(id)).length;
+}
+
+/**
  * Creates a new sound object from a palette symbol. Symbols with `alternatives`
  * default to the first alternative; `editable` is propagated onto the sound so
  * the inline editor knows to expose duration controls.

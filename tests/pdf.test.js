@@ -25,7 +25,11 @@ const mockPiece = vi.hoisted(() => ({
   lines: [],
 }));
 
-vi.mock('../src/data/piece.js', () => ({ piece: mockPiece }));
+vi.mock('../src/data/piece.js', () => ({
+  piece: mockPiece,
+  markerDepth: () => 0,
+  lineDepth: () => 0,
+}));
 
 import { exportPdf } from '../src/pdf.js';
 

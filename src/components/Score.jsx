@@ -1,6 +1,6 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece } from '../data/piece.js';
+import { piece, markerDepth, lineDepth } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
@@ -134,32 +134,26 @@ export function Score() {
 
           <div class="lines-container">
             {(() => {
-              const blockRepeatLineIds = new Set(
-                piece.lines
-                  .filter((item) => item.type === 'block-repeat')
-                  .flatMap((item) => item.lineIds)
-              );
+              const markers = piece.lines.filter((item) => item.type === 'block-repeat');
               let lineOrdinal = 0;
               return piece.lines.map((item) => {
                 if (item.type === 'block-repeat') {
-                  return <BlockRepeatRow key={item.id} item={item} />;
+                  return (
+                    <BlockRepeatRow key={item.id} item={item} depth={markerDepth(item, markers)} />
+                  );
                 }
                 if (item.type === 'heading') {
                   return (
                     <SectionHeading
                       key={item.id}
                       heading={item}
-                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                      repeatDepth={lineDepth(item.id, markers)}
                     />
                   );
                 }
                 if (item.type === 'note') {
                   return (
-                    <NoteRow
-                      key={item.id}
-                      note={item}
-                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
-                    />
+                    <NoteRow key={item.id} note={item} repeatDepth={lineDepth(item.id, markers)} />
                   );
                 }
                 if (item.type === 'divider') {
@@ -167,7 +161,7 @@ export function Score() {
                     <DividerRow
                       key={item.id}
                       divider={item}
-                      inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                      repeatDepth={lineDepth(item.id, markers)}
                     />
                   );
                 }
@@ -177,7 +171,7 @@ export function Score() {
                     key={item.id}
                     line={item}
                     index={lineOrdinal - 1}
-                    inBlockRepeat={blockRepeatLineIds.has(item.id)}
+                    repeatDepth={lineDepth(item.id, markers)}
                   />
                 );
               });
