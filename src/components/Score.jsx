@@ -135,9 +135,14 @@ export function Score() {
           <div class="lines-container">
             {(() => {
               const markers = piece.lines.filter((item) => item.type === 'block-repeat');
+              // Single-line repeats render inline on the line, not as a separate row.
+              const singleLineMarkerMap = new Map(
+                markers.filter((m) => m.lineIds.length === 1).map((m) => [m.lineIds[0], m])
+              );
               let lineOrdinal = 0;
               return piece.lines.map((item) => {
                 if (item.type === 'block-repeat') {
+                  if (item.lineIds.length === 1) return m.fragment({ key: item.id });
                   return (
                     <BlockRepeatRow key={item.id} item={item} depth={markerDepth(item, markers)} />
                   );
@@ -166,12 +171,16 @@ export function Score() {
                   );
                 }
                 lineOrdinal++;
+                const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
+                // Exclude the single-line marker from the bar depth (it's shown inline).
+                const repeatDepth = lineDepth(item.id, markers) - (singleRepeat ? 1 : 0);
                 return (
                   <Line
                     key={item.id}
                     line={item}
                     index={lineOrdinal - 1}
-                    repeatDepth={lineDepth(item.id, markers)}
+                    repeatDepth={repeatDepth}
+                    singleRepeat={singleRepeat}
                   />
                 );
               });

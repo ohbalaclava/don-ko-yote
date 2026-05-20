@@ -97,8 +97,10 @@ function domIndexToDataIndex(container, domIndex) {
   const children = Array.from(container.children);
   let count = 0;
   for (let i = 0; i < domIndex; i++) {
-    const ids = children[i].dataset.ligatureIds;
-    count += ids ? ids.split(',').length : 1;
+    const el = children[i];
+    // Skip non-sound elements (beat markers, repeat counter, etc.)
+    if (!el.dataset.soundId && !el.dataset.ligatureIds) continue;
+    count += el.dataset.ligatureIds ? el.dataset.ligatureIds.split(',').length : 1;
   }
   return count;
 }
@@ -231,7 +233,7 @@ export function Line() {
     if (sortable) return;
     sortable = Sortable.create(container, {
       group: 'sounds',
-      filter: '.beat-marker-divider',
+      filter: '.beat-marker-divider, .repeat-counter',
       animation: 150,
       ghostClass: 'opacity-30',
       onEnd(evt) {
@@ -277,7 +279,7 @@ export function Line() {
     onremove() {
       if (sortable) sortable.destroy();
     },
-    view({ attrs: { line, index, repeatDepth = 0 } }) {
+    view({ attrs: { line, index, repeatDepth = 0, singleRepeat = null } }) {
       const time = piece.time;
       const beats = lineDuration(line) / time;
       const selected = piece.selectedLineId === line.id;
@@ -385,6 +387,40 @@ export function Line() {
                       />
                     );
                   }
+                )}
+                {singleRepeat && (
+                  <div
+                    class="repeat-counter self-center flex items-center gap-1 ml-4 pointer-events-auto"
+                    onpointerdown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      class="text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        if (singleRepeat.count <= 2) {
+                          piece.removeBlockRepeat(singleRepeat.id);
+                        } else {
+                          piece.setBlockRepeatCount(singleRepeat.id, singleRepeat.count - 1);
+                        }
+                      }}
+                      title={singleRepeat.count <= 2 ? 'Remove repeat' : 'Decrease repeat count'}
+                    >
+                      −
+                    </button>
+                    <span class="text-base font-bold text-orange-600 dark:text-orange-300 select-none">
+                      ×{singleRepeat.count}
+                    </span>
+                    <button
+                      class="text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        piece.setBlockRepeatCount(singleRepeat.id, singleRepeat.count + 1);
+                      }}
+                      title="Increase repeat count"
+                    >
+                      +
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
