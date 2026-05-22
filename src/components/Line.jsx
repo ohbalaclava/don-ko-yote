@@ -139,7 +139,7 @@ function measureInstructions(dom, line) {
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  ctx.font = '12px ui-sans-serif, system-ui, sans-serif';
+  ctx.font = '15px ui-sans-serif, system-ui, sans-serif';
 
   // Group items by visual row (snap rowTop to 5px grid to tolerate subpixel diffs)
   const rowMap = new Map();
@@ -426,7 +426,7 @@ export function Line() {
             {instructionLayouts.map((layout) => (
               <span
                 key={layout.id}
-                class="absolute text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
+                class="absolute text-[15px] text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
                 style={`left: ${layout.left}px; top: ${layout.top}px`}
               >
                 {layout.text}
