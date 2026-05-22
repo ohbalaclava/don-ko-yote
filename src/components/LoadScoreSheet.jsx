@@ -51,8 +51,8 @@ export function LoadScoreSheet() {
                     </div>
                     <button
                       class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold"
-                      onclick={() => {
-                        scoreStore.loadScore(score.id);
+                      onclick={async () => {
+                        await scoreStore.loadScore(score.id);
                         onLoaded?.();
                         onClose();
                       }}

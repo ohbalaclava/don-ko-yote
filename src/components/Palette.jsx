@@ -22,7 +22,7 @@ export function Palette() {
 
           {(() => {
             const visiblePatterns = patternStore.items.filter(
-              (p) => p.symbolSetId === piece.symbolSet.id
+              (p) => !p.symbolSetId || p.symbolSetId === piece.symbolSet.id
             );
             return visiblePatterns.length > 0 ? (
               <div>
