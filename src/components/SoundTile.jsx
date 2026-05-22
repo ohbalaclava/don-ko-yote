@@ -15,7 +15,7 @@ export function SoundTile() {
       const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
       const borderClass = isSelected
-        ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/40'
+        ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
         : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = settings.proportionalWidth

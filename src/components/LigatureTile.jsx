@@ -10,10 +10,14 @@ export function LigatureTile() {
       const et = piece.editingTile;
       const time = piece.time;
       let subPos = startPos;
+      const anySelected = selectionIds && sounds.some((s) => selectionIds.has(s.id));
+      const outerBorder = anySelected
+        ? 'border-teal-500 dark:border-teal-400'
+        : 'border-gray-300 dark:border-gray-600';
 
       return (
         <div
-          class="relative flex items-stretch border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800 rounded shadow-sm cursor-grab select-none"
+          class={`relative flex items-stretch border bg-white dark:bg-gray-800 rounded shadow-sm cursor-grab select-none ${outerBorder}`}
           data-sound-id={sounds[0].id}
           data-ligature-ids={sounds.map((s) => s.id).join(',')}
         >
@@ -29,7 +33,7 @@ export function LigatureTile() {
             return (
               <div
                 key={sound.id}
-                class={`sound-tile relative flex flex-col items-center py-1 ${edgePad} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/40' : ''}`}
+                class={`sound-tile relative flex flex-col items-center py-1 ${edgePad} ${isSelected ? 'bg-teal-50 dark:bg-teal-900/40' : ''}`}
                 data-sound-id={sound.id}
                 onclick={(e) => {
                   e.stopPropagation();
