@@ -43,18 +43,25 @@ export function GroupTile() {
                 return (
                   <div
                     key={s.id ?? i}
-                    class={`relative flex flex-col items-center px-2 py-1 ${i > 0 ? 'border-l border-purple-200 dark:border-purple-800' : ''}`}
+                    class={`relative flex flex-col items-start py-1 ${i > 0 ? 'border-l border-purple-200 dark:border-purple-800' : ''}`}
                     style={`width: ${(s.duration / time) * beatWidthRem}rem`}
                   >
                     {isHeadBeat ? (
-                      <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                      <span
+                        class="absolute -top-3 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100"
+                        style={`left:${SUBDIV_WIDTH_REM * 0.5}rem`}
+                      />
                     ) : null}
-                    <span
-                      class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
-                    >
-                      {s.name}
-                    </span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{s.hand}</span>
+                    <div class="flex flex-col items-center" style={`width:${SUBDIV_WIDTH_REM}rem`}>
+                      <span
+                        class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
+                      >
+                        {s.name}
+                      </span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {s.hand}
+                      </span>
+                    </div>
                   </div>
                 );
               })
