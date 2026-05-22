@@ -45,7 +45,6 @@ function groupSoundsForDisplay(sounds, proportional, time) {
 
     if (proportional || s.type === 'group') {
       items.push({ sound: s, startPos });
-      if (!proportional) pushBeatMarkers(startPos, startPos + s.duration);
       continue;
     }
 
