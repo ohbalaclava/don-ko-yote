@@ -130,13 +130,19 @@ describe('GroupTile', () => {
         { id: 's2', name: 'Ko', hand: 'L', duration: 2 },
         { id: 's3', name: 'Ka', hand: 'L', duration: 2 },
       ];
-      // time=4: s1 at pos 0 (beat), s2 at 2 (not), s3 at 4 (beat)
+      // time=4: s1+s2 share beat 0 with alternating hands → ligated into one group div.
+      // s3 starts at pos 4 (new beat) → separate div.
+      // Top-level structure: [ligatureGroupDiv, s3Div]
       const vnode = render({ sound: makeGroup(sounds), lineId, startPos: 0, isSelected: false });
       const divs = vnode.children.filter((c) => c?.tag === 'div');
+      expect(divs).toHaveLength(2);
       const hasDot = (div) => div.children.some((c) => c?.attrs?.class?.includes('rounded-full'));
-      expect(hasDot(divs[0])).toBe(true);
-      expect(hasDot(divs[1])).toBe(false);
-      expect(hasDot(divs[2])).toBe(true);
+      // Within the ligature group, s1 (pos 0 = beat) has a dot, s2 (pos 2) does not.
+      const ligSubDivs = divs[0].children.filter((c) => c?.tag === 'div');
+      expect(hasDot(ligSubDivs[0])).toBe(true);
+      expect(hasDot(ligSubDivs[1])).toBe(false);
+      // s3 at pos 4 is a beat boundary.
+      expect(hasDot(divs[1])).toBe(true);
     });
   });
 

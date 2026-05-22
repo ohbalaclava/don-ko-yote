@@ -1,7 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
-import { isIntegerBeat } from '../util.js';
+import { isIntegerBeat, groupIntoLigatures } from '../util.js';
 
 const SUBDIV_WIDTH_REM = 2;
 
@@ -17,6 +17,8 @@ export function GroupTile() {
         ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/40'
         : 'border-purple-400 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20';
 
+      const prop = settings.proportionalWidth;
+      const displayItems = prop ? null : groupIntoLigatures(sound.sounds, time, startPos);
       let subPos = startPos;
 
       return (
@@ -34,30 +36,80 @@ export function GroupTile() {
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           }}
         >
-          {sound.sounds.map((s, i) => {
-            const isHeadBeat = isIntegerBeat(subPos, time);
-            subPos += s.duration;
-            const widthStyle = settings.proportionalWidth
-              ? `width: ${(s.duration / time) * beatWidthRem}rem`
-              : undefined;
-            return (
-              <div
-                key={s.id ?? i}
-                class={`relative flex flex-col items-center px-2 py-1 ${settings.proportionalWidth ? '' : 'min-w-[3rem]'} ${i > 0 ? 'border-l border-purple-200 dark:border-purple-800' : ''}`}
-                style={widthStyle}
-              >
-                {isHeadBeat ? (
-                  <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                ) : null}
-                <span
-                  class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
-                >
-                  {s.name}
-                </span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{s.hand}</span>
-              </div>
-            );
-          })}
+          {prop
+            ? sound.sounds.map((s, i) => {
+                const isHeadBeat = isIntegerBeat(subPos, time);
+                subPos += s.duration;
+                return (
+                  <div
+                    key={s.id ?? i}
+                    class={`relative flex flex-col items-center px-2 py-1 ${i > 0 ? 'border-l border-purple-200 dark:border-purple-800' : ''}`}
+                    style={`width: ${(s.duration / time) * beatWidthRem}rem`}
+                  >
+                    {isHeadBeat ? (
+                      <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                    ) : null}
+                    <span
+                      class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
+                    >
+                      {s.name}
+                    </span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{s.hand}</span>
+                  </div>
+                );
+              })
+            : displayItems.map((item, gIdx) => {
+                const sep = gIdx > 0 ? 'border-l border-purple-200 dark:border-purple-800' : '';
+                if (item.sound) {
+                  const s = item.sound;
+                  return (
+                    <div
+                      key={s.id}
+                      class={`relative flex flex-col items-center px-2 py-1 min-w-[3rem] ${sep}`}
+                    >
+                      {isIntegerBeat(item.startPos, time) ? (
+                        <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                      ) : null}
+                      <span
+                        class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
+                      >
+                        {s.name}
+                      </span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {s.hand}
+                      </span>
+                    </div>
+                  );
+                }
+                // Ligature pair: sounds side by side within a single slot
+                let lPos = item.startPos;
+                return (
+                  <div key={item.sounds[0].id} class={`flex items-stretch ${sep}`}>
+                    {item.sounds.map((s, si) => {
+                      const isHB = isIntegerBeat(lPos, time);
+                      lPos += s.duration;
+                      return (
+                        <div
+                          key={s.id}
+                          class={`relative flex flex-col items-center px-1 py-1 ${si > 0 ? 'border-l border-purple-200/60 dark:border-purple-800/60' : ''}`}
+                        >
+                          {isHB ? (
+                            <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
+                          ) : null}
+                          <span
+                            class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}`}
+                          >
+                            {s.name}
+                          </span>
+                          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            {s.hand}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
           {isEditing ? <GroupEditor lineId={lineId} sound={sound} /> : null}
         </div>
       );
