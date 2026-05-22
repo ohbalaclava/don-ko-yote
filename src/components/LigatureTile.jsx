@@ -13,7 +13,7 @@ export function LigatureTile() {
 
       return (
         <div
-          class="relative flex items-stretch border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800 rounded shadow-sm cursor-grab select-none px-1"
+          class="relative flex items-stretch border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800 rounded shadow-sm cursor-grab select-none"
           data-sound-id={sounds[0].id}
           data-ligature-ids={sounds.map((s) => s.id).join(',')}
         >
@@ -25,10 +25,11 @@ export function LigatureTile() {
               !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
             const isSelected = selectionIds ? selectionIds.has(sound.id) : false;
 
+            const edgePad = idx === 0 ? 'pl-1' : idx === sounds.length - 1 ? 'pr-1' : '';
             return (
               <div
                 key={sound.id}
-                class={`sound-tile relative flex flex-col items-center py-1 ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/40' : ''}`}
+                class={`sound-tile relative flex flex-col items-center py-1 ${edgePad} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/40' : ''}`}
                 data-sound-id={sound.id}
                 onclick={(e) => {
                   e.stopPropagation();
