@@ -30,3 +30,11 @@ body {
 .sortable-drag .beat-dot {
   display: none;
 }
+
+.dark {
+  background: #111827; /* gray-900 — keeps dark bg at body level so the watermark isn't painted over */
+}
+
+.dark .watermark {
+  color: white;
+}
