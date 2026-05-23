@@ -89,35 +89,9 @@ export function SettingsModal() {
                 </div>
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+              <div class="flex items-center justify-between py-4">
                 <div class="font-medium dark:text-white">Dark mode</div>
                 <Toggle checked={settings.darkMode} onChange={(v) => settings.set('darkMode', v)} />
-              </div>
-
-              <div class="pt-4 flex flex-col gap-2">
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide">
-                  Settings file
-                </p>
-                <div class="flex gap-2">
-                  <button
-                    class="flex-1 py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    onclick={() => settings.exportJson()}
-                  >
-                    Export settings
-                  </button>
-                  <label class="flex-1 py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-center">
-                    Import settings
-                    <input
-                      type="file"
-                      accept=".json"
-                      class="sr-only"
-                      onchange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) file.text().then((t) => settings.importJson(t));
-                      }}
-                    />
-                  </label>
-                </div>
               </div>
             </div>
           </div>

@@ -31,43 +31,4 @@ export const settings = {
     applyToDOM();
     m.redraw();
   },
-
-  exportJson() {
-    const data = JSON.stringify(
-      {
-        proportionalWidth: settings.proportionalWidth,
-        font: settings.font,
-        darkMode: settings.darkMode,
-      },
-      null,
-      2
-    );
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'kuchi.shoga-settings.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  },
-
-  /**
-   * Imports settings from a JSON string, persists them, and redraws.
-   * Silently ignores unknown keys; validates font against the known set.
-   * @param {string} text
-   */
-  async importJson(text) {
-    const data = JSON.parse(text);
-    if (typeof data.proportionalWidth === 'boolean')
-      settings.proportionalWidth = data.proportionalWidth;
-    if (['sans', 'serif', 'mono', 'script'].includes(data.font)) settings.font = data.font;
-    if (typeof data.darkMode === 'boolean') settings.darkMode = data.darkMode;
-    await db.kv.set('settings', {
-      proportionalWidth: settings.proportionalWidth,
-      font: settings.font,
-      darkMode: settings.darkMode,
-    });
-    applyToDOM();
-    m.redraw();
-  },
 };
