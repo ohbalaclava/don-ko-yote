@@ -67,13 +67,13 @@ export function ScoreSettingsModal() {
               </div>
 
               <div class="py-4">
-                <div class="font-medium dark:text-white mb-3">Icon</div>
+                <div class="font-medium dark:text-white mb-3">Background</div>
                 {piece.icon ? (
                   <div class="flex items-start gap-3">
                     <img
                       src={piece.icon}
                       class="w-20 h-20 rounded-lg object-cover border border-gray-300 dark:border-gray-600 shrink-0"
-                      alt="Score icon"
+                      alt="Background"
                     />
                     <div class="flex flex-col gap-2">
                       <label class="py-1.5 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-center">
@@ -99,7 +99,7 @@ export function ScoreSettingsModal() {
                 ) : (
                   <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                     <span class="text-sm text-gray-500 dark:text-gray-400">
-                      Tap to upload image
+                      Tap to upload background image
                     </span>
                     <input
                       type="file"
