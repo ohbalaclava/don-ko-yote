@@ -32,6 +32,16 @@ export function ScoreSettingsModal() {
               </div>
 
               <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="font-medium dark:text-white">Taiko</div>
+                <div class="text-gray-600 dark:text-gray-400">{piece.taiko}</div>
+              </div>
+
+              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="font-medium dark:text-white">Jiuchi</div>
+                <div class="text-gray-600 dark:text-gray-400">{piece.jiuchi}</div>
+              </div>
+
+              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium dark:text-white">Beats per line</div>
                 <input
                   type="number"
