@@ -5,7 +5,7 @@ import { settings } from '../data/settings.js';
 
 export function Palette() {
   return {
-    view() {
+    view({ attrs: { onOpenJiuchiPatterns } }) {
       return (
         <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
           <div>
@@ -20,23 +20,32 @@ export function Palette() {
             </div>
           </div>
 
-          {(() => {
-            const visiblePatterns = patternStore.items.filter(
-              (p) => !p.symbolSetId || p.symbolSetId === piece.symbolSet.id
-            );
-            return visiblePatterns.length > 0 ? (
-              <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
-                  Patterns
-                </p>
-                <div class="flex flex-wrap gap-1">
-                  {visiblePatterns.map((p) => (
-                    <PatternPaletteTile key={p.id} pattern={p} />
-                  ))}
+          <div class="flex gap-2">
+            {(() => {
+              const visiblePatterns = patternStore.items.filter(
+                (p) => !p.symbolSetId || p.symbolSetId === piece.symbolSet.id
+              );
+              return visiblePatterns.length > 0 ? (
+                <div class="flex-1">
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
+                    Patterns
+                  </p>
+                  <div class="flex flex-wrap gap-1">
+                    {visiblePatterns.map((p) => (
+                      <PatternPaletteTile key={p.id} pattern={p} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null;
-          })()}
+              ) : null;
+            })()}
+            <button
+              class="self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold"
+              onclick={onOpenJiuchiPatterns}
+              title="Jiuchi patterns"
+            >
+              Jiuchi
+            </button>
+          </div>
         </aside>
       );
     },

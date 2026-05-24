@@ -11,6 +11,7 @@ import { ImportSheet } from './components/ImportSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
+import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
 import { piece } from './data/piece.js';
@@ -46,6 +47,7 @@ function App() {
   let newScoreOpen = false;
   let loadScoreOpen = false;
   let helpOpen = false;
+  let jiuchiPatternsOpen = false;
 
   /**
    * Opens a file picker for JSON import and loads the selected score.
@@ -207,7 +209,12 @@ function App() {
             }}
           />
           <Score />
-          <Palette />
+          <Palette
+            onOpenJiuchiPatterns={() => {
+              jiuchiPatternsOpen = true;
+              m.redraw();
+            }}
+          />
           {settingsOpen ? (
             <SettingsModal
               onClose={() => {
@@ -297,6 +304,14 @@ function App() {
             <HelpSheet
               onClose={() => {
                 helpOpen = false;
+                m.redraw();
+              }}
+            />
+          ) : null}
+          {jiuchiPatternsOpen ? (
+            <JiuchiPatternsSheet
+              onClose={() => {
+                jiuchiPatternsOpen = false;
                 m.redraw();
               }}
             />
