@@ -368,3 +368,40 @@ describe('clearLines', () => {
     expect(piece.lines[0].sounds).toHaveLength(0);
   });
 });
+
+// ── beatsPerLine ──────────────────────────────────────────────────────────────
+
+describe('setBeatsPerLine', () => {
+  it('does not modify existing lines when changed', () => {
+    // Create a line with 8 sounds (full)
+    for (let i = 0; i < 8; i++) piece.addSound(line().id, sym());
+    const originalSoundCount = sounds().length;
+    const originalLineCount = piece.lines.length;
+
+    // Change beatsPerLine to a smaller value
+    piece.setBeatsPerLine(4);
+
+    // Existing line should remain unchanged
+    expect(sounds()).toHaveLength(originalSoundCount);
+    expect(piece.lines).toHaveLength(originalLineCount);
+  });
+
+  it('affects new sounds placement: they respect the new limit', () => {
+    piece.setBeatsPerLine(4);
+    // Add 4 sounds (fills the line)
+    for (let i = 0; i < 4; i++) piece.addSound(line().id, sym());
+    expect(piece.lines).toHaveLength(1);
+    // Next sound should overflow to a new line
+    piece.addSound(line(0).id, sym());
+    expect(piece.lines).toHaveLength(2);
+    expect(sounds(1)).toHaveLength(1);
+  });
+
+  it('affects new sounds placement: increasing limit allows more sounds per line', () => {
+    piece.setBeatsPerLine(16);
+    // Add 16 sounds (fills the line with new limit)
+    for (let i = 0; i < 16; i++) piece.addSound(line().id, sym());
+    expect(piece.lines).toHaveLength(1);
+    expect(sounds()).toHaveLength(16);
+  });
+});
