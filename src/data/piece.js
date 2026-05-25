@@ -2,8 +2,7 @@ import m from 'mithril';
 import { history } from './history.js';
 import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
 
-let _nextId = 1;
-const uid = () => String(_nextId++);
+const uid = () => crypto.randomUUID();
 
 /**
  * Returns the nesting depth of a block-repeat marker: the count of other markers
