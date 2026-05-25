@@ -20,7 +20,10 @@ import { settings } from './data/settings.js';
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-  if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+  if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    scoreStore.save();
+  } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
     e.preventDefault();
     piece.undo();
   } else if (
@@ -197,6 +200,7 @@ function App() {
             </g>
           </svg>
           <Header
+            onSave={() => scoreStore.save()}
             onOpenSettings={() => {
               settingsOpen = true;
             }}

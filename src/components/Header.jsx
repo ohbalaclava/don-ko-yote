@@ -3,8 +3,26 @@ import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 
 export function Header() {
+  let saved = false;
+  let savedTimer = null;
+
+  /**
+   * Calls onSave and briefly flashes the save button to confirm the action.
+   * @param {() => Promise<void>} onSave
+   */
+  function handleSave(onSave) {
+    onSave();
+    clearTimeout(savedTimer);
+    saved = true;
+    m.redraw();
+    savedTimer = setTimeout(() => {
+      saved = false;
+      m.redraw();
+    }, 1500);
+  }
+
   return {
-    view({ attrs: { onOpenSettings, onOpenScoreSettings, onOpenMenu } }) {
+    view({ attrs: { onOpenSettings, onOpenScoreSettings, onOpenMenu, onSave } }) {
       return (
         <header class="flex flex-wrap gap-2 items-center p-3 bg-gray-900 text-white">
           <img src="/mitsudomoe-badge.svg" class="w-8 h-8 shrink-0" aria-hidden="true" />
@@ -14,6 +32,13 @@ export function Header() {
             oninput={(e) => piece.setTitle(e.target.value)}
             placeholder="Untitled"
           />
+          <button
+            class={`rounded px-2 py-1 text-sm font-semibold leading-none transition-colors ${saved ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+            onclick={() => handleSave(onSave)}
+            title="Save score (Ctrl+S)"
+          >
+            {saved ? '✓ Saved' : 'Save'}
+          </button>
           <button
             class="bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none"
             onclick={onOpenScoreSettings}
