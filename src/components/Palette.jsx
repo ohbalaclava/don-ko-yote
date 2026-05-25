@@ -27,9 +27,6 @@ export function Palette() {
               );
               return visiblePatterns.length > 0 ? (
                 <div class="flex-1">
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
-                    Patterns
-                  </p>
                   <div class="flex flex-wrap gap-1">
                     {visiblePatterns.map((p) => (
                       <PatternPaletteTile key={p.id} pattern={p} />
@@ -43,7 +40,7 @@ export function Palette() {
               onclick={onOpenJiuchiPatterns}
               title="Jiuchi patterns"
             >
-              Jiuchi
+              Patterns
             </button>
           </div>
         </aside>
