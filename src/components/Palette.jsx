@@ -184,7 +184,7 @@ function PatternPaletteTile() {
   let handler;
   return {
     view({ attrs: { pattern } }) {
-      const beats = +pattern.sounds.reduce((s, x) => s + x.duration, 0).toFixed(2);
+      const beats = +(pattern.sounds.reduce((s, x) => s + x.duration, 0) / piece.time).toFixed(2);
       if (!handler)
         handler = dragBehaviour({
           ghostLabel: pattern.name,
