@@ -173,7 +173,7 @@ describe('loadScore', () => {
     expect(piece.beatsPerLine).toBe(8);
     expect(piece.bpm).toBe(120);
     expect(piece.author).toBe('Author');
-    expect(piece.lines).toBe(record.lines);
+    expect(piece.lines).toStrictEqual(record.lines);
     expect(piece.selectedLineId).toBe('l1');
   });
 

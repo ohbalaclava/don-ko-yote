@@ -3,7 +3,6 @@ import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
-import { GroupTile } from './GroupTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration } from './repeatDecoration.js';
 
@@ -43,7 +42,7 @@ function groupSoundsForDisplay(sounds, proportional, time) {
     pos += s.duration;
     i++;
 
-    if (proportional || s.type === 'group') {
+    if (proportional) {
       items.push({ sound: s, startPos });
       continue;
     }
@@ -365,17 +364,6 @@ export function Line() {
                       );
                     }
                     const s = item.sound;
-                    if (s.type === 'group') {
-                      return (
-                        <GroupTile
-                          key={s.id}
-                          sound={s}
-                          lineId={line.id}
-                          startPos={item.startPos}
-                          isSelected={selectionIds ? selectionIds.has(s.id) : false}
-                        />
-                      );
-                    }
                     return (
                       <SoundTile
                         key={s.id}

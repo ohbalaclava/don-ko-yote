@@ -3,6 +3,30 @@ import { db } from '../db.js';
 import { piece } from './piece.js';
 import { history } from './history.js';
 
+/**
+ * Expands any legacy group tiles in a lines array into their constituent sounds.
+ * Group tiles were removed from the data model; scores saved before this change
+ * may still contain them and must be migrated on load.
+ * @param {Array} lines
+ * @returns {Array} Lines with no group-type sounds.
+ */
+function expandGroupsInLines(lines) {
+  return lines.map((line) => {
+    if (!line.sounds) return line;
+    const expanded = [];
+    for (const s of line.sounds) {
+      if (s.type === 'group') {
+        for (const gs of s.sounds) {
+          expanded.push({ ...gs, id: crypto.randomUUID() });
+        }
+      } else {
+        expanded.push(s);
+      }
+    }
+    return { ...line, sounds: expanded };
+  });
+}
+
 let autoSaveTimer = null;
 
 function snapshot() {
@@ -65,7 +89,7 @@ export const scoreStore = {
     piece.bpm = score.bpm ?? 120;
     piece.author = score.author ?? '';
     piece.icon = score.icon ?? null;
-    piece.lines = score.lines;
+    piece.lines = expandGroupsInLines(score.lines);
     piece.selectedLineId = score.lines[0]?.id ?? null;
     piece.editingTile = null;
     piece.selectMode = false;
@@ -115,8 +139,8 @@ export const scoreStore = {
     piece.author = data.author ?? '';
     piece.icon = data.icon ?? null;
     if (Array.isArray(data.lines) && data.lines.length) {
-      piece.lines = data.lines;
-      piece.selectedLineId = data.lines[0].id;
+      piece.lines = expandGroupsInLines(data.lines);
+      piece.selectedLineId = piece.lines[0].id;
     }
     piece.editingTile = null;
     piece.selectMode = false;

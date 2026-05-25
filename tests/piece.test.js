@@ -184,22 +184,28 @@ describe('addGroup', () => {
     ],
   };
 
-  it('adds a group tile when the pattern fits in the line', () => {
+  it('always expands the pattern into individual sounds', () => {
     piece.addGroup(line().id, twoBeats);
-    expect(sounds()).toHaveLength(1);
-    expect(sounds()[0].type).toBe('group');
-    expect(sounds()[0].name).toBe('Pat');
-    expect(sounds()[0].duration).toBe(8);
+    expect(sounds()).toHaveLength(2);
+    expect(sounds()[0].name).toBe('A');
+    expect(sounds()[1].name).toBe('B');
+    sounds().forEach((s) => expect(s.type).toBeUndefined());
   });
 
-  it('inserts at a specific index', () => {
-    piece.addSound(line().id, sym('X'));
-    piece.addGroup(line().id, twoBeats, 0);
-    expect(sounds()[0].type).toBe('group');
-    expect(sounds()[1].name).toBe('X');
+  it('assigns fresh ids to the expanded sounds', () => {
+    const originalIds = ['orig-1', 'orig-2'];
+    piece.addGroup(line().id, {
+      name: 'Pat',
+      sounds: [
+        { id: originalIds[0], name: 'A', hand: 'R', duration: 4 },
+        { id: originalIds[1], name: 'B', hand: 'L', duration: 4 },
+      ],
+    });
+    expect(sounds()[0].id).not.toBe(originalIds[0]);
+    expect(sounds()[1].id).not.toBe(originalIds[1]);
   });
 
-  it('distributes individual sounds across lines when pattern exceeds beatsPerLine', () => {
+  it('distributes sounds across lines when beatsPerLine is set', () => {
     piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 2 });
     const threeBeat = {
       name: 'Big',
@@ -213,48 +219,7 @@ describe('addGroup', () => {
     const totalSounds = piece.lines.reduce((n, l) => n + l.sounds.length, 0);
     expect(totalSounds).toBe(3);
     expect(piece.lines.length).toBeGreaterThan(1);
-    // No group tiles — each sound is placed individually
     piece.lines.forEach((l) => l.sounds.forEach((s) => expect(s.type).toBeUndefined()));
-  });
-});
-
-// ── expandGroup ───────────────────────────────────────────────────────────────
-
-describe('expandGroup', () => {
-  it('replaces the group tile with its constituent sounds', () => {
-    piece.addGroup(line().id, {
-      name: 'Pat',
-      sounds: [
-        { name: 'A', hand: 'R', duration: 4 },
-        { name: 'B', hand: 'L', duration: 4 },
-      ],
-    });
-    piece.expandGroup(line().id, sounds()[0].id);
-    expect(sounds()).toHaveLength(2);
-    expect(sounds()[0].name).toBe('A');
-    expect(sounds()[1].name).toBe('B');
-  });
-
-  it('assigns fresh ids to the expanded sounds', () => {
-    const originalIds = ['orig-1', 'orig-2'];
-    piece.addGroup(line().id, {
-      name: 'Pat',
-      sounds: [
-        { id: originalIds[0], name: 'A', hand: 'R', duration: 4 },
-        { id: originalIds[1], name: 'B', hand: 'L', duration: 4 },
-      ],
-    });
-    piece.expandGroup(line().id, sounds()[0].id);
-    expect(sounds()[0].id).not.toBe(originalIds[0]);
-    expect(sounds()[1].id).not.toBe(originalIds[1]);
-  });
-
-  it('is a no-op for a non-group sound', () => {
-    piece.addSound(line().id, sym('Don'));
-    const id = sounds()[0].id;
-    piece.expandGroup(line().id, id);
-    expect(sounds()).toHaveLength(1);
-    expect(sounds()[0].name).toBe('Don');
   });
 });
 

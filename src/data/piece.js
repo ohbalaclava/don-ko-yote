@@ -574,11 +574,7 @@ export const piece = {
     if (item.type === 'block-repeat') return { ...item, id: uid() };
     return {
       id: uid(),
-      sounds: item.sounds.map((s) => ({
-        ...s,
-        id: uid(),
-        ...(s.type === 'group' ? { sounds: s.sounds.map((gs) => ({ ...gs, id: uid() })) } : {}),
-      })),
+      sounds: item.sounds.map((s) => ({ ...s, id: uid() })),
     };
   },
 
@@ -780,64 +776,20 @@ export const piece = {
   // ── Group tiles (pattern instances) ──────────────────────────────────────
 
   /**
-   * Adds a pattern as a group tile. If the pattern's total duration exceeds beatsPerLine,
-   * the group is expanded and its individual sounds are distributed across lines instead.
+   * Expands a pattern and adds its individual sounds to the score, distributing
+   * them across lines from lineId when beatsPerLine is set.
    * @param {string} lineId
-   * @param {{ name: string, sounds: Array<{ duration: number }> }} pattern
-   * @param {number} [atIndex] - Insert position within the line; appends if omitted.
+   * @param {{ sounds: Array<{ duration: number }> }} pattern
    */
-  addGroup(lineId, pattern, atIndex) {
+  addGroup(lineId, pattern) {
     const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
-    const patternDur = pattern.sounds.reduce((sum, s) => sum + s.duration, 0);
-    const max = piece.beatsPerLine * piece.time;
-
-    if (!piece.beatsPerLine || patternDur <= max) {
-      const group = {
-        id: uid(),
-        type: 'group',
-        name: pattern.name,
-        sounds: pattern.sounds,
-        duration: patternDur,
-      };
-      const tIdx = targetLineIdx(fromIdx, group.duration);
-      const target = piece.lines[tIdx];
-      const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
-      if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, group);
-      else target.sounds.push(group);
-      if (tIdx !== fromIdx) piece.selectedLineId = target.id;
-      history.push(piece._snapshot());
-      m.redraw();
-      return;
-    }
-
-    // Pattern exceeds beatsPerLine: expand and distribute sounds across lines.
     let lineIdx = fromIdx;
     for (const s of pattern.sounds) {
       lineIdx = targetLineIdx(lineIdx, s.duration);
       piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
     }
     piece.selectedLineId = piece.lines[lineIdx].id;
-    history.push(piece._snapshot());
-    m.redraw();
-  },
-
-  /**
-   * Replaces a group tile in-place with its constituent sounds. Each sound receives
-   * a fresh id to avoid collisions with the originals.
-   * @param {string} lineId
-   * @param {string} soundId - ID of the group tile to expand.
-   */
-  expandGroup(lineId, soundId) {
-    const line = piece.lines.find((l) => l.id === lineId);
-    if (!line) return;
-    const idx = line.sounds.findIndex((s) => s.id === soundId);
-    if (idx === -1) return;
-    const group = line.sounds[idx];
-    if (group.type !== 'group') return;
-    const expanded = group.sounds.map((s) => ({ ...s, id: uid() }));
-    line.sounds.splice(idx, 1, ...expanded);
-    piece.editingTile = null;
     history.push(piece._snapshot());
     m.redraw();
   },

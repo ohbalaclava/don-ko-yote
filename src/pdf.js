@@ -192,7 +192,7 @@ export async function exportPdf() {
     lineOrdinal++;
 
     const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
-    const flatSounds = item.sounds.flatMap((s) => (s.type === 'group' ? s.sounds : [s]));
+    const flatSounds = item.sounds;
 
     // Split flat sounds into rows of ≤ BEATS_PER_ROW beats.
     const rows = [];
