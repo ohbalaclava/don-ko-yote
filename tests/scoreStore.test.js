@@ -24,6 +24,7 @@ vi.mock('../src/db.js', () => ({ db: fakeDb }));
 
 import { piece } from '../src/data/piece.js';
 import { scoreStore } from '../src/data/scoreStore.js';
+import { patternStore } from '../src/data/patterns.js';
 
 function makeScoreRecord(overrides = {}) {
   return {
@@ -51,6 +52,7 @@ beforeEach(() => {
   }));
   fakeDb.scores.delete.mockResolvedValue(undefined);
   scoreStore.items = [];
+  patternStore.items = [];
   piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8 });
 });
 
@@ -116,6 +118,19 @@ describe('importJson', () => {
     expect(piece.editingTile).toBeNull();
     expect(piece.selectMode).toBe(false);
   });
+
+  it('restores patterns from the JSON', () => {
+    const patterns = [{ name: 'Roll', sounds: [], symbolSetId: 'high-straight' }];
+    scoreStore.importJson(JSON.stringify({ title: 'X', patterns }));
+    expect(patternStore.items).toHaveLength(1);
+    expect(patternStore.items[0].name).toBe('Roll');
+  });
+
+  it('clears patterns when JSON has none', () => {
+    patternStore.items = [{ id: 'p1', name: 'Old', sounds: [], symbolSetId: 'high-straight' }];
+    scoreStore.importJson(JSON.stringify({ title: 'X' }));
+    expect(patternStore.items).toEqual([]);
+  });
 });
 
 // ── save ──────────────────────────────────────────────────────────────────────
@@ -130,6 +145,13 @@ describe('save', () => {
     expect(saved.taiko).toBe('Shime');
     expect(saved.jiuchi).toBe('Gobu Gobu');
     expect(saved.lines).toBe(piece.lines);
+  });
+
+  it('includes current patterns in the snapshot', async () => {
+    patternStore.items = [{ id: 'p1', name: 'Roll', sounds: [], symbolSetId: 'high-straight' }];
+    await scoreStore.save();
+    const saved = fakeDb.scores.save.mock.calls[0][0];
+    expect(saved.patterns).toBe(patternStore.items);
   });
 
   it('sets piece.id from the returned record', async () => {
@@ -175,6 +197,20 @@ describe('loadScore', () => {
     expect(piece.author).toBe('Author');
     expect(piece.lines).toStrictEqual(record.lines);
     expect(piece.selectedLineId).toBe('l1');
+  });
+
+  it('restores patterns from the stored record', async () => {
+    const patterns = [{ id: 'p1', name: 'Roll', sounds: [], symbolSetId: 'high-straight' }];
+    fakeDb.scores.get.mockResolvedValue(makeScoreRecord({ patterns }));
+    await scoreStore.loadScore('score-1');
+    expect(patternStore.items).toEqual(patterns);
+  });
+
+  it('clears patterns when the stored record has none', async () => {
+    patternStore.items = [{ id: 'p1', name: 'Old', sounds: [], symbolSetId: 'high-straight' }];
+    fakeDb.scores.get.mockResolvedValue(makeScoreRecord());
+    await scoreStore.loadScore('score-1');
+    expect(patternStore.items).toEqual([]);
   });
 
   it('defaults bpm, author, icon when absent from the record', async () => {

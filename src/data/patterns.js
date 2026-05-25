@@ -1,28 +1,46 @@
 import m from 'mithril';
-import { db } from '../db.js';
+import { piece } from './piece.js';
 
 export const patternStore = {
   items: [],
 
-  async load() {
-    patternStore.items = await db.patterns.all();
-    m.redraw();
-  },
-
-  async save(name, sounds, symbolSetId) {
-    const record = await db.patterns.save({ name, sounds, symbolSetId });
-    patternStore.items = await db.patterns.all();
+  /**
+   * Adds a pattern to the in-memory list. Changes are persisted to the score on
+   * the next score save.
+   * @param {string} name
+   * @param {Array} sounds
+   * @param {string} [symbolSetId]
+   * @returns {{ id: string, name: string, sounds: Array, symbolSetId: string | undefined }}
+   */
+  save(name, sounds, symbolSetId) {
+    const record = { id: crypto.randomUUID(), name, sounds, symbolSetId };
+    patternStore.items = [...patternStore.items, record];
     m.redraw();
     return record;
   },
 
-  async delete(id) {
-    await db.patterns.delete(id);
+  /**
+   * Removes a pattern from the in-memory list by id.
+   * @param {string} id
+   */
+  delete(id) {
     patternStore.items = patternStore.items.filter((p) => p.id !== id);
     m.redraw();
   },
 
-  /** Downloads all patterns as a JSON file, stripping internal ids. */
+  /**
+   * Replaces the in-memory pattern list from an external source (e.g. a loaded
+   * score). Items without an id receive a fresh UUID.
+   * @param {Array} items
+   */
+  setItems(items) {
+    patternStore.items = (Array.isArray(items) ? items : []).map((p) =>
+      p.id ? p : { ...p, id: crypto.randomUUID() }
+    );
+    m.redraw();
+  },
+
+  /** Downloads the current patterns as a JSON file, stripping internal ids. */
   exportJson() {
     const data = patternStore.items.map(({ id: _id, ...p }) => p);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -35,16 +53,27 @@ export const patternStore = {
   },
 
   /**
-   * Imports patterns from a JSON string, merging them into the existing store.
+   * Merges patterns from a JSON string into the current list, skipping any
+   * patterns whose symbolSetId does not match the active score's meter.
+   * Patterns with no symbolSetId are always accepted.
    * @param {string} text
    */
-  async importJson(text) {
+  importJson(text) {
     const data = JSON.parse(text);
     if (!Array.isArray(data)) return;
-    for (const { name, sounds, symbolSetId } of data) {
-      if (name && Array.isArray(sounds)) await db.patterns.save({ name, sounds, symbolSetId });
-    }
-    patternStore.items = await db.patterns.all();
+    const currentSetId = piece.symbolSet.id;
+    const incoming = data
+      .filter(({ name, sounds, symbolSetId }) => {
+        if (!name || !Array.isArray(sounds)) return false;
+        return !symbolSetId || symbolSetId === currentSetId;
+      })
+      .map(({ name, sounds, symbolSetId }) => ({
+        id: crypto.randomUUID(),
+        name,
+        sounds,
+        symbolSetId,
+      }));
+    patternStore.items = [...patternStore.items, ...incoming];
     m.redraw();
   },
 };

@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { patternStore } from '../data/patterns.js';
 import { TAIKO_GROUPS, ALL_JIUCHIS, getSymbolSet } from '../data/symbolSets.js';
 
 export function NewScoreSheet() {
@@ -126,6 +127,7 @@ export function NewScoreSheet() {
                       bpm: bpm || 120,
                       beatsPerLine: beatsPerLine || 8,
                     });
+                    patternStore.setItems([]);
                     onCreated?.();
                     onClose();
                   }}

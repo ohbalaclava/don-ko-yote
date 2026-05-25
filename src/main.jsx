@@ -32,7 +32,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-patternStore.load();
 scoreStore.init();
 scoreStore.load();
 settings.load();
