@@ -9,6 +9,7 @@ export const settings = {
   proportionalWidth: false,
   font: 'sans',
   darkMode: false,
+  defaultBackground: null,
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -16,6 +17,7 @@ export const settings = {
       if ('proportionalWidth' in saved) settings.proportionalWidth = saved.proportionalWidth;
       if ('font' in saved) settings.font = saved.font;
       if ('darkMode' in saved) settings.darkMode = saved.darkMode;
+      if ('defaultBackground' in saved) settings.defaultBackground = saved.defaultBackground;
     }
     applyToDOM();
     m.redraw();
@@ -27,6 +29,7 @@ export const settings = {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
       darkMode: settings.darkMode,
+      defaultBackground: settings.defaultBackground,
     });
     applyToDOM();
     m.redraw();

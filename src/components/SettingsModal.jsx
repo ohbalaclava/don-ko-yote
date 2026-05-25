@@ -1,6 +1,12 @@
 import m from 'mithril';
 import { settings } from '../data/settings.js';
 
+function readImageFile(file, callback) {
+  const reader = new FileReader();
+  reader.onload = (e) => callback(e.target.result);
+  reader.readAsDataURL(file);
+}
+
 const FONTS = [
   { id: 'sans', label: 'Sans-serif', style: 'font-family: ui-sans-serif, system-ui, sans-serif' },
   { id: 'serif', label: 'Serif', style: 'font-family: ui-serif, Georgia, serif' },
@@ -89,9 +95,59 @@ export function SettingsModal() {
                 </div>
               </div>
 
-              <div class="flex items-center justify-between py-4">
+              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium dark:text-white">Dark mode</div>
                 <Toggle checked={settings.darkMode} onChange={(v) => settings.set('darkMode', v)} />
+              </div>
+
+              <div class="py-4">
+                <div class="font-medium dark:text-white mb-3">Default background</div>
+                {settings.defaultBackground ? (
+                  <div class="flex items-start gap-3">
+                    <img
+                      src={settings.defaultBackground}
+                      class="w-20 h-20 rounded-lg object-cover border border-gray-300 dark:border-gray-600 shrink-0"
+                      alt="Default background"
+                    />
+                    <div class="flex flex-col gap-2">
+                      <label class="py-1.5 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-center">
+                        Replace
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="sr-only"
+                          onchange={(e) => {
+                            const file = e.target.files[0];
+                            if (file)
+                              readImageFile(file, (url) => settings.set('defaultBackground', url));
+                          }}
+                        />
+                      </label>
+                      <button
+                        class="py-1.5 px-3 rounded-lg border border-red-300 dark:border-red-700 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onclick={() => settings.set('defaultBackground', null)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                      Tap to upload default background image
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      class="sr-only"
+                      onchange={(e) => {
+                        const file = e.target.files[0];
+                        if (file)
+                          readImageFile(file, (url) => settings.set('defaultBackground', url));
+                      }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
           </div>

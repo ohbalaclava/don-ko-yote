@@ -29,7 +29,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `symbols.js` — master list of sound symbols (`SYMBOLS` array) and jiuchi type definitions (`JIUCHI` array). Each symbol has `name`, `duration` (fraction of a beat), and `hand` (`'L'` or `'R'`). Each jiuchi has `id`, `label`, and `rhythm`.
 - `piece.js` — singleton mutable state for the current piece. Shape: `{ id, title, jiuchi, beatsPerLine, bpm, author, icon, selectedLineId, editingTile, selectMode, selection, lines: [{ id, sounds: [], repeat: number }] }`. Sounds are either sound objects `{ id, name, hand, duration, instruction }` or group objects `{ id, type: 'group', name, sounds[], duration }`. All mutations go through methods on `piece` (e.g. `piece.addSound`, `piece.moveSound`, `piece.addGroup`, `piece.expandGroup`) which push to history and call `m.redraw()`. Select mode tracks `{ lineId, anchorId, soundIds[] }` for anchor-based contiguous range selection.
 - `history.js` — linear undo/redo stack (max 32 entries). `history.push(state)` truncates future entries. `history.undo()` / `history.redo()` return the state to restore, or `null`.
-- `settings.js` — singleton for app-level preferences (`proportionalWidth`, `font`, `darkMode`, `beatBoundaries`). Persisted to IndexedDB via `db.kv`. `settings.set(key, value)` persists and redraws.
+- `settings.js` — singleton for app-level preferences (`proportionalWidth`, `font`, `darkMode`, `defaultBackground`). Persisted to IndexedDB via `db.kv`. `settings.set(key, value)` persists and redraws. `defaultBackground` is a data URL that serves as a fallback when a score has no background image set.
 - `patterns.js` — `patternStore` manages saved patterns via IndexedDB. Methods: `load()`, `save(name, sounds)`, `delete(id)`. `patternStore.items` holds the current list in memory.
 - `scoreStore.js` — manages named score persistence. `save()` upserts the current piece; `loadScore(id)` replaces all piece state; `exportJson()` downloads a JSON file (id stripped); `importJson(text)` loads without saving. `init()` patches `piece.setTitle` for 1-second auto-save.
 - `db.js` — Promise-based IndexedDB wrapper. Exposes `db.kv` (key-value store with `get`/`set`/`delete`) and `db.scores` / `db.patterns` (collections with `all`/`get`/`save`/`delete`). Items in collections are auto-assigned UUIDs on first save.
@@ -45,7 +45,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `LigatureTile.jsx` — groups two or more consecutive sub-beat sounds of equal duration into a single draggable tile (non-proportional mode only). Each sub-tile can open its own `SoundEditor`.
 - `GroupTile.jsx` — a placed pattern (group) card with purple styling; inline editor offers "Expand in place" or remove.
 - `Palette.jsx` — sidebar with Sounds and Patterns sections. Tap to add to selected line; drag to any line. `dragBehaviour()` handles the tap-vs-drag distinction (6 px threshold). `PatternPaletteTile` includes a delete button.
-- `SettingsModal.jsx` — bottom sheet for app settings (proportional width, beat boundaries, font, dark mode, import/export JSON).
+- `SettingsModal.jsx` — bottom sheet for app settings (proportional width, font, dark mode, default background image).
 - `ScoreSettingsModal.jsx` — bottom sheet for score settings (beats per line, BPM, author, icon image upload).
 - `MenuSheet.jsx` — bottom sheet with New, Save, Load, Export/Import score, Export PDF, Clear, Help actions.
 - `NewScoreSheet.jsx` — bottom sheet for creating a new score (jiuchi and beats per line).
