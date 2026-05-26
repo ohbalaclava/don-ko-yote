@@ -4,7 +4,7 @@ import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
-import { repeatDecoration } from './repeatDecoration.js';
+import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -376,14 +376,19 @@ export function Line() {
           : !piece.lineSelectMode && selected
             ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
             : showRepeatBars
-              ? 'bg-orange-50 dark:bg-orange-900/20'
+              ? 'border-l-4 border-l-transparent bg-orange-50 dark:bg-orange-900/20'
               : 'border-l-4 border-l-transparent';
       const decoration = showRepeatBars ? repeatDecoration(repeatDepth) : null;
+      // When a repeat-block line is selected/highlighted, decoration is suppressed.
+      // Use the same left padding the decoration would have used so content doesn't
+      // shift. Non-repeat lines always get 12px.
+      const fallbackPaddingLeft =
+        repeatDepth > 0 ? `${repeatBarsWidth(repeatDepth) + 4}px` : '12px';
 
       return (
         <div
           class={`flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${sideClass}`}
-          style={decoration ?? { paddingLeft: '12px' }}
+          style={decoration ?? { paddingLeft: fallbackPaddingLeft }}
           onclick={() => {
             if (piece.lineSelectMode) {
               piece.toggleLineSelection(line.id);

@@ -6,6 +6,11 @@ const GAP = 2;
  * left-aligned linear-gradient drawing `depth` orange bars with gaps between,
  * plus enough left padding to push content past them. Returns null when depth
  * is 0 so the caller can fall through to its default styling.
+ *
+ * The gradient is painted from the border-box origin so the bars appear flush
+ * with the outer-left edge of the element even when a `border-l-4` is present
+ * (the transparent border lets the background show through). The padding is
+ * reduced by 4px relative to the raw bar gutter to account for that border.
  */
 export function repeatDecoration(depth) {
   if (depth === 0) return null;
@@ -24,7 +29,12 @@ export function repeatDecoration(depth) {
   return {
     backgroundImage: `linear-gradient(to right, ${stops.join(', ')})`,
     backgroundRepeat: 'no-repeat',
-    paddingLeft: `${barsWidth + 8}px`,
+    // background-origin: border-box paints the gradient from the outer-left edge,
+    // so the bars sit flush against the element's left side regardless of border width.
+    backgroundOrigin: 'border-box',
+    // Subtract 4px for the border-l-4 that all rows carry; content lands at the
+    // same visual position as before (barsWidth + 8px from outer edge).
+    paddingLeft: `${barsWidth + 4}px`,
   };
 }
 
