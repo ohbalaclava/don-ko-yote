@@ -108,16 +108,23 @@ export async function exportPdf() {
 
   // ── Header ───────────────────────────────────────────────────────────────
 
+  const headerY = y;
+
+  // Title (centred)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(0);
-  doc.text(piece.title || 'Untitled', MARGIN, y);
-  y += 7;
+  doc.text(piece.title || 'Untitled', PAGE_W / 2, headerY, { align: 'center' });
 
+  // Metadata (top-right, one field per line)
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.text(`${piece.taiko}  ·  ${piece.jiuchi}  ·  ${piece.beatsPerLine} beats/line`, MARGIN, y);
-  y += 8;
+  doc.setFontSize(9);
+  doc.setTextColor(0);
+  doc.text(piece.taiko ?? '', PAGE_W - MARGIN, headerY, { align: 'right' });
+  doc.text(piece.jiuchi ?? '', PAGE_W - MARGIN, headerY + 4.5, { align: 'right' });
+  doc.text(piece.bpm ? `${piece.bpm} BPM` : '', PAGE_W - MARGIN, headerY + 9, { align: 'right' });
+
+  y += 15;
 
   // ── Prep ─────────────────────────────────────────────────────────────────
 
@@ -149,9 +156,8 @@ export async function exportPdf() {
       ensureSpace(9);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.setTextColor(60);
-      doc.text(item.text, MARGIN, y + 4);
       doc.setTextColor(0);
+      doc.text(item.text, MARGIN, y + 4);
       y += 9 + LINE_GAP;
       continue;
     }
@@ -162,9 +168,8 @@ export async function exportPdf() {
       ensureSpace(8);
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
-      doc.setTextColor(100);
-      doc.text(item.text, MARGIN, y + 4, { maxWidth: USABLE_W });
       doc.setTextColor(0);
+      doc.text(item.text, MARGIN, y + 4, { maxWidth: USABLE_W });
       y += 8 + LINE_GAP;
       continue;
     }
@@ -172,7 +177,7 @@ export async function exportPdf() {
     // Divider
     if (item.type === 'divider') {
       ensureSpace(6);
-      doc.setDrawColor(180);
+      doc.setDrawColor(0);
       doc.setLineWidth(0.2);
       doc.line(MARGIN, y + 2, MARGIN + USABLE_W, y + 2);
       y += 6 + LINE_GAP;
@@ -237,36 +242,35 @@ export async function exportPdf() {
         const tw = (sound.duration / time) * BEAT_W;
         const cx = TILES_X + xOff + tw / 2;
 
-        // Hand
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
-        doc.setTextColor(120);
-        doc.text(sound.hand ?? '', cx, rowY + DOT_ZONE + 3.5, { align: 'center' });
-
         // Name
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(0);
-        doc.text(sound.name, cx, rowY + DOT_ZONE + 7.5, { align: 'center' });
+        doc.text(sound.name, cx, rowY + DOT_ZONE + 5, { align: 'center' });
 
         // Emphasis underline
         if (sound.emphasis) {
           const nw = doc.getTextWidth(sound.name);
           doc.setDrawColor(0);
           doc.setLineWidth(0.3);
-          doc.line(cx - nw / 2, rowY + DOT_ZONE + 8.2, cx + nw / 2, rowY + DOT_ZONE + 8.2);
+          doc.line(cx - nw / 2, rowY + DOT_ZONE + 5.7, cx + nw / 2, rowY + DOT_ZONE + 5.7);
         }
+
+        // Hand (below name)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(0);
+        doc.text(sound.hand ?? '', cx, rowY + DOT_ZONE + 9, { align: 'center' });
 
         // Instruction
         if (sound.instruction) {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(5);
-          doc.setTextColor(80);
-          doc.text(sound.instruction, cx, rowY + DOT_ZONE + 11.5, {
+          doc.setTextColor(0);
+          doc.text(sound.instruction, cx, rowY + DOT_ZONE + 12, {
             align: 'center',
             maxWidth: tw - 2,
           });
-          doc.setTextColor(0);
         }
 
         xOff += tw;
@@ -276,18 +280,16 @@ export async function exportPdf() {
       if (rowIdx === 0) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`${lineOrdinal}.`, TILES_X - 1, rowY + DOT_ZONE + 6, { align: 'right' });
         doc.setTextColor(0);
+        doc.text(`${lineOrdinal}.`, TILES_X - 1, rowY + DOT_ZONE + 6, { align: 'right' });
       }
 
       // Line multiplier at end of last row
       if (rowIdx === rows.length - 1 && singleRepeat) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.setTextColor(251, 146, 60);
-        doc.text(`×${singleRepeat.count}`, TILES_X + xOff + 2, rowY + DOT_ZONE + 7.5);
         doc.setTextColor(0);
+        doc.text(`×${singleRepeat.count}`, TILES_X + xOff + 2, rowY + DOT_ZONE + 7.5);
       }
 
       y += ROW_H;
@@ -318,7 +320,7 @@ export async function exportPdf() {
       const barTop = Math.min(...pgEntries.map((e) => e.startY));
       const barBot = Math.max(...pgEntries.map((e) => e.endY));
       doc.setPage(pg);
-      doc.setDrawColor(251, 146, 60);
+      doc.setDrawColor(0);
       doc.setLineWidth(0.5);
       doc.line(SECTION_BAR_X, barTop, SECTION_BAR_X, barBot);
     }
@@ -331,9 +333,8 @@ export async function exportPdf() {
     doc.setPage(pageNums[0]);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(251, 146, 60);
-    doc.text(`×${count}`, SECTION_LABEL_X, (labelTop + labelBot) / 2);
     doc.setTextColor(0);
+    doc.text(`×${count}`, SECTION_LABEL_X, (labelTop + labelBot) / 2);
   }
 
   doc.save(`${piece.title || 'taiko'}.pdf`);
