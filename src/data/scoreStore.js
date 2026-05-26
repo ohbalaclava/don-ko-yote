@@ -11,6 +11,22 @@ import { patternStore } from './patterns.js';
  * @param {Array} lines
  * @returns {Array} Lines with no group-type sounds.
  */
+const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
+
+/**
+ * Returns the id of the last sound line in `lines` (skipping headings, notes,
+ * dividers, and block-repeat markers). Falls back to the very last item if no
+ * sound line exists, or null for an empty array.
+ * @param {Array} lines
+ * @returns {string | null}
+ */
+function lastSoundLineId(lines) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!NON_SOUND_TYPES.has(lines[i].type)) return lines[i].id;
+  }
+  return lines[lines.length - 1]?.id ?? null;
+}
+
 function expandGroupsInLines(lines) {
   return lines.map((line) => {
     if (!line.sounds) return line;
@@ -92,7 +108,7 @@ export const scoreStore = {
     piece.author = score.author ?? '';
     piece.icon = score.icon ?? null;
     piece.lines = expandGroupsInLines(score.lines);
-    piece.selectedLineId = score.lines[0]?.id ?? null;
+    piece.selectedLineId = lastSoundLineId(piece.lines);
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
@@ -143,7 +159,7 @@ export const scoreStore = {
     piece.icon = data.icon ?? null;
     if (Array.isArray(data.lines) && data.lines.length) {
       piece.lines = expandGroupsInLines(data.lines);
-      piece.selectedLineId = piece.lines[0].id;
+      piece.selectedLineId = lastSoundLineId(piece.lines);
     }
     piece.editingTile = null;
     piece.selectMode = false;

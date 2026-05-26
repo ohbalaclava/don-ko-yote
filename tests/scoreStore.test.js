@@ -79,7 +79,21 @@ describe('importJson', () => {
     expect(piece.author).toBe('Me');
     expect(piece.icon).toBe('data:img');
     expect(piece.lines).toEqual(data.lines);
+    // Single-line score — l1 is both first and last.
     expect(piece.selectedLineId).toBe('l1');
+  });
+
+  it('selects the last sound line on import', () => {
+    scoreStore.importJson(
+      JSON.stringify({
+        title: 'X',
+        lines: [
+          { id: 'l1', sounds: [] },
+          { id: 'l2', sounds: [] },
+        ],
+      })
+    );
+    expect(piece.selectedLineId).toBe('l2');
   });
 
   it('falls back to defaults for missing optional fields', () => {
@@ -196,7 +210,35 @@ describe('loadScore', () => {
     expect(piece.bpm).toBe(120);
     expect(piece.author).toBe('Author');
     expect(piece.lines).toStrictEqual(record.lines);
+    // Single-line score — l1 is both first and last.
     expect(piece.selectedLineId).toBe('l1');
+  });
+
+  it('selects the last sound line, not the first', async () => {
+    fakeDb.scores.get.mockResolvedValue(
+      makeScoreRecord({
+        lines: [
+          { id: 'l1', sounds: [] },
+          { id: 'l2', sounds: [] },
+        ],
+      })
+    );
+    await scoreStore.loadScore('score-1');
+    expect(piece.selectedLineId).toBe('l2');
+  });
+
+  it('skips trailing non-sound rows when selecting the last line', async () => {
+    fakeDb.scores.get.mockResolvedValue(
+      makeScoreRecord({
+        lines: [
+          { id: 'l1', sounds: [] },
+          { id: 'l2', sounds: [] },
+          { id: 'h1', type: 'heading', text: 'End' },
+        ],
+      })
+    );
+    await scoreStore.loadScore('score-1');
+    expect(piece.selectedLineId).toBe('l2');
   });
 
   it('restores patterns from the stored record', async () => {
