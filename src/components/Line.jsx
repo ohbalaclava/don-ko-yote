@@ -105,13 +105,32 @@ function domIndexToDataIndex(container, domIndex) {
 
 const INSTR_LINE_HEIGHT = 18;
 
+const DEFAULT_ROW_GAP = 16; // matches former gap-y-4 (1rem)
+
+/**
+ * Computes a stable string representing the identity and instruction state of all
+ * sounds in a line. Used to detect stale instruction positions: when the view renders
+ * with a line whose hash differs from the last measured hash, stale layouts are
+ * suppressed rather than shown at incorrect positions.
+ * @param {{ sounds: Array }} line
+ * @returns {string}
+ */
+function computeLineHash(line) {
+  return line.sounds
+    .map((s) => `${s.id}:${s.duration}:${s.type ?? ''}:${s.instruction ?? ''}`)
+    .join('|');
+}
+
 /**
  * Measures instruction label positions for all sounds in a line, laying them out
  * in non-overlapping horizontal tracks below their tiles using a canvas for text measurement.
  * Groups tiles by visual row (snapped to a 5px grid to tolerate subpixel differences).
+ * Also computes the row-gap needed so that instruction labels on each visual row do not
+ * overlap the tile row below it. Uses the maximum track count across all non-last rows
+ * to derive a single uniform row-gap for the flex-wrap sounds container.
  * @param {HTMLElement} dom - The Line component's root DOM node.
  * @param {{ sounds: Array }} line
- * @returns {{ layouts: Array<{ id: string, left: number, top: number, text: string }>, paddingBottom: number } | null}
+ * @returns {{ layouts: Array<{ id: string, left: number, top: number, text: string }>, paddingBottom: number, rowGap: number } | null}
  */
 function measureInstructions(dom, line) {
   const wrapper = dom.querySelector('.sounds-and-instructions');
@@ -134,7 +153,7 @@ function measureInstructions(dom, line) {
     });
   }
 
-  if (!items.length) return { layouts: [], paddingBottom: 0 };
+  if (!items.length) return { layouts: [], paddingBottom: 0, rowGap: DEFAULT_ROW_GAP };
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -148,10 +167,22 @@ function measureInstructions(dom, line) {
     rowMap.get(key).push(item);
   }
 
+  // Find the true last visual row by querying all tile elements (including those
+  // without instructions), so rows whose instructions sit just above the last row
+  // of tiles are correctly treated as non-last rows.
+  const allTiles = Array.from(wrapper.querySelectorAll('[data-sound-id], [data-ligature-ids]'));
+  let absoluteLastRowKey = 0;
+  for (const tile of allTiles) {
+    const key = Math.round((tile.getBoundingClientRect().top - wrapperRect.top) / 5) * 5;
+    if (key > absoluteLastRowKey) absoluteLastRowKey = key;
+  }
+
   const layouts = [];
   let maxBottom = 0;
+  // Track how many instruction tracks each row needs (for computing row-gap).
+  const rowTrackCounts = new Map(); // rowKey → number of tracks used
 
-  for (const rowItems of rowMap.values()) {
+  for (const [rowKey, rowItems] of rowMap.entries()) {
     rowItems.sort((a, b) => a.left - b.left);
     const trackEnds = [];
     for (const item of rowItems) {
@@ -162,13 +193,33 @@ function measureInstructions(dom, line) {
       layouts.push({ id: item.id, left: item.left, top, text: item.text });
       if (top + INSTR_LINE_HEIGHT > maxBottom) maxBottom = top + INSTR_LINE_HEIGHT;
     }
+    rowTrackCounts.set(rowKey, trackEnds.length);
   }
 
   const soundsContainer = wrapper.querySelector('.sounds-container');
   const soundsHeight = soundsContainer ? soundsContainer.offsetHeight : 0;
   const paddingBottom = Math.max(0, maxBottom - soundsHeight + 4);
 
-  return { layouts, paddingBottom };
+  // The CSS row-gap must clear two things that protrude into the inter-row space:
+  //   • Instructions: start 2px below the tile bottom, each track is INSTR_LINE_HEIGHT tall.
+  //   • Beat dots: the next row's tiles have beat dots positioned at -top-3 (-12px),
+  //     so the dot's top edge sits 12px above the next row's tile top edge.
+  // The dot must clear the instruction bottom, so:
+  //   rowGap ≥ (2 + numTracks × INSTR_LINE_HEIGHT) + 12 = 14 + numTracks × INSTR_LINE_HEIGHT
+  // An extra 6px of breathing room is added for visual comfort.
+  // We use the maximum across all non-last rows (gap applies uniformly to all rows).
+  let maxNonLastRowTracks = 0;
+  for (const [rowKey, trackCount] of rowTrackCounts.entries()) {
+    if (rowKey !== absoluteLastRowKey) {
+      maxNonLastRowTracks = Math.max(maxNonLastRowTracks, trackCount);
+    }
+  }
+  const rowGap =
+    maxNonLastRowTracks > 0
+      ? Math.max(DEFAULT_ROW_GAP, 14 + maxNonLastRowTracks * INSTR_LINE_HEIGHT + 6)
+      : DEFAULT_ROW_GAP;
+
+  return { layouts, paddingBottom, rowGap };
 }
 
 export function Line() {
@@ -176,6 +227,14 @@ export function Line() {
   let container;
   let instructionLayouts = [];
   let wrapperPaddingBottom = 0;
+  let soundsRowGap = DEFAULT_ROW_GAP;
+  // Stale-detection: layouts are only shown when the line data matches what was measured.
+  let measuredLineHash = '';
+  // ResizeObserver fires when the container width changes (e.g. viewport resize), so
+  // instruction positions are recomputed even when Mithril doesn't redraw.
+  let resizeObserver = null;
+  let lastDom = null;
+  let lastLine = null;
   let lpTimer = null;
   let lpSoundId = null;
   let lpLineId = null;
@@ -253,13 +312,18 @@ export function Line() {
   function applyLayouts(dom, line) {
     const result = measureInstructions(dom, line);
     if (!result) return;
-    const { layouts, paddingBottom } = result;
+    const { layouts, paddingBottom, rowGap } = result;
+    const newHash = computeLineHash(line);
     const changed =
       paddingBottom !== wrapperPaddingBottom ||
+      rowGap !== soundsRowGap ||
+      newHash !== measuredLineHash ||
       JSON.stringify(layouts) !== JSON.stringify(instructionLayouts);
     if (changed) {
       instructionLayouts = layouts;
       wrapperPaddingBottom = paddingBottom;
+      soundsRowGap = rowGap;
+      measuredLineHash = newHash;
       m.redraw();
     }
   }
@@ -267,15 +331,30 @@ export function Line() {
   return {
     oncreate({ dom, attrs: { line } }) {
       container = dom.querySelector('.sounds-container');
+      lastDom = dom;
+      lastLine = line;
       ensureSortable();
       applyLayouts(dom, line);
+      // Recompute instruction positions whenever the container is resized (e.g. on
+      // viewport resize). Mithril's onupdate only fires on state changes, so without
+      // this observer a resize can leave instructions at pre-resize coordinates.
+      resizeObserver = new ResizeObserver(() => {
+        if (lastDom && lastLine) applyLayouts(lastDom, lastLine);
+      });
+      resizeObserver.observe(container);
     },
     onupdate({ dom, attrs: { line } }) {
+      lastDom = dom;
+      lastLine = line;
       ensureSortable();
       applyLayouts(dom, line);
     },
     onremove() {
       if (sortable) sortable.destroy();
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
     },
     view({ attrs: { line, index, repeatDepth = 0, singleRepeat = null } }) {
       const time = piece.time;
@@ -330,7 +409,8 @@ export function Line() {
           >
             <div class="flex items-start gap-1">
               <div
-                class="sounds-container flex flex-wrap gap-x-1 gap-y-4 min-h-[3.5rem] pt-3 flex-1"
+                class="sounds-container flex flex-wrap gap-x-1 min-h-[3.5rem] pt-3 flex-1"
+                style={`row-gap: ${soundsRowGap}px`}
                 data-line-id={line.id}
                 onpointerdown={lpStart}
                 onpointermove={lpMove}
@@ -411,15 +491,17 @@ export function Line() {
                 )}
               </div>
             </div>
-            {instructionLayouts.map((layout) => (
-              <span
-                key={layout.id}
-                class="absolute text-[15px] text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
-                style={`left: ${layout.left}px; top: ${layout.top}px`}
-              >
-                {layout.text}
-              </span>
-            ))}
+            {(computeLineHash(line) === measuredLineHash ? instructionLayouts : []).map(
+              (layout) => (
+                <span
+                  key={layout.id}
+                  class="absolute text-[15px] text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
+                  style={`left: ${layout.left}px; top: ${layout.top}px`}
+                >
+                  {layout.text}
+                </span>
+              )
+            )}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
