@@ -395,6 +395,9 @@ export async function exportPdf() {
     ? `© ${now.getFullYear()} ${piece.author}`
     : 'Creative Commons CC0';
 
+  const version = piece.version?.trim();
+  const footerLeft = version ? `v ${version}  ${dateStr}` : dateStr;
+
   const totalPages = currentPage;
   const footerY = PAGE_H - 5;
 
@@ -403,7 +406,7 @@ export async function exportPdf() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(0);
-    doc.text(dateStr, MARGIN, footerY);
+    doc.text(footerLeft, MARGIN, footerY);
     doc.text(footerCenter, PAGE_W / 2, footerY, { align: 'center' });
     if (totalPages > 1) {
       doc.text(`${pg} / ${totalPages}`, PAGE_W - MARGIN, footerY, { align: 'right' });

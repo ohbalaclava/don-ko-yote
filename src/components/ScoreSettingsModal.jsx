@@ -76,6 +76,17 @@ export function ScoreSettingsModal() {
                 />
               </div>
 
+              <div class="py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="font-medium dark:text-white mb-2">Version</div>
+                <input
+                  type="text"
+                  class="w-full bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600"
+                  value={piece.version}
+                  oninput={(e) => piece.setVersion(e.target.value)}
+                  placeholder="e.g. 1.0"
+                />
+              </div>
+
               <div class="py-4">
                 <div class="font-medium dark:text-white mb-3">Background</div>
                 {piece.icon ? (

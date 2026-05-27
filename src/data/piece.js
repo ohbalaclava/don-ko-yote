@@ -123,6 +123,7 @@ export const piece = {
   beatsPerLine: 8,
   bpm: 120,
   author: '',
+  version: '',
   icon: null,
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
@@ -163,6 +164,7 @@ export const piece = {
       beatsPerLine: piece.beatsPerLine,
       bpm: piece.bpm,
       author: piece.author,
+      version: piece.version,
       icon: piece.icon,
       lines: piece.lines,
     };
@@ -171,7 +173,7 @@ export const piece = {
   /**
    * Applies a history snapshot to the piece and resets all transient UI state
    * (editing tile, select mode). Corrects selectedLineId if it no longer exists.
-   * @param {{ title: string, taiko: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, icon: string|null, lines: Array }} state
+   * @param {{ title: string, taiko: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, version: string, icon: string|null, lines: Array }} state
    */
   _restore(state) {
     piece.title = state.title;
@@ -180,6 +182,7 @@ export const piece = {
     piece.beatsPerLine = state.beatsPerLine;
     piece.bpm = state.bpm;
     piece.author = state.author;
+    piece.version = state.version ?? '';
     piece.icon = state.icon;
     piece.lines = state.lines;
     piece.editingTile = null;
@@ -228,6 +231,7 @@ export const piece = {
     piece.beatsPerLine = opts.beatsPerLine ?? 8;
     piece.bpm = opts.bpm ?? 120;
     piece.author = opts.author ?? '';
+    piece.version = '';
     piece.icon = opts.icon ?? null;
     piece.lines = [line];
     piece.selectedLineId = line.id;
@@ -280,6 +284,11 @@ export const piece = {
   },
   setAuthor(v) {
     piece.author = v;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setVersion(v) {
+    piece.version = v;
     history.push(piece._snapshot());
     m.redraw();
   },
