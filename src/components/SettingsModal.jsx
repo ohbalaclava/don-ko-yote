@@ -100,6 +100,17 @@ export function SettingsModal() {
                 <Toggle checked={settings.darkMode} onChange={(v) => settings.set('darkMode', v)} />
               </div>
 
+              <div class="py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="font-medium dark:text-white mb-2">Default author</div>
+                <input
+                  type="text"
+                  class="w-full bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600"
+                  value={settings.defaultAuthor}
+                  oninput={(e) => settings.set('defaultAuthor', e.target.value)}
+                  placeholder="Composer name"
+                />
+              </div>
+
               <div class="py-4">
                 <div class="font-medium dark:text-white mb-3">Default background</div>
                 {settings.defaultBackground ? (

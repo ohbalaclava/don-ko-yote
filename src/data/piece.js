@@ -217,7 +217,7 @@ export const piece = {
 
   /**
    * Resets the piece for a brand-new score.
-   * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number }} opts
+   * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number, author?: string, icon?: string|null }} opts
    */
   reset(opts = {}) {
     const line = makeLine();
@@ -227,8 +227,8 @@ export const piece = {
     piece.jiuchi = opts.jiuchi ?? _defaultJiuchi;
     piece.beatsPerLine = opts.beatsPerLine ?? 8;
     piece.bpm = opts.bpm ?? 120;
-    piece.author = '';
-    piece.icon = null;
+    piece.author = opts.author ?? '';
+    piece.icon = opts.icon ?? null;
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece.editingTile = null;

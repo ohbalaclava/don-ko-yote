@@ -10,6 +10,7 @@ export const settings = {
   font: 'sans',
   darkMode: false,
   defaultBackground: null,
+  defaultAuthor: '',
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -18,6 +19,7 @@ export const settings = {
       if ('font' in saved) settings.font = saved.font;
       if ('darkMode' in saved) settings.darkMode = saved.darkMode;
       if ('defaultBackground' in saved) settings.defaultBackground = saved.defaultBackground;
+      if ('defaultAuthor' in saved) settings.defaultAuthor = saved.defaultAuthor;
     }
     applyToDOM();
     m.redraw();
@@ -30,6 +32,7 @@ export const settings = {
       font: settings.font,
       darkMode: settings.darkMode,
       defaultBackground: settings.defaultBackground,
+      defaultAuthor: settings.defaultAuthor,
     });
     applyToDOM();
     m.redraw();
