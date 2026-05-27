@@ -291,7 +291,7 @@ export async function exportPdf() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(0);
-        doc.text(`${lineOrdinal}.`, TILES_X - 1, rowY + DOT_ZONE + 6, { align: 'right' });
+        doc.text(`${lineOrdinal}.`, MARGIN, rowY + DOT_ZONE + 6);
       }
 
       // Line multiplier at end of last row
