@@ -381,5 +381,34 @@ export async function exportPdf() {
     doc.text(`×${count}`, SECTION_LABEL_X, (labelTop + labelBot) / 2);
   }
 
+  // ── Footer pass ───────────────────────────────────────────────────────────
+  // Drawn after all content so the total page count is known.
+
+  const now = new Date();
+  const dateStr = [
+    String(now.getFullYear()).slice(2),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
+
+  const footerCenter = piece.author
+    ? `© ${now.getFullYear()} ${piece.author}`
+    : 'Creative Commons CC0';
+
+  const totalPages = currentPage;
+  const footerY = PAGE_H - 5;
+
+  for (let pg = 1; pg <= totalPages; pg++) {
+    doc.setPage(pg);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(0);
+    doc.text(dateStr, MARGIN, footerY);
+    doc.text(footerCenter, PAGE_W / 2, footerY, { align: 'center' });
+    if (totalPages > 1) {
+      doc.text(`${pg} / ${totalPages}`, PAGE_W - MARGIN, footerY, { align: 'right' });
+    }
+  }
+
   doc.save(`${piece.title || 'taiko'}.pdf`);
 }
