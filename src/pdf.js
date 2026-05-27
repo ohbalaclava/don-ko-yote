@@ -10,11 +10,12 @@ const MARGIN = 14;
 const USABLE_W = PAGE_W - MARGIN * 2; // 182 mm
 
 const LINE_NUM_W = 10; // left zone for "1." labels
+const REPEAT_ZONE = 10; // right zone reserved for section-repeat bar + label
 const TILES_X = MARGIN + LINE_NUM_W; // 24 mm — left edge of tile rows
-const TILES_W = USABLE_W - LINE_NUM_W; // 172 mm
+const TILES_W = USABLE_W - LINE_NUM_W - REPEAT_ZONE; // 162 mm
 
 const BEATS_PER_ROW = 8;
-const BEAT_W = TILES_W / BEATS_PER_ROW; // 21.5 mm per beat
+const BEAT_W = TILES_W / BEATS_PER_ROW; // 20.25 mm per beat
 
 const DOT_ZONE = 3; // mm above each tile row reserved for beat dots
 const TILE_H = 13; // mm of tile content (hand / name / instruction)
@@ -23,9 +24,9 @@ const ROW_H = DOT_ZONE + TILE_H; // 16 mm per tile row
 const ROW_GAP = 2; // mm between wrapped rows within the same line
 const LINE_GAP = 5; // mm between distinct score items
 
-// Section bar lives in the right margin, just past the usable area.
-const SECTION_BAR_X = MARGIN + USABLE_W + 1; // 197 mm
-const SECTION_LABEL_X = SECTION_BAR_X + 2; // 199 mm
+// Section bar: vertical line at the left of the repeat zone, label to its right.
+const SECTION_BAR_X = TILES_X + TILES_W + 2; // 188 mm
+const SECTION_LABEL_X = SECTION_BAR_X + 2; // 190 mm — left-aligned label starts here
 
 // ── Image helpers ─────────────────────────────────────────────────────────────
 
@@ -219,6 +220,10 @@ export async function exportPdf() {
     let lineStartY = null;
     let lineStartPage = null;
 
+    // Tracks cumulative duration across all rows of this line so that beat-dot
+    // decisions are correct even when a row starts mid-beat.
+    let cumDuration = 0;
+
     rows.forEach((rowSounds, rowIdx) => {
       ensureSpace(ROW_H);
 
@@ -228,19 +233,19 @@ export async function exportPdf() {
       }
 
       const rowY = y;
-      const rowBeats = rowSounds.reduce((sum, s) => sum + s.duration / time, 0);
 
-      // Beat dots — one filled circle per beat boundary in this row.
-      doc.setFillColor(0);
-      for (let b = 0; b <= Math.floor(rowBeats); b++) {
-        doc.circle(TILES_X + b * BEAT_W, rowY + 1.5, 0.8, 'F');
-      }
-
-      // Tiles (no border)
+      // Tiles (no border) — beat dot centred above each tile that starts on
+      // an integer beat boundary (cumDuration divisible by time).
       let xOff = 0;
       for (const sound of rowSounds) {
         const tw = (sound.duration / time) * BEAT_W;
         const cx = TILES_X + xOff + tw / 2;
+
+        // Beat dot
+        if (cumDuration % time === 0) {
+          doc.setFillColor(0);
+          doc.circle(cx, rowY + 1.5, 0.8, 'F');
+        }
 
         // Name
         doc.setFont('helvetica', 'bold');
@@ -274,6 +279,7 @@ export async function exportPdf() {
         }
 
         xOff += tw;
+        cumDuration += sound.duration;
       }
 
       // Line number in left margin (first row only)
