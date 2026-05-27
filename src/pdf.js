@@ -24,6 +24,10 @@ const ROW_H = DOT_ZONE + TILE_H; // 16 mm per tile row
 const ROW_GAP = 2; // mm between wrapped rows within the same line
 const LINE_GAP = 5; // mm between distinct score items
 
+const INSTR_FONT_PT = 7; // font size for below-row instruction labels
+const INSTR_TRACK_H = 4; // mm per instruction track
+const INSTR_TOP_OFFSET = 3; // mm from tile-row bottom to first instruction baseline
+
 // Section bar: vertical line at the left of the repeat zone, label to its right.
 const SECTION_BAR_X = TILES_X + TILES_W + 2; // 188 mm
 const SECTION_LABEL_X = SECTION_BAR_X + 2; // 190 mm — left-aligned label starts here
@@ -224,6 +228,9 @@ export async function exportPdf() {
     // decisions are correct even when a row starts mid-beat.
     let cumDuration = 0;
 
+    // Space added below the last row by its instruction tracks (0 if none).
+    let lastRowInstrSpace = 0;
+
     rows.forEach((rowSounds, rowIdx) => {
       ensureSpace(ROW_H);
 
@@ -233,6 +240,9 @@ export async function exportPdf() {
       }
 
       const rowY = y;
+
+      // Collect instruction items for below-row rendering.
+      const instrItems = [];
 
       // Tiles (no border) — beat dot centred above each tile that starts on
       // an integer beat boundary (cumDuration divisible by time).
@@ -267,15 +277,9 @@ export async function exportPdf() {
         doc.setTextColor(0);
         doc.text(sound.hand ?? '', cx, rowY + DOT_ZONE + 9, { align: 'center' });
 
-        // Instruction
+        // Collect instruction for below-row rendering.
         if (sound.instruction) {
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(5);
-          doc.setTextColor(0);
-          doc.text(sound.instruction, cx, rowY + DOT_ZONE + 12, {
-            align: 'center',
-            maxWidth: tw - 2,
-          });
+          instrItems.push({ x: TILES_X + xOff + 1, text: sound.instruction });
         }
 
         xOff += tw;
@@ -299,9 +303,43 @@ export async function exportPdf() {
       }
 
       y += ROW_H;
-      if (rowIdx < rows.length - 1) y += ROW_GAP;
+
+      // Render instructions below the tile row in greedy non-overlapping tracks,
+      // matching the app's measureInstructions layout (left-aligned at tile left + 1mm,
+      // each track INSTR_TRACK_H mm below the previous).
+      let numTracks = 0;
+      if (instrItems.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(INSTR_FONT_PT);
+        doc.setTextColor(0);
+
+        /** Rightmost x reached on each track (mm). */
+        const trackEnds = [];
+        const placed = instrItems.map(({ x, text }) => {
+          const w = doc.getTextWidth(text);
+          let track = 0;
+          while (track < trackEnds.length && trackEnds[track] > x) track++;
+          if (track === trackEnds.length) trackEnds.push(0);
+          trackEnds[track] = x + w + 1; // 1 mm gap between labels on same track
+          return { x, text, track };
+        });
+
+        numTracks = trackEnds.length;
+
+        for (const { x, text, track } of placed) {
+          doc.text(text, x, rowY + ROW_H + INSTR_TOP_OFFSET + track * INSTR_TRACK_H);
+        }
+      }
+
+      // Total vertical space consumed below this row's tile area by instruction tracks.
+      const instrSpace = numTracks > 0 ? INSTR_TOP_OFFSET + numTracks * INSTR_TRACK_H + 2 : 0;
+      lastRowInstrSpace = instrSpace;
+
+      if (rowIdx < rows.length - 1) y += Math.max(ROW_GAP, instrSpace);
     });
 
+    // Include the last row's instruction space so lineYMap and section bars span it.
+    y += lastRowInstrSpace;
     lineYMap.set(item.id, { page: lineStartPage, startY: lineStartY, endY: y });
     y += LINE_GAP;
   }
