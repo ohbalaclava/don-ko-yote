@@ -163,7 +163,7 @@ export async function exportPdf() {
       doc.setFontSize(11);
       doc.setTextColor(0);
       doc.text(item.text, MARGIN, y + 4);
-      y += 9 + LINE_GAP;
+      y += 6 + LINE_GAP;
       continue;
     }
 
@@ -175,7 +175,7 @@ export async function exportPdf() {
       doc.setFontSize(9);
       doc.setTextColor(0);
       doc.text(item.text, MARGIN, y + 4, { maxWidth: USABLE_W });
-      y += 8 + LINE_GAP;
+      y += 6 + LINE_GAP;
       continue;
     }
 
@@ -244,38 +244,47 @@ export async function exportPdf() {
       // Collect instruction items for below-row rendering.
       const instrItems = [];
 
-      // Tiles (no border) — beat dot centred above each tile that starts on
-      // an integer beat boundary (cumDuration divisible by time).
+      // Tiles — one dot per subdivision, filled on beat boundaries, unfilled otherwise.
+      // Text anchors at the centre of the first subdivision, matching the app layout.
+      const subdivW = BEAT_W / time;
       let xOff = 0;
       for (const sound of rowSounds) {
         const tw = (sound.duration / time) * BEAT_W;
-        const cx = TILES_X + xOff + tw / 2;
+        // Text sits at the centre of the first subdivision slot.
+        const textX = TILES_X + xOff + subdivW / 2;
 
-        // Beat dot
-        if (cumDuration % time === 0) {
-          doc.setFillColor(0);
-          doc.circle(cx, rowY + 1.5, 0.8, 'F');
+        // Subdivision dots
+        for (let i = 0; i < sound.duration; i++) {
+          const dotX = TILES_X + xOff + subdivW * (i + 0.5);
+          if ((cumDuration + i) % time === 0) {
+            doc.setFillColor(0);
+            doc.circle(dotX, rowY + 1.5, 0.8, 'F');
+          } else {
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.15);
+            doc.circle(dotX, rowY + 1.5, 0.55, 'S');
+          }
         }
 
         // Name
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(0);
-        doc.text(sound.name, cx, rowY + DOT_ZONE + 5, { align: 'center' });
+        doc.text(sound.name, textX, rowY + DOT_ZONE + 5, { align: 'center' });
 
         // Emphasis underline
         if (sound.emphasis) {
           const nw = doc.getTextWidth(sound.name);
           doc.setDrawColor(0);
           doc.setLineWidth(0.3);
-          doc.line(cx - nw / 2, rowY + DOT_ZONE + 5.7, cx + nw / 2, rowY + DOT_ZONE + 5.7);
+          doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
         }
 
         // Hand (below name)
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0);
-        doc.text(sound.hand ?? '', cx, rowY + DOT_ZONE + 9, { align: 'center' });
+        doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
 
         // Collect instruction for below-row rendering.
         if (sound.instruction) {
