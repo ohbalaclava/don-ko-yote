@@ -5,84 +5,10 @@ import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
-import { packIntoTracks } from '../util.js';
+import { packIntoTracks, groupSoundsForDisplay } from '../util.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
-}
-
-/**
- * Groups consecutive sub-beat sounds within the same beat into ligature display
- * items (non-proportional mode only). Adjacent sounds qualify if they are in the
- * same beat, alternate hands, and (when time is even) share the same duration.
- * Groups of one are emitted as single-sound items.
- * In non-proportional mode, inserts { type: 'beat-marker', beat } items after any
- * sound whose span crosses an integer beat that would otherwise go unmarked.
- * Positions are in divisions; `time` is the number of divisions per beat.
- * @param {Array} sounds
- * @param {boolean} proportional
- * @param {number} time
- * @returns {Array}
- */
-function groupSoundsForDisplay(sounds, proportional, time) {
-  const items = [];
-  let pos = 0;
-  let i = 0;
-
-  // Emits beat markers for every beat boundary strictly inside the span [start, end).
-  function pushBeatMarkers(start, end) {
-    const firstBeat = Math.floor(start / time) + 1;
-    for (let beat = firstBeat; beat * time < end; beat++) {
-      items.push({ type: 'beat-marker', beat });
-    }
-  }
-
-  while (i < sounds.length) {
-    const s = sounds[i];
-    const startPos = pos;
-    pos += s.duration;
-    i++;
-
-    if (proportional) {
-      items.push({ sound: s, startPos });
-      continue;
-    }
-
-    const group = [s];
-    const dur = s.duration;
-
-    while (i < sounds.length) {
-      const next = sounds[i];
-      if (next.type === 'group') break;
-      if (next.ligature === false) break;
-      if (next.ligature === true) {
-        // User-forced join: skip all auto-checks
-        group.push(next);
-        pos += next.duration;
-        i++;
-        continue;
-      }
-      // Auto rules: same duration (even time only), same beat, alternating hands
-      if (time % 2 === 0 && next.duration !== dur) break;
-      if (Math.floor((pos - dur) / time) !== Math.floor(pos / time)) break;
-      if (next.hand !== group[group.length - 1].hand) {
-        group.push(next);
-        pos += next.duration;
-        i++;
-      } else {
-        break;
-      }
-    }
-
-    const item = group.length === 1 ? { sound: group[0], startPos } : { sounds: group, startPos };
-    items.push(item);
-
-    // Beat markers for boundaries crossed by a single tile; ligature tiles use
-    // internal beat dots so no external marker is needed for groups of 2+
-    if (group.length === 1) pushBeatMarkers(startPos, startPos + group[0].duration);
-  }
-
-  return items;
 }
 
 /**

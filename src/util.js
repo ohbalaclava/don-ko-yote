@@ -84,3 +84,42 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
   }
   return items;
 }
+
+/**
+ * Produces the per-line display items for rendering.
+ *
+ * In proportional mode each sound is emitted as its own `{ sound, startPos }`
+ * item (no ligature grouping, no beat markers — tiles carry their own dots).
+ *
+ * In non-proportional mode sounds are grouped via {@link groupIntoLigatures},
+ * and a `{ type: 'beat-marker', beat }` item is inserted after each single
+ * (non-ligated) tile for every beat boundary strictly inside that tile's span.
+ * Ligature tiles of 2+ sounds render their own internal beat dots, so they get
+ * no external marker.
+ * @param {Array} sounds
+ * @param {boolean} proportional
+ * @param {number} time - Divisions per beat.
+ * @returns {Array}
+ */
+export function groupSoundsForDisplay(sounds, proportional, time) {
+  if (proportional) {
+    let pos = 0;
+    return sounds.map((s) => {
+      const startPos = pos;
+      pos += s.duration;
+      return { sound: s, startPos };
+    });
+  }
+
+  const items = [];
+  for (const item of groupIntoLigatures(sounds, time)) {
+    items.push(item);
+    if ('sound' in item) {
+      const end = item.startPos + item.sound.duration;
+      for (let beat = Math.floor(item.startPos / time) + 1; beat * time < end; beat++) {
+        items.push({ type: 'beat-marker', beat });
+      }
+    }
+  }
+  return items;
+}
