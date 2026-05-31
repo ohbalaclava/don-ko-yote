@@ -9,9 +9,27 @@ export function Palette() {
       return (
         <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-semibold uppercase tracking-wide">
-              Sounds — tap to add · drag to line
-            </p>
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide">
+                Sounds — tap to add · drag to line
+              </p>
+              {(() => {
+                const selectedLine = piece.lines.find((l) => l.id === piece.selectedLineId);
+                const lastSound = selectedLine?.sounds.at(-1);
+                return (
+                  <button
+                    class={`text-sm px-1 ${lastSound ? 'text-red-400 hover:text-red-600' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                    onclick={() =>
+                      lastSound && piece.removeSound(piece.selectedLineId, lastSound.id)
+                    }
+                    disabled={!lastSound}
+                    title="Delete last sound"
+                  >
+                    ⌫
+                  </button>
+                );
+              })()}
+            </div>
             <div class="flex flex-wrap gap-1">
               {piece.symbolSet.symbols.map((sym) => (
                 <SoundPaletteTile key={sym.name} sym={sym} />
