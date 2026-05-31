@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { piece, singleLineRepeatMap } from './data/piece.js';
 import { settings } from './data/settings.js';
-import { effectiveVolume, groupIntoLigatures } from './util.js';
+import { effectiveVolume, groupIntoLigatures, packIntoTracks } from './util.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -365,22 +365,17 @@ export async function exportPdf() {
         doc.setFontSize(INSTR_FONT_PT);
         doc.setTextColor(0);
 
-        /** Rightmost x reached on each track (mm). */
-        const trackEnds = [];
-        const placed = instrItems.map(({ x, text }) => {
-          const w = doc.getTextWidth(text);
-          let track = 0;
-          while (track < trackEnds.length && trackEnds[track] > x) track++;
-          if (track === trackEnds.length) trackEnds.push(0);
-          trackEnds[track] = x + w + 1; // 1 mm gap between labels on same track
-          return { x, text, track };
+        // 1 mm gap between labels sharing a track.
+        const spans = instrItems.map(({ x, text }) => ({
+          start: x,
+          end: x + doc.getTextWidth(text) + 1,
+        }));
+        const { tracks, trackCount } = packIntoTracks(spans);
+        numTracks = trackCount;
+
+        instrItems.forEach(({ x, text }, i) => {
+          doc.text(text, x, rowY + ROW_H + INSTR_TOP_OFFSET + tracks[i] * INSTR_TRACK_H);
         });
-
-        numTracks = trackEnds.length;
-
-        for (const { x, text, track } of placed) {
-          doc.text(text, x, rowY + ROW_H + INSTR_TOP_OFFSET + track * INSTR_TRACK_H);
-        }
       }
 
       // Total vertical space consumed below this row's tile area by instruction tracks.

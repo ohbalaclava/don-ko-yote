@@ -5,6 +5,7 @@ import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
+import { packIntoTracks } from '../util.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -184,16 +185,17 @@ function measureInstructions(dom, line) {
 
   for (const [rowKey, rowItems] of rowMap.entries()) {
     rowItems.sort((a, b) => a.left - b.left);
-    const trackEnds = [];
-    for (const item of rowItems) {
-      let track = 0;
-      while (track < trackEnds.length && trackEnds[track] > item.left) track++;
-      trackEnds[track] = item.left + ctx.measureText(item.text).width;
-      const top = item.rowTop + item.tileHeight + 2 + track * INSTR_LINE_HEIGHT;
+    const spans = rowItems.map((item) => ({
+      start: item.left,
+      end: item.left + ctx.measureText(item.text).width,
+    }));
+    const { tracks, trackCount } = packIntoTracks(spans);
+    rowItems.forEach((item, i) => {
+      const top = item.rowTop + item.tileHeight + 2 + tracks[i] * INSTR_LINE_HEIGHT;
       layouts.push({ id: item.id, left: item.left, top, text: item.text });
       if (top + INSTR_LINE_HEIGHT > maxBottom) maxBottom = top + INSTR_LINE_HEIGHT;
-    }
-    rowTrackCounts.set(rowKey, trackEnds.length);
+    });
+    rowTrackCounts.set(rowKey, trackCount);
   }
 
   const soundsContainer = wrapper.querySelector('.sounds-container');

@@ -10,6 +10,26 @@ export function isIntegerBeat(pos, time) {
 }
 
 /**
+ * Greedily packs labelled spans into the fewest horizontal tracks so that no two
+ * spans on the same track overlap. Spans are placed in the given array order; each
+ * goes on the first track whose previously-placed span ends at or before this span's
+ * start, otherwise on a new track. Units (px, mm) are the caller's concern.
+ * @param {Array<{ start: number, end: number }>} spans
+ * @returns {{ tracks: number[], trackCount: number }} `tracks[i]` is the track index
+ *   assigned to `spans[i]`; `trackCount` is the number of tracks used.
+ */
+export function packIntoTracks(spans) {
+  const trackEnds = [];
+  const tracks = spans.map(({ start, end }) => {
+    let track = 0;
+    while (track < trackEnds.length && trackEnds[track] > start) track++;
+    trackEnds[track] = end;
+    return track;
+  });
+  return { tracks, trackCount: trackEnds.length };
+}
+
+/**
  * Returns the effective volume for a sound (1–8), or null for rests (no hand).
  * Falls back to the casing rule for sounds loaded from old scores without a stored volume.
  * @param {object} sound
