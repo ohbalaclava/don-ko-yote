@@ -176,7 +176,7 @@ export async function exportPdf() {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
       doc.setTextColor(0);
-      doc.text(item.text, MARGIN, y + 4, { maxWidth: USABLE_W });
+      doc.text(item.text, MARGIN, y + 2, { maxWidth: USABLE_W });
       y += 6 + LINE_GAP;
       continue;
     }
