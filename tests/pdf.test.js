@@ -38,6 +38,12 @@ vi.mock('../src/data/piece.js', () => ({
   piece: mockPiece,
   markerDepth: () => 0,
   lineDepth: () => 0,
+  singleLineRepeatMap: (lines) =>
+    new Map(
+      lines
+        .filter((l) => l.type === 'block-repeat' && l.lineIds.length === 1)
+        .map((m) => [m.lineIds[0], m])
+    ),
 }));
 
 const mockSettings = vi.hoisted(() => ({

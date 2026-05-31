@@ -28,11 +28,6 @@ export function effectiveVolume(sound) {
  * Groups of one are emitted as `{ sound, startPos }` single items.
  * @param {Array} sounds
  * @param {number} time - Divisions per beat.
- * @returns {Array<{ sound: object, startPos: number } | { sounds: object[], startPos: number }>}
- */
-/**
- * @param {Array} sounds
- * @param {number} time - Divisions per beat.
  * @param {number} [offset=0] - Absolute position of the first sound in the line,
  *   used for beat-boundary detection and returned in each item's `startPos`.
  * @returns {Array<{ sound: object, startPos: number } | { sounds: object[], startPos: number }>}

@@ -1,17 +1,8 @@
 import m from 'mithril';
 import { db } from '../db.js';
-import { piece } from './piece.js';
+import { piece, isSoundLine } from './piece.js';
 import { history } from './history.js';
 import { patternStore } from './patterns.js';
-
-/**
- * Expands any legacy group tiles in a lines array into their constituent sounds.
- * Group tiles were removed from the data model; scores saved before this change
- * may still contain them and must be migrated on load.
- * @param {Array} lines
- * @returns {Array} Lines with no group-type sounds.
- */
-const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
 
 /**
  * Returns the id of the last sound line in `lines` (skipping headings, notes,
@@ -22,11 +13,18 @@ const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
  */
 function lastSoundLineId(lines) {
   for (let i = lines.length - 1; i >= 0; i--) {
-    if (!NON_SOUND_TYPES.has(lines[i].type)) return lines[i].id;
+    if (isSoundLine(lines[i])) return lines[i].id;
   }
   return lines[lines.length - 1]?.id ?? null;
 }
 
+/**
+ * Expands any legacy group tiles in a lines array into their constituent sounds.
+ * Group tiles were removed from the data model; scores saved before this change
+ * may still contain them and must be migrated on load.
+ * @param {Array} lines
+ * @returns {Array} Lines with no group-type sounds.
+ */
 function expandGroupsInLines(lines) {
   return lines.map((line) => {
     if (!line.sounds) return line;

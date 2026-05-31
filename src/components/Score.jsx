@@ -1,6 +1,6 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece, markerDepth, lineDepth } from '../data/piece.js';
+import { piece, markerDepth, lineDepth, singleLineRepeatMap } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
@@ -136,9 +136,7 @@ export function Score() {
             {(() => {
               const markers = piece.lines.filter((item) => item.type === 'block-repeat');
               // Single-line repeats render inline on the line, not as a separate row.
-              const singleLineMarkerMap = new Map(
-                markers.filter((m) => m.lineIds.length === 1).map((m) => [m.lineIds[0], m])
-              );
+              const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
               let lineOrdinal = 0;
               return piece.lines.map((item) => {
                 if (item.type === 'block-repeat') {

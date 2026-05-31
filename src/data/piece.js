@@ -4,6 +4,19 @@ import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
 
 const uid = () => crypto.randomUUID();
 
+/** Item `type` values that are not sound lines (structural rows / markers). */
+const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
+
+/**
+ * True when an item is a real sound line, i.e. not a heading, note, divider,
+ * or block-repeat marker.
+ * @param {{ type?: string }} item
+ * @returns {boolean}
+ */
+export function isSoundLine(item) {
+  return !NON_SOUND_TYPES.has(item.type);
+}
+
 /**
  * Returns the nesting depth of a block-repeat marker: the count of other markers
  * in `markers` whose `lineIds` is a strict superset of this marker's `lineIds`.
@@ -24,6 +37,20 @@ export function markerDepth(marker, markers) {
  */
 export function lineDepth(id, markers) {
   return markers.filter((m) => m.lineIds.includes(id)).length;
+}
+
+/**
+ * Builds a map from line ID to its single-line block-repeat marker. Single-line
+ * repeats render inline on the line itself rather than as a separate bar/row.
+ * @param {Array<{ type?: string, lineIds?: string[] }>} lines - The piece's lines.
+ * @returns {Map<string, object>}
+ */
+export function singleLineRepeatMap(lines) {
+  return new Map(
+    lines
+      .filter((l) => l.type === 'block-repeat' && l.lineIds.length === 1)
+      .map((m) => [m.lineIds[0], m])
+  );
 }
 
 /**
@@ -98,14 +125,7 @@ function targetLineIdx(fromIdx, duration) {
   let i = fromIdx;
   while (i < piece.lines.length) {
     const item = piece.lines[i];
-    if (
-      item.type !== 'heading' &&
-      item.type !== 'note' &&
-      item.type !== 'divider' &&
-      item.type !== 'block-repeat' &&
-      lineDur(item) + duration <= max
-    )
-      return i;
+    if (isSoundLine(item) && lineDur(item) + duration <= max) return i;
     i++;
   }
   piece.lines.push(makeLine());
@@ -233,14 +253,7 @@ export const piece = {
     piece.lines = state.lines;
     piece._resetTransientState();
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
-      piece.selectedLineId =
-        piece.lines.find(
-          (l) =>
-            l.type !== 'heading' &&
-            l.type !== 'note' &&
-            l.type !== 'divider' &&
-            l.type !== 'block-repeat'
-        )?.id ?? null;
+      piece.selectedLineId = piece.lines.find(isSoundLine)?.id ?? null;
     }
   },
 
@@ -582,27 +595,14 @@ export const piece = {
       item.lineIds = item.lineIds.filter((id) => id !== lineId);
       return item.lineIds.length > 0;
     });
-    const realLines = piece.lines.filter(
-      (l) =>
-        l.type !== 'heading' &&
-        l.type !== 'note' &&
-        l.type !== 'divider' &&
-        l.type !== 'block-repeat'
-    );
+    const realLines = piece.lines.filter(isSoundLine);
     if (realLines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
-      const candidates = piece.lines.filter(
-        (l) =>
-          l.type !== 'heading' &&
-          l.type !== 'note' &&
-          l.type !== 'divider' &&
-          l.type !== 'block-repeat'
-      );
-      const nearIdx = Math.min(idx, candidates.length - 1);
-      piece.selectedLineId = candidates[nearIdx >= 0 ? nearIdx : 0].id;
+      const nearIdx = Math.min(idx, realLines.length - 1);
+      piece.selectedLineId = realLines[nearIdx >= 0 ? nearIdx : 0].id;
     }
     history.push(piece._snapshot());
     m.redraw();
@@ -657,13 +657,7 @@ export const piece = {
       return item.lineIds.length > 0;
     });
     piece.lineSelection = [];
-    const realLines = piece.lines.filter(
-      (item) =>
-        item.type !== 'heading' &&
-        item.type !== 'note' &&
-        item.type !== 'divider' &&
-        item.type !== 'block-repeat'
-    );
+    const realLines = piece.lines.filter(isSoundLine);
     if (realLines.length === 0) {
       const line = makeLine();
       piece.lines.push(line);

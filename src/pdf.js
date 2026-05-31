@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { piece } from './data/piece.js';
+import { piece, singleLineRepeatMap } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { effectiveVolume, groupIntoLigatures } from './util.js';
 
@@ -135,12 +135,9 @@ export async function exportPdf() {
   // ── Prep ─────────────────────────────────────────────────────────────────
 
   const time = piece.time;
-  const markers = piece.lines.filter((l) => l.type === 'block-repeat');
 
   // Single-line repeat markers keyed by the line they wrap.
-  const singleLineMarkerMap = new Map(
-    markers.filter((m) => m.lineIds.length === 1).map((m) => [m.lineIds[0], m])
-  );
+  const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
 
   /**
    * Rendered y extents per line ID — consumed when drawing section bars.
@@ -283,9 +280,8 @@ export async function exportPdf() {
 
       if (nonProp) {
         const halfBeat = BEAT_W / 2;
-        const quarterBeat = BEAT_W / 4;
-        const eigthBeat = BEAT_W / 8;
-        const ligW = quarterBeat;
+        const ligW = BEAT_W / 4; // centre-to-centre spacing of ligated sub-sounds
+        const eighthBeat = BEAT_W / 8; // trailing gap after each ligature group
         const ligItems = groupIntoLigatures(rowSounds, time, cumDuration);
         for (const item of ligItems) {
           const isSingle = 'sound' in item;
@@ -313,7 +309,7 @@ export async function exportPdf() {
             subPos += sound.duration;
             xOff += ligW;
           });
-          xOff += eigthBeat;
+          xOff += eighthBeat;
         }
       } else {
         for (const sound of rowSounds) {
