@@ -48,17 +48,10 @@ let autosaveTimer = null;
 
 function snapshot() {
   return {
+    ...piece._snapshot(), // all persisted scalar fields + lines
     id: piece.id || undefined,
     title: piece.title || 'Untitled',
     savedAt: Date.now(),
-    taiko: piece.taiko,
-    jiuchi: piece.jiuchi,
-    beatsPerLine: piece.beatsPerLine,
-    bpm: piece.bpm,
-    author: piece.author,
-    icon: piece.icon,
-    showVolume: piece.showVolume,
-    lines: piece.lines,
     patterns: patternStore.items,
   };
 }
@@ -110,19 +103,9 @@ export const scoreStore = {
     const score = scoreStore.autosaveData;
     if (!score) return;
     piece.id = score.id ?? null;
-    piece.title = score.title ?? 'Untitled';
-    piece.taiko = score.taiko ?? piece.taiko;
-    piece.jiuchi = score.jiuchi ?? piece.jiuchi;
-    piece.beatsPerLine = score.beatsPerLine ?? piece.beatsPerLine;
-    piece.bpm = score.bpm ?? 120;
-    piece.author = score.author ?? '';
-    piece.icon = score.icon ?? null;
-    piece.showVolume = score.showVolume ?? false;
+    piece.loadFromData(score);
     piece.lines = expandGroupsInLines(score.lines ?? []);
     piece.selectedLineId = lastSoundLineId(piece.lines);
-    piece.editingTile = null;
-    piece.selectMode = false;
-    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     patternStore.setItems(score.patterns ?? []);
     history.reset(piece._snapshot());
     m.redraw();
@@ -145,19 +128,9 @@ export const scoreStore = {
     const score = await db.scores.get(id);
     if (!score) return;
     piece.id = score.id;
-    piece.title = score.title;
-    piece.taiko = score.taiko ?? piece.taiko;
-    piece.jiuchi = score.jiuchi;
-    piece.beatsPerLine = score.beatsPerLine;
-    piece.bpm = score.bpm ?? 120;
-    piece.author = score.author ?? '';
-    piece.icon = score.icon ?? null;
-    piece.showVolume = score.showVolume ?? false;
+    piece.loadFromData(score);
     piece.lines = expandGroupsInLines(score.lines);
     piece.selectedLineId = lastSoundLineId(piece.lines);
-    piece.editingTile = null;
-    piece.selectMode = false;
-    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     patternStore.setItems(score.patterns ?? []);
     history.reset(piece._snapshot());
     scoreStore.items = await db.scores.all();
@@ -197,21 +170,11 @@ export const scoreStore = {
     scoreStore.clearAutosave();
     const data = JSON.parse(text);
     piece.id = null;
-    piece.title = data.title ?? 'Untitled';
-    piece.taiko = data.taiko ?? piece.taiko;
-    piece.jiuchi = data.jiuchi ?? piece.jiuchi;
-    piece.beatsPerLine = data.beatsPerLine ?? piece.beatsPerLine;
-    piece.bpm = data.bpm ?? 120;
-    piece.author = data.author ?? '';
-    piece.icon = data.icon ?? null;
-    piece.showVolume = data.showVolume ?? false;
+    piece.loadFromData(data);
     if (Array.isArray(data.lines) && data.lines.length) {
       piece.lines = expandGroupsInLines(data.lines);
       piece.selectedLineId = lastSoundLineId(piece.lines);
     }
-    piece.editingTile = null;
-    piece.selectMode = false;
-    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     patternStore.setItems(data.patterns ?? []);
     history.reset(piece._snapshot());
     m.redraw();

@@ -117,6 +117,46 @@ const _defaultSet = SYMBOL_SETS[0];
 const _defaultTaiko = _defaultSet.taiko[0].name;
 const _defaultJiuchi = _defaultSet.jiuchis[0];
 
+/**
+ * Single source of truth for the scalar piece fields that are persisted (to
+ * undo/redo snapshots, saved scores, autosave, and exported JSON). Maps each
+ * field name to a function producing its fallback when a loaded source omits it.
+ * `lines` is persisted too but handled separately because it needs group
+ * expansion and selected-line fix-ups, which differ per loader.
+ *
+ * Add a new persisted scalar here and it flows through _snapshot, _restore,
+ * loadFromData, and scoreStore's save/load/import automatically.
+ */
+const PERSISTED_FIELDS = {
+  title: () => 'Untitled',
+  taiko: () => piece.taiko,
+  jiuchi: () => piece.jiuchi,
+  beatsPerLine: () => piece.beatsPerLine,
+  bpm: () => 120,
+  author: () => '',
+  version: () => '',
+  icon: () => null,
+  showVolume: () => false,
+};
+
+/** Reads the current persisted scalar fields into a plain object. */
+function readPersistedFields() {
+  const out = {};
+  for (const key of Object.keys(PERSISTED_FIELDS)) out[key] = piece[key];
+  return out;
+}
+
+/**
+ * Assigns each persisted scalar field from `source`, falling back to the field's
+ * default when the source omits it. Does not touch `lines`.
+ * @param {object} source
+ */
+function applyPersistedFields(source) {
+  for (const [key, makeDefault] of Object.entries(PERSISTED_FIELDS)) {
+    piece[key] = source[key] ?? makeDefault();
+  }
+}
+
 export const piece = {
   id: null,
   title: 'Untitled',
@@ -159,42 +199,39 @@ export const piece = {
 
   // ── Snapshot helpers ──────────────────────────────────────────────────────
 
-  _snapshot() {
-    return {
-      title: piece.title,
-      taiko: piece.taiko,
-      jiuchi: piece.jiuchi,
-      beatsPerLine: piece.beatsPerLine,
-      bpm: piece.bpm,
-      author: piece.author,
-      version: piece.version,
-      icon: piece.icon,
-      showVolume: piece.showVolume,
-      lines: piece.lines,
-    };
-  },
-
-  /**
-   * Applies a history snapshot to the piece and resets all transient UI state
-   * (editing tile, select mode). Corrects selectedLineId if it no longer exists.
-   * @param {{ title: string, taiko: string, jiuchi: string, beatsPerLine: number, bpm: number, author: string, version: string, icon: string|null, lines: Array }} state
-   */
-  _restore(state) {
-    piece.title = state.title;
-    piece.taiko = state.taiko;
-    piece.jiuchi = state.jiuchi;
-    piece.beatsPerLine = state.beatsPerLine;
-    piece.bpm = state.bpm;
-    piece.author = state.author;
-    piece.version = state.version ?? '';
-    piece.icon = state.icon;
-    piece.showVolume = state.showVolume ?? false;
-    piece.lines = state.lines;
+  /** Clears all transient UI state (editing tile, tile/line select modes). */
+  _resetTransientState() {
     piece.editingTile = null;
     piece.selectMode = false;
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     piece.lineSelectMode = false;
     piece.lineSelection = [];
+  },
+
+  _snapshot() {
+    return { ...readPersistedFields(), lines: piece.lines };
+  },
+
+  /**
+   * Loads persisted scalar fields from an external source (saved score, autosave,
+   * imported JSON) and clears transient UI state. The caller is responsible for
+   * setting `lines` (with any group-expansion) and `selectedLineId`.
+   * @param {object} source
+   */
+  loadFromData(source) {
+    applyPersistedFields(source);
+    piece._resetTransientState();
+  },
+
+  /**
+   * Applies a history snapshot to the piece and resets all transient UI state
+   * (editing tile, select mode). Corrects selectedLineId if it no longer exists.
+   * @param {object} state - A snapshot produced by _snapshot().
+   */
+  _restore(state) {
+    applyPersistedFields(state);
+    piece.lines = state.lines;
+    piece._resetTransientState();
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId =
         piece.lines.find(
@@ -241,11 +278,7 @@ export const piece = {
     piece.showVolume = opts.showVolume ?? false;
     piece.lines = [line];
     piece.selectedLineId = line.id;
-    piece.editingTile = null;
-    piece.selectMode = false;
-    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
-    piece.lineSelectMode = false;
-    piece.lineSelection = [];
+    piece._resetTransientState();
     history.reset(piece._snapshot());
     m.redraw();
   },
@@ -254,11 +287,7 @@ export const piece = {
     const line = makeLine();
     piece.lines = [line];
     piece.selectedLineId = line.id;
-    piece.editingTile = null;
-    piece.selectMode = false;
-    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
-    piece.lineSelectMode = false;
-    piece.lineSelection = [];
+    piece._resetTransientState();
     history.push(piece._snapshot());
     m.redraw();
   },

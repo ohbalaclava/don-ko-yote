@@ -7,6 +7,7 @@ const fakeDb = vi.hoisted(() => ({
   kv: {
     get: vi.fn(async () => undefined),
     set: vi.fn(async () => undefined),
+    delete: vi.fn(async () => undefined),
   },
   scores: {
     all: vi.fn(async () => []),
