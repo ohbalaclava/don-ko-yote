@@ -6,6 +6,32 @@ import { isIntegerBeat, effectiveVolume } from '../util.js';
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
 
+const STEP_BTN =
+  'w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center';
+
+/**
+ * A −/value/+ stepper row used by the inline editor for the implicit-rest count,
+ * duration, and volume controls. `onDec`/`onInc` apply their own bounds; taps that
+ * would exceed a bound simply no-op (matching the inline guards they replaced).
+ */
+function Stepper() {
+  return {
+    view({ attrs: { value, valueClass, onDec, onInc } }) {
+      return (
+        <div class="flex items-center justify-center gap-2">
+          <button class={STEP_BTN} onclick={onDec}>
+            −
+          </button>
+          <span class={valueClass}>{value}</span>
+          <button class={STEP_BTN} onclick={onInc}>
+            +
+          </button>
+        </div>
+      );
+    },
+  };
+}
+
 export function SoundTile() {
   return {
     view({ attrs: { sound, lineId, startPos, isSelected } }) {
@@ -121,32 +147,19 @@ export function SoundEditor() {
           onclick={(e) => e.stopPropagation()}
         >
           {sound.implicit && (
-            <div class="flex items-center justify-center gap-2">
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
-                  if (cur > 0)
-                    piece.updateSound(lineId, sound.id, {
-                      name: cur === 1 ? '—' : String(cur - 1),
-                    });
-                }}
-              >
-                −
-              </button>
-              <span class="font-bold w-4 text-center text-gray-900 dark:text-gray-200">
-                {sound.name}
-              </span>
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
-                  if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
-                }}
-              >
-                +
-              </button>
-            </div>
+            <Stepper
+              value={sound.name}
+              valueClass="font-bold w-4 text-center text-gray-900 dark:text-gray-200"
+              onDec={() => {
+                const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
+                if (cur > 0)
+                  piece.updateSound(lineId, sound.id, { name: cur === 1 ? '—' : String(cur - 1) });
+              }}
+              onInc={() => {
+                const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
+                if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
+              }}
+            />
           )}
           {showHand && (
             <div>
@@ -179,54 +192,32 @@ export function SoundEditor() {
             </div>
           )}
           {showDuration && (
-            <div class="flex items-center justify-center gap-2">
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  if (sound.duration > 1)
-                    piece.updateSound(lineId, sound.id, { duration: sound.duration - 1 });
-                }}
-              >
-                −
-              </button>
-              <span class="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400">
-                {sound.duration}/{time}
-              </span>
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  if (sound.duration < maxDuration)
-                    piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
-                }}
-              >
-                +
-              </button>
-            </div>
+            <Stepper
+              value={`${sound.duration}/${time}`}
+              valueClass="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400"
+              onDec={() => {
+                if (sound.duration > 1)
+                  piece.updateSound(lineId, sound.id, { duration: sound.duration - 1 });
+              }}
+              onInc={() => {
+                if (sound.duration < maxDuration)
+                  piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
+              }}
+            />
           )}
           {piece.showVolume && effectiveVolume(sound) != null && (
-            <div class="flex items-center justify-center gap-2">
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  const v = effectiveVolume(sound);
-                  if (v > 1) piece.updateSound(lineId, sound.id, { volume: v - 1 });
-                }}
-              >
-                −
-              </button>
-              <span class="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400">
-                vol {effectiveVolume(sound)}
-              </span>
-              <button
-                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
-                onclick={() => {
-                  const v = effectiveVolume(sound);
-                  if (v < 8) piece.updateSound(lineId, sound.id, { volume: v + 1 });
-                }}
-              >
-                +
-              </button>
-            </div>
+            <Stepper
+              value={`vol ${effectiveVolume(sound)}`}
+              valueClass="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400"
+              onDec={() => {
+                const v = effectiveVolume(sound);
+                if (v > 1) piece.updateSound(lineId, sound.id, { volume: v - 1 });
+              }}
+              onInc={() => {
+                const v = effectiveVolume(sound);
+                if (v < 8) piece.updateSound(lineId, sound.id, { volume: v + 1 });
+              }}
+            />
           )}
           <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1">
             Instruction
