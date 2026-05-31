@@ -59,6 +59,35 @@ function detectFormat(dataUrl) {
   return 'JPEG';
 }
 
+// ── Layout helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Splits a flat sound array into rows of at most BEATS_PER_ROW beats. A sound is
+ * never split across rows; a row may exceed the limit only if its single sound
+ * already does. Always returns at least one row when there are sounds.
+ * @param {Array<{ duration: number }>} flatSounds
+ * @param {number} time - Divisions per beat.
+ * @returns {Array<Array<object>>}
+ */
+export function splitIntoRows(flatSounds, time) {
+  const rows = [];
+  let curRow = [];
+  let curBeats = 0;
+  for (const s of flatSounds) {
+    const sb = s.duration / time;
+    if (curRow.length > 0 && curBeats + sb > BEATS_PER_ROW) {
+      rows.push(curRow);
+      curRow = [s];
+      curBeats = sb;
+    } else {
+      curRow.push(s);
+      curBeats += sb;
+    }
+  }
+  if (curRow.length > 0) rows.push(curRow);
+  return rows;
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 /**
@@ -201,24 +230,7 @@ export async function exportPdf() {
     lineOrdinal++;
 
     const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
-    const flatSounds = item.sounds;
-
-    // Split flat sounds into rows of ≤ BEATS_PER_ROW beats.
-    const rows = [];
-    let curRow = [];
-    let curBeats = 0;
-    for (const s of flatSounds) {
-      const sb = s.duration / time;
-      if (curRow.length > 0 && curBeats + sb > BEATS_PER_ROW) {
-        rows.push(curRow);
-        curRow = [s];
-        curBeats = sb;
-      } else {
-        curRow.push(s);
-        curBeats += sb;
-      }
-    }
-    if (curRow.length > 0) rows.push(curRow);
+    const rows = splitIntoRows(item.sounds, time);
 
     let lineStartY = null;
     let lineStartPage = null;
@@ -391,8 +403,20 @@ export async function exportPdf() {
     y += LINE_GAP;
   }
 
-  // ── Deferred section bars ─────────────────────────────────────────────────
+  drawSectionBars(doc, pendingSectionBars, lineYMap);
+  drawFooter(doc, currentPage);
 
+  doc.save(`${piece.title || 'taiko'}.pdf`);
+}
+
+/**
+ * Draws the deferred multi-line section-repeat bars: a vertical bar on each page
+ * a section spans, plus a "×N" label centred on the first page's segment.
+ * @param {import('jspdf').jsPDF} doc
+ * @param {Array<{ lineIds: string[], count: number }>} pendingSectionBars
+ * @param {Map<string, {page: number, startY: number, endY: number}>} lineYMap
+ */
+function drawSectionBars(doc, pendingSectionBars, lineYMap) {
   for (const { lineIds, count } of pendingSectionBars) {
     const entries = lineIds.map((id) => lineYMap.get(id)).filter(Boolean);
     if (entries.length === 0) continue;
@@ -427,10 +451,15 @@ export async function exportPdf() {
     doc.setTextColor(0);
     doc.text(`×${count}`, SECTION_LABEL_X, (labelTop + labelBot) / 2);
   }
+}
 
-  // ── Footer pass ───────────────────────────────────────────────────────────
-  // Drawn after all content so the total page count is known.
-
+/**
+ * Draws the footer on every page (version + date left, copyright centre, page
+ * number right when multi-page). Run last so the total page count is known.
+ * @param {import('jspdf').jsPDF} doc
+ * @param {number} totalPages
+ */
+function drawFooter(doc, totalPages) {
   const now = new Date();
   const dateStr = [
     String(now.getFullYear()).slice(2),
@@ -445,7 +474,6 @@ export async function exportPdf() {
   const version = piece.version?.trim();
   const footerLeft = version ? `v ${version}  ${dateStr}` : dateStr;
 
-  const totalPages = currentPage;
   const footerY = PAGE_H - 5;
 
   for (let pg = 1; pg <= totalPages; pg++) {
@@ -459,6 +487,4 @@ export async function exportPdf() {
       doc.text(`${pg} / ${totalPages}`, PAGE_W - MARGIN, footerY, { align: 'right' });
     }
   }
-
-  doc.save(`${piece.title || 'taiko'}.pdf`);
 }

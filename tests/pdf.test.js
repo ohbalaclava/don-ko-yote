@@ -54,7 +54,7 @@ vi.mock('../src/data/settings.js', () => ({
   settings: mockSettings,
 }));
 
-import { exportPdf } from '../src/pdf.js';
+import { exportPdf, splitIntoRows } from '../src/pdf.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -185,5 +185,37 @@ describe('exportPdf', () => {
       await exportPdf();
       expect(mockDoc.addPage).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('splitIntoRows', () => {
+  // time=4 -> 1 beat = 4 divisions; BEATS_PER_ROW=8 -> 32 divisions per row.
+  const beat = (n = 1) => ({ duration: 4 * n });
+
+  it('returns [] for no sounds', () => {
+    expect(splitIntoRows([], 4)).toEqual([]);
+  });
+
+  it('keeps a line of exactly 8 beats in one row', () => {
+    const rows = splitIntoRows(
+      Array.from({ length: 8 }, () => beat()),
+      4
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveLength(8);
+  });
+
+  it('wraps to a new row once the 8-beat limit is exceeded', () => {
+    const rows = splitIntoRows(
+      Array.from({ length: 9 }, () => beat()),
+      4
+    );
+    expect(rows.map((r) => r.length)).toEqual([8, 1]);
+  });
+
+  it('never splits a single oversized sound across rows', () => {
+    const rows = splitIntoRows([beat(10)], 4); // 10 beats > 8
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveLength(1);
   });
 });
