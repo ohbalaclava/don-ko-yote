@@ -44,7 +44,7 @@ function expandGroupsInLines(lines) {
   });
 }
 
-let autoSaveTimer = null;
+let autosaveTimer = null;
 
 function snapshot() {
   return {
@@ -65,19 +65,27 @@ function snapshot() {
 
 export const scoreStore = {
   items: [],
+  autosaveData: null,
 
   /**
-   * Patches piece.setTitle to auto-save 1 second after the user stops typing,
-   * but only when the piece has already been saved (has an id).
+   * Initialises autosave on startup: reads any existing autosave from the
+   * kv store and patches history.push to debounce writes after every mutation.
    */
   init() {
-    const orig = piece.setTitle.bind(piece);
-    piece.setTitle = (v) => {
-      orig(v);
-      if (piece.id) {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => scoreStore.save(), 1000);
+    db.kv.get('autosave').then((data) => {
+      if (data) {
+        scoreStore.autosaveData = data;
+        m.redraw();
       }
+    });
+
+    const origPush = history.push.bind(history);
+    history.push = (state) => {
+      origPush(state);
+      clearTimeout(autosaveTimer);
+      // snapshot() captures piece.id and patternStore.items; the `state`
+      // argument is piece._snapshot() which omits both.
+      autosaveTimer = setTimeout(() => db.kv.set('autosave', snapshot()), 2000);
     };
   },
 
@@ -86,7 +94,42 @@ export const scoreStore = {
     m.redraw();
   },
 
+  /** Cancels any pending debounce, clears the in-memory cache, and deletes the kv row. */
+  clearAutosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+    scoreStore.autosaveData = null;
+    db.kv.delete('autosave');
+  },
+
+  /**
+   * Restores the piece from the in-memory autosave snapshot, then clears the slot.
+   * Preserves piece.id so a subsequent explicit save updates the original named record.
+   */
+  loadAutosave() {
+    const score = scoreStore.autosaveData;
+    if (!score) return;
+    piece.id = score.id ?? null;
+    piece.title = score.title ?? 'Untitled';
+    piece.taiko = score.taiko ?? piece.taiko;
+    piece.jiuchi = score.jiuchi ?? piece.jiuchi;
+    piece.beatsPerLine = score.beatsPerLine ?? piece.beatsPerLine;
+    piece.bpm = score.bpm ?? 120;
+    piece.author = score.author ?? '';
+    piece.icon = score.icon ?? null;
+    piece.showVolume = score.showVolume ?? false;
+    piece.lines = expandGroupsInLines(score.lines ?? []);
+    piece.selectedLineId = lastSoundLineId(piece.lines);
+    piece.editingTile = null;
+    piece.selectMode = false;
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    patternStore.setItems(score.patterns ?? []);
+    history.reset(piece._snapshot());
+    m.redraw();
+  },
+
   async save() {
+    scoreStore.clearAutosave();
     const record = await db.scores.save(snapshot());
     piece.id = record.id;
     scoreStore.items = await db.scores.all();
@@ -98,6 +141,7 @@ export const scoreStore = {
    * @param {string} id
    */
   async loadScore(id) {
+    scoreStore.clearAutosave();
     const score = await db.scores.get(id);
     if (!score) return;
     piece.id = score.id;
@@ -150,6 +194,7 @@ export const scoreStore = {
    * @param {string} text
    */
   importJson(text) {
+    scoreStore.clearAutosave();
     const data = JSON.parse(text);
     piece.id = null;
     piece.title = data.title ?? 'Untitled';
