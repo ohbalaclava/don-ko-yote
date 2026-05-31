@@ -1,7 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
-import { isIntegerBeat } from '../util.js';
+import { isIntegerBeat, effectiveVolume } from '../util.js';
 
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
@@ -66,7 +66,14 @@ export function SoundTile() {
             >
               {sound.name}
             </span>
-            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+            {piece.showVolume && effectiveVolume(sound) != null ? (
+              <div class="w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1">
+                <span>{sound.hand}</span>
+                <span>{effectiveVolume(sound)}</span>
+              </div>
+            ) : (
+              <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+            )}
           </div>
           {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
         </div>
@@ -190,6 +197,31 @@ export function SoundEditor() {
                 onclick={() => {
                   if (sound.duration < maxDuration)
                     piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
+                }}
+              >
+                +
+              </button>
+            </div>
+          )}
+          {piece.showVolume && effectiveVolume(sound) != null && (
+            <div class="flex items-center justify-center gap-2">
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  const v = effectiveVolume(sound);
+                  if (v > 1) piece.updateSound(lineId, sound.id, { volume: v - 1 });
+                }}
+              >
+                −
+              </button>
+              <span class="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400">
+                vol {effectiveVolume(sound)}
+              </span>
+              <button
+                class="w-6 h-6 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 flex items-center justify-center"
+                onclick={() => {
+                  const v = effectiveVolume(sound);
+                  if (v < 8) piece.updateSound(lineId, sound.id, { volume: v + 1 });
                 }}
               >
                 +

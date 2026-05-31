@@ -11,6 +11,7 @@ export const settings = {
   darkMode: false,
   defaultBackground: null,
   defaultAuthor: '',
+  defaultShowVolume: false,
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -20,6 +21,7 @@ export const settings = {
       if ('darkMode' in saved) settings.darkMode = saved.darkMode;
       if ('defaultBackground' in saved) settings.defaultBackground = saved.defaultBackground;
       if ('defaultAuthor' in saved) settings.defaultAuthor = saved.defaultAuthor;
+      if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
     }
     applyToDOM();
     m.redraw();
@@ -33,6 +35,7 @@ export const settings = {
       darkMode: settings.darkMode,
       defaultBackground: settings.defaultBackground,
       defaultAuthor: settings.defaultAuthor,
+      defaultShowVolume: settings.defaultShowVolume,
     });
     applyToDOM();
     m.redraw();

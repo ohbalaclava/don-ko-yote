@@ -44,6 +44,7 @@ function makeSound(symbol) {
       alternatives: symbol.alternatives,
       ...((symbol.editable || alt.editable) && { editable: true }),
       ...(symbol.implicit && { implicit: true }),
+      ...(symbol.volume != null && { volume: symbol.volume }),
     };
   }
   return {
@@ -54,6 +55,7 @@ function makeSound(symbol) {
     instruction: '',
     ...(symbol.editable && { editable: true }),
     ...(symbol.implicit && { implicit: true }),
+    ...(symbol.volume != null && { volume: symbol.volume }),
   };
 }
 
@@ -125,6 +127,7 @@ export const piece = {
   author: '',
   version: '',
   icon: null,
+  showVolume: false,
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
 
@@ -166,6 +169,7 @@ export const piece = {
       author: piece.author,
       version: piece.version,
       icon: piece.icon,
+      showVolume: piece.showVolume,
       lines: piece.lines,
     };
   },
@@ -184,6 +188,7 @@ export const piece = {
     piece.author = state.author;
     piece.version = state.version ?? '';
     piece.icon = state.icon;
+    piece.showVolume = state.showVolume ?? false;
     piece.lines = state.lines;
     piece.editingTile = null;
     piece.selectMode = false;
@@ -233,6 +238,7 @@ export const piece = {
     piece.author = opts.author ?? '';
     piece.version = '';
     piece.icon = opts.icon ?? null;
+    piece.showVolume = opts.showVolume ?? false;
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece.editingTile = null;
@@ -294,6 +300,11 @@ export const piece = {
   },
   setIcon(dataUrl) {
     piece.icon = dataUrl;
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+  setShowVolume(v) {
+    piece.showVolume = v;
     history.push(piece._snapshot());
     m.redraw();
   },

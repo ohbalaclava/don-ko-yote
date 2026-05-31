@@ -1,7 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
-import { isIntegerBeat } from '../util.js';
+import { isIntegerBeat, effectiveVolume } from '../util.js';
 import { SoundEditor } from './SoundTile.jsx';
 
 export function LigatureTile() {
@@ -54,7 +54,16 @@ export function LigatureTile() {
                 >
                   {sound.name}
                 </span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
+                {piece.showVolume && effectiveVolume(sound) != null ? (
+                  <div class="w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1">
+                    <span>{sound.hand}</span>
+                    <span>{effectiveVolume(sound)}</span>
+                  </div>
+                ) : (
+                  <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                    {sound.hand}
+                  </span>
+                )}
                 {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
               </div>
             );

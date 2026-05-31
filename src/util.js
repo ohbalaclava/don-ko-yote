@@ -10,6 +10,17 @@ export function isIntegerBeat(pos, time) {
 }
 
 /**
+ * Returns the effective volume for a sound (1–8), or null for rests (no hand).
+ * Falls back to the casing rule for sounds loaded from old scores without a stored volume.
+ * @param {object} sound
+ * @returns {number|null}
+ */
+export function effectiveVolume(sound) {
+  if (sound.hand == null) return null;
+  return sound.volume ?? (sound.name === sound.name.toUpperCase() ? 4 : 2);
+}
+
+/**
  * Groups a flat sound array into ligature display items using the same auto-pairing
  * rules as the line-level display: adjacent sounds qualify when they share the same
  * beat, alternate hands, and (even time only) share the same duration. A sound with

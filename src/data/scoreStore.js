@@ -57,6 +57,7 @@ function snapshot() {
     bpm: piece.bpm,
     author: piece.author,
     icon: piece.icon,
+    showVolume: piece.showVolume,
     lines: piece.lines,
     patterns: patternStore.items,
   };
@@ -107,6 +108,7 @@ export const scoreStore = {
     piece.bpm = score.bpm ?? 120;
     piece.author = score.author ?? '';
     piece.icon = score.icon ?? null;
+    piece.showVolume = score.showVolume ?? false;
     piece.lines = expandGroupsInLines(score.lines);
     piece.selectedLineId = lastSoundLineId(piece.lines);
     piece.editingTile = null;
@@ -157,6 +159,7 @@ export const scoreStore = {
     piece.bpm = data.bpm ?? 120;
     piece.author = data.author ?? '';
     piece.icon = data.icon ?? null;
+    piece.showVolume = data.showVolume ?? false;
     if (Array.isArray(data.lines) && data.lines.length) {
       piece.lines = expandGroupsInLines(data.lines);
       piece.selectedLineId = lastSoundLineId(piece.lines);

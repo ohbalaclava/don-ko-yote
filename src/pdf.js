@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
+import { effectiveVolume } from './util.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -280,11 +281,17 @@ export async function exportPdf() {
           doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
         }
 
-        // Hand (below name)
+        // Hand (below name), with optional volume
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0);
-        doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
+        const vol = piece.showVolume ? effectiveVolume(sound) : null;
+        if (vol != null) {
+          doc.text(sound.hand, TILES_X + xOff + 1, rowY + DOT_ZONE + 9, { align: 'left' });
+          doc.text(String(vol), TILES_X + xOff + tw - 1, rowY + DOT_ZONE + 9, { align: 'right' });
+        } else {
+          doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
+        }
 
         // Collect instruction for below-row rendering.
         if (sound.instruction) {

@@ -129,6 +129,7 @@ export function NewScoreSheet() {
                       beatsPerLine: beatsPerLine || 8,
                       author: settings.defaultAuthor,
                       icon: settings.defaultBackground,
+                      showVolume: settings.defaultShowVolume,
                     });
                     patternStore.setItems([]);
                     onCreated?.();

@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { Toggle } from './SettingsModal.jsx';
 
 function readImageFile(file, callback) {
   const reader = new FileReader();
@@ -20,8 +21,8 @@ export function ScoreSettingsModal() {
               <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
 
-            <div class="px-5 pb-8">
-              <div class="flex items-center justify-between mb-5">
+            <div className="px-5 pb-8">
+              <div className="flex items-center justify-between mb-5">
                 <h2 class="text-xl font-bold dark:text-white">Score settings</h2>
                 <button
                   class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none w-8 h-8 flex items-center justify-center"
@@ -31,18 +32,18 @@ export function ScoreSettingsModal() {
                 </button>
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white">Taiko</div>
-                <div class="text-gray-600 dark:text-gray-400">{piece.taiko}</div>
+              <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white">Taiko</div>
+                <div className="text-gray-600 dark:text-gray-400">{piece.taiko}</div>
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white">Jiuchi</div>
-                <div class="text-gray-600 dark:text-gray-400">{piece.jiuchi}</div>
+              <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white">Jiuchi</div>
+                <div className="text-gray-600 dark:text-gray-400">{piece.jiuchi}</div>
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white">Beats per line</div>
+              <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white">Beats per line</div>
                 <input
                   type="number"
                   min="1"
@@ -53,8 +54,8 @@ export function ScoreSettingsModal() {
                 />
               </div>
 
-              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white">BPM</div>
+              <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white">BPM</div>
                 <input
                   type="number"
                   min="0"
@@ -65,8 +66,13 @@ export function ScoreSettingsModal() {
                 />
               </div>
 
-              <div class="py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white mb-2">Author</div>
+              <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white">Use volume</div>
+                <Toggle checked={piece.showVolume} onChange={(v) => piece.setShowVolume(v)} />
+              </div>
+
+              <div className="py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white mb-2">Author</div>
                 <input
                   type="text"
                   class="w-full bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600"
@@ -76,8 +82,8 @@ export function ScoreSettingsModal() {
                 />
               </div>
 
-              <div class="py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white mb-2">Version</div>
+              <div className="py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="font-medium dark:text-white mb-2">Version</div>
                 <input
                   type="text"
                   class="w-full bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600"
@@ -87,16 +93,16 @@ export function ScoreSettingsModal() {
                 />
               </div>
 
-              <div class="py-4">
-                <div class="font-medium dark:text-white mb-3">Background</div>
+              <div className="py-4">
+                <div className="font-medium dark:text-white mb-3">Background</div>
                 {piece.icon ? (
-                  <div class="flex items-start gap-3">
+                  <div className="flex items-start gap-3">
                     <img
                       src={piece.icon}
                       class="w-20 h-20 rounded-lg object-cover border border-gray-300 dark:border-gray-600 shrink-0"
                       alt="Background"
                     />
-                    <div class="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2">
                       <label class="py-1.5 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-center">
                         Replace
                         <input

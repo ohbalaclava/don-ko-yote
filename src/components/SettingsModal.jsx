@@ -14,7 +14,7 @@ const FONTS = [
   { id: 'script', label: 'Script', style: "font-family: 'Permanent Marker', cursive" },
 ];
 
-function Toggle() {
+export function Toggle() {
   return {
     view({ attrs: { checked, onChange } }) {
       return (
@@ -98,6 +98,14 @@ export function SettingsModal() {
               <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium dark:text-white">Dark mode</div>
                 <Toggle checked={settings.darkMode} onChange={(v) => settings.set('darkMode', v)} />
+              </div>
+
+              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="font-medium dark:text-white">Default show volume</div>
+                <Toggle
+                  checked={settings.defaultShowVolume}
+                  onChange={(v) => settings.set('defaultShowVolume', v)}
+                />
               </div>
 
               <div class="py-4 border-b border-gray-200 dark:border-gray-700">
