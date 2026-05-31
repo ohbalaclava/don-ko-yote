@@ -21,6 +21,32 @@ export function effectiveVolume(sound) {
 }
 
 /**
+ * Splits a flat sound array into rows where each row spans at most `beatsPerRow` beats.
+ * @param {Array} sounds
+ * @param {number} time - Divisions per beat.
+ * @param {number} beatsPerRow
+ * @returns {Array<Array>}
+ */
+export function splitIntoRows(sounds, time, beatsPerRow) {
+  const rows = [];
+  let curRow = [],
+    curBeats = 0;
+  for (const s of sounds) {
+    const sb = s.duration / time;
+    if (curRow.length > 0 && curBeats + sb > beatsPerRow) {
+      rows.push(curRow);
+      curRow = [s];
+      curBeats = sb;
+    } else {
+      curRow.push(s);
+      curBeats += sb;
+    }
+  }
+  if (curRow.length > 0) rows.push(curRow);
+  return rows;
+}
+
+/**
  * Groups a flat sound array into ligature display items using the same auto-pairing
  * rules as the line-level display: adjacent sounds qualify when they share the same
  * beat, alternate hands, and (even time only) share the same duration. A sound with

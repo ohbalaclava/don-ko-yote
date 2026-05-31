@@ -1,4 +1,5 @@
 import m from 'mithril';
+import { exportDocx } from '../docx.js';
 import { exportPdf } from '../pdf.js';
 
 function Item() {
@@ -45,6 +46,11 @@ export function ExportSheet() {
                 label="Export PDF"
                 sublabel="Download score as PDF file"
                 onclick={wrap(() => exportPdf())}
+              />
+              <Item
+                label="Export DOCX"
+                sublabel="Download score as Word document"
+                onclick={wrap(() => exportDocx())}
               />
               <Item
                 label="Export score"

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
-import { effectiveVolume, groupIntoLigatures } from './util.js';
+import { effectiveVolume, groupIntoLigatures, splitIntoRows } from './util.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -207,21 +207,7 @@ export async function exportPdf() {
     const flatSounds = item.sounds;
 
     // Split flat sounds into rows of ≤ BEATS_PER_ROW beats.
-    const rows = [];
-    let curRow = [];
-    let curBeats = 0;
-    for (const s of flatSounds) {
-      const sb = s.duration / time;
-      if (curRow.length > 0 && curBeats + sb > BEATS_PER_ROW) {
-        rows.push(curRow);
-        curRow = [s];
-        curBeats = sb;
-      } else {
-        curRow.push(s);
-        curBeats += sb;
-      }
-    }
-    if (curRow.length > 0) rows.push(curRow);
+    const rows = splitIntoRows(flatSounds, time, BEATS_PER_ROW);
 
     let lineStartY = null;
     let lineStartPage = null;
