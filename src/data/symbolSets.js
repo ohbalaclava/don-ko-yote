@@ -24,6 +24,29 @@ export const TAIKO_GROUPS = [
   { label: 'Low', taikos: LOW_STRAIGHT.taiko },
 ];
 
+/**
+ * Resolves a built-in pattern's sound names against a symbol set, returning
+ * a pattern whose sounds are `{ name, hand, duration }` objects ready for
+ * `piece.addGroup`. Sound names that aren't found are dropped.
+ * @param {{ name: string, sounds: string[] }} pattern
+ * @param {{ symbols: Array<{ name: string, hand?: string, duration: number, alternatives?: Array<{ hand?: string, duration: number }> }> }} symbolSet
+ */
+export function resolvePattern(pattern, symbolSet) {
+  const sounds = pattern.sounds
+    .map((soundName) => {
+      const sym = symbolSet.symbols.find((s) => s.name === soundName);
+      if (!sym) return null;
+      const alt = sym.alternatives?.[0];
+      return {
+        name: sym.name,
+        hand: sym.hand ?? alt?.hand,
+        duration: sym.duration ?? alt?.duration,
+      };
+    })
+    .filter(Boolean);
+  return { name: pattern.name, sounds };
+}
+
 /** All distinct jiuchi names across every set, in first-seen order. */
 export const ALL_JIUCHIS = (() => {
   const seen = new Set();

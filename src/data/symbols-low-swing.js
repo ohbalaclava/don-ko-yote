@@ -29,4 +29,146 @@ export const LOW_SWING = {
     { name: 'SO', duration: 3, editable: true },
     { name: 'RE', duration: 3, editable: true },
   ],
+  patterns: [
+    {
+      name: "DO'KA",
+      sounds: ['DO', "'", 'KA'],
+    },
+    {
+      name: "DOKA'",
+      sounds: ['DO', 'KA', "'"],
+    },
+    {
+      name: 'DOKAKO',
+      sounds: ['DO', 'KA', 'KO'],
+    },
+    {
+      name: 'DOKODO',
+      sounds: ['DO', 'KO', 'DO'],
+    },
+    {
+      name: 'DOKOKA',
+      sounds: ['DO', 'KO', 'KA'],
+    },
+    {
+      name: 'DOKOkoro',
+      sounds: ['DO', 'KO', 'ko', 'ro'],
+    },
+    {
+      name: 'DOkoroKO',
+      sounds: ['DO', 'ko', 'ro', 'KO'],
+    },
+    {
+      name: 'DOkoroSU',
+      sounds: ['DO', 'ko', 'ro', 'SU'],
+    },
+    {
+      name: "DON'koro",
+      sounds: ['DON', "'", 'ko', 'ro'],
+    },
+    {
+      name: 'DORAKA',
+      sounds: ['DO', 'RA', 'KA'],
+    },
+    {
+      name: "KA'DO",
+      sounds: ['KA', "'", 'DO'],
+    },
+    {
+      name: "KA'KA",
+      sounds: ['KA', "'", 'KA'],
+    },
+    {
+      name: "KADO'",
+      sounds: ['KA', 'DO', "'"],
+    },
+    {
+      name: 'KADOKA',
+      sounds: ['KA', 'DO', 'KA'],
+    },
+    {
+      name: 'KADOKO',
+      sounds: ['KA', 'DO', 'KO'],
+    },
+    {
+      name: "KAKA'",
+      sounds: ['KA', 'KA', "'"],
+    },
+    {
+      name: 'KARADO',
+      sounds: ['KA', 'RA', 'DO'],
+    },
+    {
+      name: 'KARAKA',
+      sounds: ['KA', 'RA', 'KA'],
+    },
+    {
+      name: "KI'KI",
+      sounds: ['KI', "'", 'KI'],
+    },
+    {
+      name: "KI'koro",
+      sounds: ['KI', "'", 'ko', 'ro'],
+    },
+    {
+      name: "KIKI'",
+      sounds: ['KI', 'KI', "'"],
+    },
+    {
+      name: "koro'KI",
+      sounds: ['ko', 'ro', "'", 'KI'],
+    },
+    {
+      name: "koro'UN",
+      sounds: ['ko', 'ro', "'", 'un'],
+    },
+    {
+      name: 'koroDOKO',
+      sounds: ['ko', 'ro', 'DO', 'KO'],
+    },
+    {
+      name: 'koroDON',
+      sounds: ['ko', 'ro', 'DON'],
+    },
+    {
+      name: 'koroSUKO',
+      sounds: ['ko', 'ro', 'SU', 'KO'],
+    },
+    {
+      name: "SU'koro",
+      sounds: ['SU', "'", 'ko', 'ro'],
+    },
+    {
+      name: 'SUDOKA',
+      sounds: ['SU', 'DO', 'KA'],
+    },
+    {
+      name: 'SUDOKO',
+      sounds: ['SU', 'DO', 'KO'],
+    },
+    {
+      name: 'SUKADO',
+      sounds: ['SU', 'KA', 'DO'],
+    },
+    {
+      name: 'SUKARA',
+      sounds: ['SU', 'KA', 'RA'],
+    },
+    {
+      name: 'SUKIKI',
+      sounds: ['SU', 'KI', 'KI'],
+    },
+    {
+      name: 'SUKOkoro',
+      sounds: ['SU', 'KO', 'ko', 'ro'],
+    },
+    {
+      name: "SUkoro'",
+      sounds: ['SU', 'ko', 'ro', "'"],
+    },
+    {
+      name: 'SUkoroKO',
+      sounds: ['SU', 'ko', 'ro', 'KO'],
+    },
+  ],
 };

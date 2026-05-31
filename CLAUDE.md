@@ -34,8 +34,6 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `scoreStore.js` — manages named score persistence. `save()` upserts the current piece; `loadScore(id)` replaces all piece state; `exportJson()` downloads a JSON file (id stripped); `importJson(text)` loads without saving. `init()` patches `piece.setTitle` for 1-second auto-save.
 - `db.js` — Promise-based IndexedDB wrapper. Exposes `db.kv` (key-value store with `get`/`set`/`delete`) and `db.scores` / `db.patterns` (collections with `all`/`get`/`save`/`delete`). Items in collections are auto-assigned UUIDs on first save.
 
-> **Legacy files:** `src/data/model.js`, `src/data/gobu-gobu.js`, and `src/data/shichisan.js` are from an earlier prototype and are not imported by the current app.
-
 ### UI layer (`src/components/`)
 
 - `Header.jsx` — title input plus three icon buttons: ♩ (score settings), ⚙ (app settings), ☰ (menu).

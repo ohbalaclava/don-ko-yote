@@ -35,13 +35,15 @@ export function Palette() {
                 </div>
               ) : null;
             })()}
-            <button
-              class="self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold"
-              onclick={onOpenJiuchiPatterns}
-              title="Jiuchi patterns"
-            >
-              Patterns
-            </button>
+            {piece.symbolSet.patterns?.length ? (
+              <button
+                class="self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold"
+                onclick={onOpenJiuchiPatterns}
+                title="Jiuchi patterns"
+              >
+                Patterns
+              </button>
+            ) : null}
           </div>
         </aside>
       );

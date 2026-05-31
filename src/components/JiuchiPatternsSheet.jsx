@@ -1,12 +1,13 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
-import { BUILT_IN_PATTERNS } from '../data/builtInPatterns.js';
+import { resolvePattern } from '../data/symbolSets.js';
 
 export function JiuchiPatternsSheet() {
   return {
     view({ attrs: { onClose } }) {
-      const patterns = BUILT_IN_PATTERNS[piece.jiuchi] ?? [];
+      const symbolSet = piece.symbolSet;
+      const patterns = (symbolSet.patterns ?? []).map((p) => resolvePattern(p, symbolSet));
       return (
         <div class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end" onclick={onClose}>
           <div
