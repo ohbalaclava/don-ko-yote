@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
-import { effectiveVolume } from './util.js';
+import { effectiveVolume, groupIntoLigatures } from './util.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -152,6 +152,7 @@ export async function exportPdf() {
   const pendingSectionBars = [];
 
   let lineOrdinal = 0;
+  const nonProp = !settings.proportionalWidth;
 
   // ── Main render loop ─────────────────────────────────────────────────────
 
@@ -245,35 +246,20 @@ export async function exportPdf() {
       // Collect instruction items for below-row rendering.
       const instrItems = [];
 
-      // Tiles — one dot per subdivision, filled on beat boundaries, unfilled otherwise.
-      // Text anchors at the centre of the first subdivision, matching the app layout.
+      // Proportional mode: one dot per subdivision; non-proportional mode:
+      // beat-dot only. In non-prop mode single (non-ligated) sounds get BEAT_W
+      // each (8 beats = full row); ligated sub-sounds are packed at BEAT_W/4
+      // each (~¼ the centre-to-centre spacing of non-joined sounds).
       const subdivW = BEAT_W / time;
       let xOff = 0;
-      for (const sound of rowSounds) {
-        const tw = (sound.duration / time) * BEAT_W;
-        // Text sits at the centre of the first subdivision slot.
-        const textX = TILES_X + xOff + subdivW / 2;
 
-        // Subdivision dots
-        for (let i = 0; i < sound.duration; i++) {
-          const dotX = TILES_X + xOff + subdivW * (i + 0.5);
-          if ((cumDuration + i) % time === 0) {
-            doc.setFillColor(0);
-            doc.circle(dotX, rowY + 1.5, 0.8, 'F');
-          } else {
-            doc.setDrawColor(150, 150, 150);
-            doc.setLineWidth(0.15);
-            doc.circle(dotX, rowY + 1.5, 0.55, 'S');
-          }
-        }
-
-        // Name
+      /** Draws name, emphasis underline, and hand/volume for one sound at textX. */
+      const drawSound = (sound, textX) => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(0);
         doc.text(sound.name, textX, rowY + DOT_ZONE + 5, { align: 'center' });
 
-        // Emphasis underline
         if (sound.emphasis) {
           const nw = doc.getTextWidth(sound.name);
           doc.setDrawColor(0);
@@ -281,7 +267,6 @@ export async function exportPdf() {
           doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
         }
 
-        // Hand (below name), with optional volume
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0);
@@ -293,13 +278,68 @@ export async function exportPdf() {
           doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
         }
 
-        // Collect instruction for below-row rendering.
-        if (sound.instruction) {
-          instrItems.push({ x: TILES_X + xOff + 1, text: sound.instruction });
-        }
-
-        xOff += tw;
         cumDuration += sound.duration;
+      };
+
+      if (nonProp) {
+        const halfBeat = BEAT_W / 2;
+        const quarterBeat = BEAT_W / 4;
+        const eigthBeat = BEAT_W / 8;
+        const ligW = quarterBeat;
+        const ligItems = groupIntoLigatures(rowSounds, time, cumDuration);
+        for (const item of ligItems) {
+          const isSingle = 'sound' in item;
+          const sounds = isSingle ? [item.sound] : item.sounds;
+          const anchor = TILES_X + xOff + halfBeat / 2;
+
+          let subPos = item.startPos;
+          sounds.forEach((sound, si) => {
+            const textX = anchor + si * ligW;
+
+            if (subPos % time === 0) {
+              doc.setFillColor(0);
+              doc.circle(textX, rowY + 1.5, 0.8, 'F');
+            }
+
+            drawSound(sound, textX);
+
+            if (sound.instruction) {
+              instrItems.push({
+                x: isSingle ? anchor - halfBeat / 2 + 1 : textX - ligW / 2 + 1,
+                text: sound.instruction,
+              });
+            }
+
+            subPos += sound.duration;
+            xOff += ligW;
+          });
+          xOff += eigthBeat;
+        }
+      } else {
+        for (const sound of rowSounds) {
+          const tw = (sound.duration / time) * BEAT_W;
+          const textX = TILES_X + xOff + subdivW / 2;
+
+          for (let i = 0; i < sound.duration; i++) {
+            const dotX = TILES_X + xOff + subdivW * (i + 0.5);
+            if ((cumDuration + i) % time === 0) {
+              doc.setFillColor(0);
+              doc.circle(dotX, rowY + 1.5, 0.8, 'F');
+            } else {
+              doc.setDrawColor(150, 150, 150);
+              doc.setLineWidth(0.15);
+              doc.circle(dotX, rowY + 1.5, 0.55, 'S');
+            }
+          }
+
+          drawSound(sound, textX);
+
+          if (sound.instruction) {
+            instrItems.push({ x: TILES_X + xOff + 1, text: sound.instruction });
+          }
+
+          xOff += tw;
+        }
       }
 
       // Line number in left margin (first row only)
