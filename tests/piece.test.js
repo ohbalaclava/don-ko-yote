@@ -5,7 +5,13 @@ vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 const mockSettings = vi.hoisted(() => ({}));
 vi.mock('../src/data/settings.js', () => ({ settings: mockSettings }));
 
-import { piece } from '../src/data/piece.js';
+import {
+  piece,
+  markerDepth,
+  lineDepth,
+  isSoundLine,
+  singleLineRepeatMap,
+} from '../src/data/piece.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Each sound's default duration of 4 represents one full beat in the default
@@ -368,5 +374,160 @@ describe('setBeatsPerLine', () => {
     for (let i = 0; i < 16; i++) piece.addSound(line().id, sym());
     expect(piece.lines).toHaveLength(1);
     expect(sounds()).toHaveLength(16);
+  });
+});
+
+// ── isSoundLine ─────────────────────────────────────────────────────────────────
+
+describe('isSoundLine', () => {
+  it('is true for a sound line and false for structural rows', () => {
+    expect(isSoundLine({ id: 'a', sounds: [] })).toBe(true);
+    expect(isSoundLine({ type: 'heading' })).toBe(false);
+    expect(isSoundLine({ type: 'note' })).toBe(false);
+    expect(isSoundLine({ type: 'divider' })).toBe(false);
+    expect(isSoundLine({ type: 'block-repeat' })).toBe(false);
+  });
+});
+
+// ── markerDepth / lineDepth / singleLineRepeatMap ───────────────────────────────
+
+describe('markerDepth', () => {
+  it('counts markers whose lineIds strictly superset this marker', () => {
+    const outer = { id: 'o', lineIds: ['a', 'b', 'c'] };
+    const inner = { id: 'i', lineIds: ['b'] };
+    const markers = [outer, inner];
+    expect(markerDepth(outer, markers)).toBe(0);
+    expect(markerDepth(inner, markers)).toBe(1);
+  });
+});
+
+describe('lineDepth', () => {
+  it('counts markers containing the line id', () => {
+    const markers = [
+      { id: 'o', lineIds: ['a', 'b'] },
+      { id: 'i', lineIds: ['b'] },
+    ];
+    expect(lineDepth('a', markers)).toBe(1);
+    expect(lineDepth('b', markers)).toBe(2);
+    expect(lineDepth('z', markers)).toBe(0);
+  });
+});
+
+describe('singleLineRepeatMap', () => {
+  it('maps only single-line block-repeats by their line id', () => {
+    const single = { type: 'block-repeat', lineIds: ['a'] };
+    const lines = [{ id: 'a', sounds: [] }, single, { type: 'block-repeat', lineIds: ['a', 'b'] }];
+    const map = singleLineRepeatMap(lines);
+    expect(map.size).toBe(1);
+    expect(map.get('a')).toBe(single);
+  });
+});
+
+// ── block-repeat operations ─────────────────────────────────────────────────────
+
+const marker = () => piece.lines.find((l) => l.type === 'block-repeat');
+
+/** Adds n empty lines and returns the full ordered list of line ids. */
+function addLines(n) {
+  for (let i = 0; i < n; i++) piece.addLine();
+  return piece.lines.filter(isSoundLine).map((l) => l.id);
+}
+
+/** Creates a block-repeat over the given line ids (selection set directly). */
+function blockRepeat(ids, count = 2) {
+  piece.lineSelection = ids.slice();
+  piece.addBlockRepeat(count);
+}
+
+describe('addBlockRepeat', () => {
+  it('inserts a marker after the last selected line with its ids', () => {
+    const [a, b] = addLines(1); // reset gives 1 line, +1 => 2 lines
+    blockRepeat([a, b], 3);
+    const m = marker();
+    expect(m.lineIds).toEqual([a, b]);
+    expect(m.count).toBe(3);
+    // inserted immediately after b
+    const idx = piece.lines.findIndex((l) => l.id === b);
+    expect(piece.lines[idx + 1]).toBe(m);
+  });
+
+  it('is a no-op for an empty selection or count < 2', () => {
+    addLines(1);
+    blockRepeat([], 3);
+    expect(marker()).toBeUndefined();
+    blockRepeat([piece.lines[0].id], 1);
+    expect(marker()).toBeUndefined();
+  });
+});
+
+describe('setBlockRepeatCount / removeBlockRepeat', () => {
+  it('clamps the count to a minimum of 2 and rounds', () => {
+    const [a, b] = addLines(1);
+    blockRepeat([a, b], 2);
+    piece.setBlockRepeatCount(marker().id, 1);
+    expect(marker().count).toBe(2);
+    piece.setBlockRepeatCount(marker().id, 4.6);
+    expect(marker().count).toBe(5);
+  });
+
+  it('removeBlockRepeat drops the marker', () => {
+    const [a, b] = addLines(1);
+    blockRepeat([a, b], 2);
+    piece.removeBlockRepeat(marker().id);
+    expect(marker()).toBeUndefined();
+  });
+});
+
+describe('reorderLine — block-repeat membership', () => {
+  it('removes a line from the marker when it is moved out of the block', () => {
+    const [a, b, c] = addLines(2); // 3 lines total
+    blockRepeat([a, b]); // lines: [a, b, M([a,b]), c]
+    const fromIdx = piece.lines.findIndex((l) => l.id === a);
+    piece.reorderLine(fromIdx, piece.lines.length - 1); // move a to the end
+    expect(marker().lineIds).toEqual([b]);
+    expect(c).toBeDefined();
+  });
+
+  it('drops a marker that becomes empty after the move', () => {
+    const [a, b] = addLines(1); // 2 lines
+    blockRepeat([a]); // lines: [a, M([a]), b]
+    const fromIdx = piece.lines.findIndex((l) => l.id === a);
+    piece.reorderLine(fromIdx, piece.lines.length - 1);
+    expect(marker()).toBeUndefined();
+  });
+
+  it('adds a line to the marker when dropped between two members', () => {
+    const [a, b, c, d] = addLines(3); // 4 lines
+    blockRepeat([a, b, c]); // lines: [a, b, c, M([a,b,c]), d]
+    const fromIdx = piece.lines.findIndex((l) => l.id === d);
+    const toIdx = piece.lines.findIndex((l) => l.id === b); // between a and b
+    piece.reorderLine(fromIdx, toIdx);
+    expect(marker().lineIds).toEqual([a, d, b, c]);
+  });
+});
+
+describe('removeLine / deleteSelectedLines — block-repeat pruning', () => {
+  it('removeLine prunes the id and drops a now-empty marker', () => {
+    const [a, b] = addLines(1);
+    blockRepeat([a]); // single-line repeat over a
+    piece.removeLine(a);
+    expect(marker()).toBeUndefined();
+    expect(b).toBeDefined();
+  });
+
+  it('removeLine keeps a marker that still has members', () => {
+    const [a, b, c] = addLines(2);
+    blockRepeat([a, b]);
+    piece.removeLine(a);
+    expect(marker().lineIds).toEqual([b]);
+    expect(c).toBeDefined();
+  });
+
+  it('deleteSelectedLines prunes deleted ids from markers', () => {
+    const [a, b, c] = addLines(2);
+    blockRepeat([a, b, c]);
+    piece.lineSelection = [b];
+    piece.deleteSelectedLines();
+    expect(marker().lineIds).toEqual([a, c]);
   });
 });

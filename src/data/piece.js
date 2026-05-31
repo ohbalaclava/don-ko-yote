@@ -132,6 +132,55 @@ function targetLineIdx(fromIdx, duration) {
   return piece.lines.length - 1;
 }
 
+/** True for the structural rows that are skipped when computing line adjacency. */
+function isAdjacencySkipped(item) {
+  return item.type === 'heading' || item.type === 'note';
+}
+
+/**
+ * Re-evaluates block-repeat membership after `moved` has been relocated within
+ * piece.lines. The moved line is first removed from every marker, then re-added
+ * to a marker only when it now sits between two of that marker's members
+ * (headings and notes are skipped when determining adjacency). Markers left with
+ * no members are dropped.
+ * @param {{ id: string }} moved
+ */
+function updateBlockRepeatMembership(moved) {
+  // Remove the moved item from any block-repeat it belonged to.
+  for (const item of piece.lines) {
+    if (item.type === 'block-repeat') {
+      item.lineIds = item.lineIds.filter((id) => id !== moved.id);
+    }
+  }
+
+  // Find the nearest non-heading/note neighbours of the moved line.
+  const pos = piece.lines.indexOf(moved);
+  let prevIdx = pos - 1;
+  while (prevIdx >= 0 && isAdjacencySkipped(piece.lines[prevIdx])) prevIdx--;
+  let nextIdx = pos + 1;
+  while (nextIdx < piece.lines.length && isAdjacencySkipped(piece.lines[nextIdx])) nextIdx++;
+  const prev = prevIdx >= 0 ? piece.lines[prevIdx] : null;
+  const next = nextIdx < piece.lines.length ? piece.lines[nextIdx] : null;
+
+  // Re-add only when dropped between two existing members, or between the last
+  // member and the block-repeat marker itself.
+  if (prev) {
+    for (const item of piece.lines) {
+      if (item.type !== 'block-repeat') continue;
+      if (!item.lineIds.includes(prev.id)) continue;
+      if (next && (item.lineIds.includes(next.id) || next === item)) {
+        item.lineIds.splice(item.lineIds.indexOf(prev.id) + 1, 0, moved.id);
+        break;
+      }
+    }
+  }
+
+  // Drop markers that became empty.
+  piece.lines = piece.lines.filter(
+    (item) => item.type !== 'block-repeat' || item.lineIds.length > 0
+  );
+}
+
 const _firstLine = makeLine();
 const _defaultSet = SYMBOL_SETS[0];
 const _defaultTaiko = _defaultSet.taiko[0].name;
@@ -232,6 +281,12 @@ export const piece = {
     return { ...readPersistedFields(), lines: piece.lines };
   },
 
+  /** Pushes the current state onto the undo history and triggers a redraw. */
+  _commit() {
+    history.push(piece._snapshot());
+    m.redraw();
+  },
+
   /**
    * Loads persisted scalar fields from an external source (saved score, autosave,
    * imported JSON) and clears transient UI state. The caller is responsible for
@@ -301,54 +356,44 @@ export const piece = {
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   setTitle(v) {
     piece.title = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setTaiko(v) {
     piece.taiko = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setJiuchi(v) {
     piece.jiuchi = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setBeatsPerLine(v) {
     piece.beatsPerLine = Number(v);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setBpm(v) {
     piece.bpm = Number(v);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setAuthor(v) {
     piece.author = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setVersion(v) {
     piece.version = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setIcon(dataUrl) {
     piece.icon = dataUrl;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   setShowVolume(v) {
     piece.showVolume = v;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
   selectLine(id) {
     piece.selectedLineId = id;
@@ -463,8 +508,7 @@ export const piece = {
     const line = makeLine();
     piece.lines.push(line);
     piece.selectedLineId = line.id;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   reorderLine(fromIndex, toIndex) {
@@ -473,56 +517,13 @@ export const piece = {
     const [moved] = lines.splice(fromIndex, 1);
     lines.splice(toIndex, 0, moved);
     piece.lines = lines;
-
-    // Remove the moved item from any group it belonged to
-    for (const item of piece.lines) {
-      if (item.type === 'block-repeat') {
-        item.lineIds = item.lineIds.filter((id) => id !== moved.id);
-      }
-    }
-
-    // Add to a group only if dropped between two existing members, or between
-    // the last member and the block-repeat marker (skipping headings for adjacency)
-    const pos = piece.lines.indexOf(moved);
-    let prevIdx = pos - 1;
-    while (
-      prevIdx >= 0 &&
-      (piece.lines[prevIdx].type === 'heading' || piece.lines[prevIdx].type === 'note')
-    )
-      prevIdx--;
-    let nextIdx = pos + 1;
-    while (
-      nextIdx < piece.lines.length &&
-      (piece.lines[nextIdx].type === 'heading' || piece.lines[nextIdx].type === 'note')
-    )
-      nextIdx++;
-    const prev = prevIdx >= 0 ? piece.lines[prevIdx] : null;
-    const next = nextIdx < piece.lines.length ? piece.lines[nextIdx] : null;
-
-    if (prev) {
-      for (const item of piece.lines) {
-        if (item.type !== 'block-repeat') continue;
-        if (!item.lineIds.includes(prev.id)) continue;
-        if (next && (item.lineIds.includes(next.id) || next === item)) {
-          item.lineIds.splice(item.lineIds.indexOf(prev.id) + 1, 0, moved.id);
-          break;
-        }
-      }
-    }
-
-    // Drop groups that became empty after the move
-    piece.lines = piece.lines.filter(
-      (item) => item.type !== 'block-repeat' || item.lineIds.length > 0
-    );
-
-    history.push(piece._snapshot());
-    m.redraw();
+    updateBlockRepeatMembership(moved);
+    piece._commit();
   },
 
   addHeading() {
     piece.lines.push(makeHeading());
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -534,20 +535,17 @@ export const piece = {
     const heading = piece.lines.find((l) => l.id === headingId);
     if (!heading || heading.type !== 'heading') return;
     heading.text = text;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   removeHeading(headingId) {
     piece.lines = piece.lines.filter((l) => l.id !== headingId);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   addNote() {
     piece.lines.push(makeNote());
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -559,26 +557,22 @@ export const piece = {
     const note = piece.lines.find((l) => l.id === noteId);
     if (!note || note.type !== 'note') return;
     note.text = text;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   removeNote(noteId) {
     piece.lines = piece.lines.filter((l) => l.id !== noteId);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   addDivider() {
     piece.lines.push(makeDivider());
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   removeDivider(dividerId) {
     piece.lines = piece.lines.filter((l) => l.id !== dividerId);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -604,8 +598,7 @@ export const piece = {
       const nearIdx = Math.min(idx, realLines.length - 1);
       piece.selectedLineId = realLines[nearIdx >= 0 ? nearIdx : 0].id;
     }
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   // ── Bulk line operations ──────────────────────────────────────────────────
@@ -638,8 +631,7 @@ export const piece = {
     const clones = toClone.map((item) => piece._cloneItem(item));
     piece.lines.splice(lastIdx + 1, 0, ...clones);
     piece.lineSelection = clones.map((item) => item.id);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -663,8 +655,7 @@ export const piece = {
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     }
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -684,8 +675,7 @@ export const piece = {
     const lastIdx = piece.lines.findIndex((item) => item.id === lastId);
     piece.lines.splice(lastIdx + 1, 0, makeBlockRepeat(n, lineIds));
     piece.lineSelection = [];
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -697,15 +687,13 @@ export const piece = {
     const item = piece.lines.find((l) => l.id === id);
     if (!item || item.type !== 'block-repeat') return;
     item.count = Math.max(2, Math.round(count) || 2);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /** @param {string} id - block-repeat item ID */
   removeBlockRepeat(id) {
     piece.lines = piece.lines.filter((l) => l.id !== id);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   // ── Sounds ────────────────────────────────────────────────────────────────
@@ -727,8 +715,7 @@ export const piece = {
     if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
     if (tIdx !== fromIdx) piece.selectedLineId = target.id;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -757,8 +744,7 @@ export const piece = {
     }
     fromLine.sounds.splice(idx, 1);
     toLine.sounds.splice(toIndex, 0, sound);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -784,16 +770,14 @@ export const piece = {
     }
     fromLine.sounds = fromLine.sounds.filter((s) => !idSet.has(s.id));
     toLine.sounds.splice(toIndex, 0, ...sounds);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   removeSound(lineId, soundId) {
     const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
     line.sounds = line.sounds.filter((s) => s.id !== soundId);
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   /**
@@ -811,8 +795,7 @@ export const piece = {
     for (const key of Object.keys(patch)) {
       if (patch[key] === undefined) delete s[key];
     }
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 
   // ── Group tiles (pattern instances) ──────────────────────────────────────
@@ -832,8 +815,7 @@ export const piece = {
       piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
     }
     piece.selectedLineId = piece.lines[lineIdx].id;
-    history.push(piece._snapshot());
-    m.redraw();
+    piece._commit();
   },
 };
 
