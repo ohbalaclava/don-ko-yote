@@ -287,8 +287,8 @@ export async function exportPdf() {
         doc.setTextColor(0);
         const vol = piece.showVolume ? effectiveVolume(sound) : null;
         if (vol != null) {
-          doc.text(sound.hand, TILES_X + xOff + 1, rowY + DOT_ZONE + 9, { align: 'left' });
-          doc.text(String(vol), TILES_X + xOff + tw - 1, rowY + DOT_ZONE + 9, { align: 'right' });
+          doc.text(sound.hand, textX - 0.5, rowY + DOT_ZONE + 9, { align: 'right' });
+          doc.text(String(vol), textX + 0.5, rowY + DOT_ZONE + 9, { align: 'left' });
         } else {
           doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
         }
