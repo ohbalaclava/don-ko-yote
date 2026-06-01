@@ -138,10 +138,12 @@ function paletteHand(sym) {
 
 function SoundPaletteTile() {
   let handler;
+  let handlerSym;
   return {
     view({ attrs: { sym } }) {
       const hand = paletteHand(sym);
-      if (!handler)
+      if (sym !== handlerSym) {
+        handlerSym = sym;
         handler = dragBehaviour({
           ghostLabel: sym.name,
           ghostSub: hand,
@@ -153,6 +155,7 @@ function SoundPaletteTile() {
           onDrop: (lineId) =>
             !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, sym),
         });
+      }
       return (
         <div
           class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] cursor-grab active:border-indigo-400"
