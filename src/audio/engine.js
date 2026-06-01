@@ -28,10 +28,6 @@ export function resumeAudio() {
   return c.state === 'suspended' ? c.resume() : Promise.resolve();
 }
 
-export function suspendAudio() {
-  return ctx && ctx.state === 'running' ? ctx.suspend() : Promise.resolve();
-}
-
 /** One second of mono white noise, reused for every percussive attack. */
 function getNoiseBuffer(c) {
   if (!noiseBuffer) {

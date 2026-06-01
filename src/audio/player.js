@@ -1,6 +1,6 @@
 import m from 'mithril';
 import { buildSequence, divToSeconds } from '../data/sequence.js';
-import { getAudioContext, resumeAudio, suspendAudio, voice } from './engine.js';
+import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
 const LOOKAHEAD = 0.1; // seconds of audio scheduled ahead of the clock
@@ -16,7 +16,6 @@ const LEAD_IN = 0.12; // small delay so the first note isn't scheduled in the pa
  */
 export const player = {
   playing: false,
-  paused: false,
   currentSoundId: null,
   // What is currently playing, so scoped play buttons can show the right state:
   // { type: 'all' | 'line' | 'section' | 'block', id?: string }. Null when stopped.
@@ -29,21 +28,10 @@ export const player = {
   _nextIdx: 0,
   _timer: null,
   _raf: null,
-  // Bumped by play/resume when they claim control, and by stop/pause. An async
-  // play/resume captures the value before its `await` and bails if it changed,
-  // so a second tap or a stop/pause during the await can't start a stale loop.
+  // Bumped by play when it claims control, and by stop. An async play captures the
+  // value before its `await` and bails if it changed, so a second tap or a stop
+  // during the await can't start a stale loop.
   _epoch: 0,
-
-  /**
-   * Play / pause / resume in one entry point, suitable for a single toggle button.
-   * Must be called from a user-gesture handler (it resumes the AudioContext).
-   * @param {object} piece - The piece singleton.
-   */
-  toggle(piece) {
-    if (!this.playing) return this.play(piece);
-    if (this.paused) return this.resume();
-    return this.pause();
-  },
 
   /** True when the given scope descriptor matches what's currently playing. */
   isScope(type, id) {
@@ -65,12 +53,12 @@ export const player = {
   },
 
   /**
-   * The whole-piece play/pause toggle for the main toolbar. Pauses/resumes when
-   * already playing the whole piece; otherwise replaces any scoped preview.
+   * The whole-piece play/stop toggle for the main toolbar. Stops when already
+   * playing the whole piece; otherwise replaces any scoped preview and plays.
    * @param {object} piece
    */
   toggleAll(piece) {
-    if (this.scope?.type === 'all') return this.toggle(piece);
+    if (this.scope?.type === 'all') return this.stop();
     this.stop();
     return this.play(piece, { scope: { type: 'all' } });
   },
@@ -95,9 +83,8 @@ export const player = {
 
     // Claim control synchronously so a second tap is rejected by the guard above
     // before this one's `await` resolves, and capture the epoch to detect a
-    // stop/pause that lands during the await.
+    // stop that lands during the await.
     this.playing = true;
-    this.paused = false;
     this.scope = scope;
     this.currentSoundId = null;
     const epoch = ++this._epoch;
@@ -128,28 +115,8 @@ export const player = {
     m.redraw();
   },
 
-  pause() {
-    if (!this.playing || this.paused) return;
-    this.paused = true;
-    this._epoch++; // invalidate any in-flight resume()
-    suspendAudio(); // freezes the AudioContext clock, halting pending + future notes
-    if (this._raf) cancelAnimationFrame(this._raf);
-    this._raf = null;
-    m.redraw();
-  },
-
-  async resume() {
-    if (!this.playing || !this.paused) return;
-    this.paused = false; // claim synchronously so a second tap is rejected by the guard
-    const epoch = ++this._epoch;
-    await resumeAudio();
-    if (this._epoch !== epoch) return;
-    this._raf = requestAnimationFrame(() => this._followPlayhead());
-    m.redraw();
-  },
-
   stop() {
-    this._epoch++; // invalidate any in-flight play()/resume()
+    this._epoch++; // invalidate any in-flight play()
     if (this._timer) clearInterval(this._timer);
     if (this._raf) cancelAnimationFrame(this._raf);
     this._timer = null;
@@ -157,15 +124,9 @@ export const player = {
     this._events = [];
     this._nextIdx = 0;
     const wasActive = this.playing;
-    const wasPaused = this.paused;
     this.playing = false;
-    this.paused = false;
     this.scope = null;
     this.currentSoundId = null;
-    // If we stop while paused, the AudioContext is suspended with notes still
-    // queued in the lookahead window. Resume so they flush against the (now dead)
-    // schedule rather than firing as a blip when the next play() resumes the clock.
-    if (wasActive && wasPaused) resumeAudio();
     if (wasActive) m.redraw();
   },
 
@@ -183,7 +144,7 @@ export const player = {
 
   /** Schedules every event whose start falls within the lookahead window. */
   _schedule() {
-    if (!this.playing || this.paused) return;
+    if (!this.playing) return;
     const c = getAudioContext();
     const horizon = c.currentTime + LOOKAHEAD;
     while (this._nextIdx < this._events.length) {
@@ -197,7 +158,7 @@ export const player = {
 
   /** rAF loop: updates the highlighted tile and stops playback at the end. */
   _followPlayhead() {
-    if (!this.playing || this.paused) return;
+    if (!this.playing) return;
     const c = getAudioContext();
     if (c.currentTime >= this._endTime) {
       this.stop();

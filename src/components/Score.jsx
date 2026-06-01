@@ -118,25 +118,17 @@ export function Score() {
               {(() => {
                 // "Playing" visual reflects whole-piece playback only; a scoped
                 // line/section preview leaves this button showing ▶ (Play all).
-                const allActive = player.scope?.type === 'all' && player.playing && !player.paused;
+                const allActive = player.isScope('all');
                 return (
                   <button
                     class={`text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                     onclick={() => player.toggleAll(piece)}
-                    title={allActive ? 'Pause' : 'Play whole piece'}
+                    title={allActive ? 'Stop' : 'Play whole piece'}
                   >
-                    {allActive ? '⏸' : '▶'}
+                    {allActive ? '⏹' : '▶'}
                   </button>
                 );
               })()}
-              <button
-                class={`text-sm rounded px-2 py-0.5 border ${player.playing ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                onclick={() => player.stop()}
-                disabled={!player.playing}
-                title="Stop"
-              >
-                ⏹
-              </button>
               <button
                 class={`text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                 onclick={() => piece.undo()}
