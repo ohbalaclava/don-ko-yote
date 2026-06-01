@@ -70,6 +70,7 @@ export function Palette() {
 }
 
 const DRAG_THRESHOLD = 6;
+const SUBDIV_WIDTH_REM = 1.25; // one division = 1.25rem in the palette
 
 function makeDragGhost(label, sub) {
   const el = document.createElement('div');
@@ -156,9 +157,11 @@ function SoundPaletteTile() {
             !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, sym),
         });
       }
+      const dur = sym.duration ?? sym.alternatives?.[0]?.duration ?? 1;
       return (
         <div
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] cursor-grab active:border-indigo-400"
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
+          style={`width:${dur * SUBDIV_WIDTH_REM}rem`}
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
@@ -192,7 +195,8 @@ function ImplicitPaletteTile() {
         });
       return (
         <div
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-2 py-1 select-none min-w-[3rem] cursor-grab active:border-indigo-400"
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
+          style={`width:${piece.time * SUBDIV_WIDTH_REM}rem`}
           onpointerdown={handler}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>—</span>
