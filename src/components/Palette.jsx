@@ -70,7 +70,7 @@ export function Palette() {
 }
 
 const DRAG_THRESHOLD = 6;
-const SUBDIV_WIDTH_REM = 1.25; // one division = 1.25rem in the palette
+const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
 function makeDragGhost(label, sub) {
   const el = document.createElement('div');
