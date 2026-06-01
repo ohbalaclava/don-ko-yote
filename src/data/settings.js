@@ -12,6 +12,7 @@ export const settings = {
   defaultBackground: null,
   defaultAuthor: '',
   defaultShowVolume: false,
+  countIn: false,
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -22,6 +23,7 @@ export const settings = {
       if ('defaultBackground' in saved) settings.defaultBackground = saved.defaultBackground;
       if ('defaultAuthor' in saved) settings.defaultAuthor = saved.defaultAuthor;
       if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
+      if ('countIn' in saved) settings.countIn = saved.countIn;
     }
     applyToDOM();
     m.redraw();
@@ -36,6 +38,7 @@ export const settings = {
       defaultBackground: settings.defaultBackground,
       defaultAuthor: settings.defaultAuthor,
       defaultShowVolume: settings.defaultShowVolume,
+      countIn: settings.countIn,
     });
     applyToDOM();
     m.redraw();

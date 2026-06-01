@@ -101,6 +101,16 @@ export function SettingsModal() {
               </div>
 
               <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <div class="font-medium dark:text-white">Count-in</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Play one bar of clicks before playback
+                  </div>
+                </div>
+                <Toggle checked={settings.countIn} onChange={(v) => settings.set('countIn', v)} />
+              </div>
+
+              <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium dark:text-white">Use volume (default)</div>
                 <Toggle
                   checked={settings.defaultShowVolume}

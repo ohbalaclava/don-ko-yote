@@ -3,6 +3,7 @@ import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { TAIKO_GROUPS, ALL_JIUCHIS, getSymbolSet } from '../data/symbolSets.js';
 import { settings } from '../data/settings.js';
+import { player } from '../audio/player.js';
 
 export function NewScoreSheet() {
   let taiko;
@@ -122,6 +123,7 @@ export function NewScoreSheet() {
                   disabled={!valid}
                   onclick={() => {
                     if (!valid) return;
+                    player.stop();
                     piece.reset({
                       taiko,
                       jiuchi,

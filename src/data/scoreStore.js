@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { piece, isSoundLine } from './piece.js';
 import { history } from './history.js';
 import { patternStore } from './patterns.js';
+import { player } from '../audio/player.js';
 
 /**
  * Returns the id of the last sound line in `lines` (skipping headings, notes,
@@ -100,6 +101,7 @@ export const scoreStore = {
   loadAutosave() {
     const score = scoreStore.autosaveData;
     if (!score) return;
+    player.stop();
     piece.id = score.id ?? null;
     piece.loadFromData(score);
     piece.lines = expandGroupsInLines(score.lines ?? []);
@@ -123,6 +125,7 @@ export const scoreStore = {
    */
   async loadScore(id) {
     scoreStore.clearAutosave();
+    player.stop();
     const score = await db.scores.get(id);
     if (!score) return;
     piece.id = score.id;
@@ -166,6 +169,7 @@ export const scoreStore = {
    */
   importJson(text) {
     scoreStore.clearAutosave();
+    player.stop();
     const data = JSON.parse(text);
     piece.id = null;
     piece.loadFromData(data);

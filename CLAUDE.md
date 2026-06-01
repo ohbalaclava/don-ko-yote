@@ -54,6 +54,14 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 
 Uses jsPDF to generate an A4 portrait PDF. Iterates `piece.lines`, draws each sound as a bordered rectangle with hand (top), name (center, bold), emphasis underline if set, and optional instruction (bottom). Appends a repeat count badge when `line.repeat > 1`. Handles page breaks. Filename is `{piece.title || 'taiko'}.pdf`.
 
+### Audio playback (`src/audio/` + `src/data/sequence.js`)
+
+Plays the score through the Web Audio API. Three layers:
+
+- `data/sequence.js` (pure, unit-tested) — `expandRepeats(lines)` unrolls block-repeat markers (single-line, multi-line, and nested; `count` = total plays) into an ordered list of sound lines; `buildSequence(lines, time)` flattens those into a continuous timed event stream `{ events: [{ soundId, name, hand, volume, startDiv, durationDiv }], totalDiv }` (lines are concatenated — wrapping is purely visual). Rests (`effectiveVolume` null) are included so the playhead can sweep them but carry no volume. `divToSeconds(div, bpm, time)` converts divisions to seconds.
+- `audio/engine.js` — lazy shared `AudioContext`, and a `voice` object (`strike`, `click`) that synthesizes drum hits (pitched body + filtered noise burst; metallic partials for Kane) and count-in clicks. Timbre comes from `voiceParams(sound, taiko)` (per-taiko base pitch/decay, rim-vs-centre brightness from the syllable, pan from hand, gain from volume). The `voice` object is the swap point for sampled audio later.
+- `audio/player.js` — `player` singleton controller. Lookahead scheduler (`setInterval` schedules Web Audio events ahead of `audioContext.currentTime`), plus a rAF loop that drives the playhead highlight (`player.currentSoundId`, read by `SoundTile`/`LigatureTile`) and auto-stops at the end. `toggle()` plays / pauses (via `AudioContext.suspend`) / resumes; `stop()` resets. `resumeAudio()` must run inside the user gesture (the Play button) or mobile browsers stay silent. Optional count-in (one bar, capped at 4 beats) gated on `settings.countIn`. Playback is stopped when leaving the score view (`Score.onremove`) and on score load/new/clear.
+
 ### Drag and drop
 
 Two separate mechanisms:
