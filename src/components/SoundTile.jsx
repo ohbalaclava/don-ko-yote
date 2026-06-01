@@ -112,6 +112,63 @@ export function SoundTile() {
   };
 }
 
+/**
+ * Keep the inline editor on-screen. It is anchored `absolute` below-left of its
+ * tile, so near the viewport's right edge or the bottom palette it would be
+ * clipped by the scrollable Score. Measure the rendered editor and, idempotently
+ * (reset-then-measure so repeated `onupdate` calls are stable):
+ *   - shift it horizontally back inside the viewport's right/left edge;
+ *   - flip it above the tile when it would collide with the palette (or viewport
+ *     bottom) and more room exists above;
+ *   - as a last resort cap its height to the available space and let it scroll.
+ */
+function positionEditor(vnode) {
+  const el = vnode.dom;
+  const margin = 8;
+
+  // Reset any prior adjustments so the measurement reflects the natural layout.
+  el.style.transform = '';
+  el.style.top = '';
+  el.style.bottom = '';
+  el.style.marginTop = '';
+  el.style.marginBottom = '';
+  el.style.maxHeight = '';
+  el.style.overflowY = '';
+
+  // Horizontal: nudge back inside the viewport's right (then left) edge.
+  let rect = el.getBoundingClientRect();
+  const overflowRight = rect.right - (window.innerWidth - margin);
+  const overflowLeft = margin - rect.left;
+  if (overflowRight > 0) el.style.transform = `translateX(${-overflowRight}px)`;
+  else if (overflowLeft > 0) el.style.transform = `translateX(${overflowLeft}px)`;
+
+  // Vertical: the bottom palette (an <aside>) is the lower bound; fall back to
+  // the viewport bottom if it is ever absent.
+  const tile = el.closest('.sound-tile');
+  if (!tile) return;
+  const tileRect = tile.getBoundingClientRect();
+  const palette = document.querySelector('aside');
+  const bottomBound = (palette ? palette.getBoundingClientRect().top : window.innerHeight) - margin;
+  const spaceBelow = bottomBound - tileRect.bottom;
+  const spaceAbove = tileRect.top - margin;
+  const needed = el.getBoundingClientRect().height;
+
+  if (needed > spaceBelow && spaceAbove > spaceBelow) {
+    // Flip above the tile.
+    el.style.top = 'auto';
+    el.style.bottom = '100%';
+    el.style.marginTop = '0';
+    el.style.marginBottom = '0.25rem';
+    if (needed > spaceAbove) {
+      el.style.maxHeight = `${spaceAbove}px`;
+      el.style.overflowY = 'auto';
+    }
+  } else if (needed > spaceBelow) {
+    el.style.maxHeight = `${spaceBelow}px`;
+    el.style.overflowY = 'auto';
+  }
+}
+
 export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
@@ -148,6 +205,8 @@ export function SoundEditor() {
         <div
           key="ed"
           class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]"
+          oncreate={positionEditor}
+          onupdate={positionEditor}
           onclick={(e) => e.stopPropagation()}
         >
           {sound.implicit && (
