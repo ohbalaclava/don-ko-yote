@@ -58,7 +58,7 @@ export function Score() {
 
       return (
         <div class="flex-1 overflow-y-auto flex flex-col">
-          <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
+          <div class="sticky top-0 z-10 flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
             <span class="text-xs text-gray-400 dark:text-gray-500 select-none">Select:</span>
             <button
               class={`text-xs font-semibold rounded px-2 py-1 border ${piece.selectMode ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400'}`}
