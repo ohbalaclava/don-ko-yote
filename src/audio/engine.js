@@ -61,7 +61,11 @@ export function voiceParams(sound, taiko) {
   const base = TAIKO_VOICE[taiko] ?? DEFAULT_VOICE;
   const first = (sound.name || '').charAt(0).toLowerCase();
   const rim = first === 'k' || first === 'r'; // ka/ki/ko/ra/re/ro — rim-ish
-  const gain = 0.1 + (Math.min(8, Math.max(1, sound.volume)) / 8) * 0.55;
+  // Volume 1–8 maps to gain exponentially (~1.6× / +4 dB per step) so accents
+  // read clearly against soft notes. vol 8 is anchored at 0.7 (below the 0.9
+  // master to leave headroom); vol 1 lands at ~0.026, a ~27× dynamic range.
+  const v = Math.min(8, Math.max(1, sound.volume));
+  const gain = 0.7 * Math.pow(1.6, v - 8);
   const pan = sound.hand === 'L' ? -0.35 : sound.hand === 'R' ? 0.35 : 0;
   return {
     freq: base.freq * (rim ? 1.5 : 1),
