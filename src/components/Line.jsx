@@ -6,6 +6,7 @@ import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { packIntoTracks, groupSoundsForDisplay } from '../util.js';
+import { player } from '../audio/player.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -438,6 +439,18 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
+            {selected ? (
+              <button
+                class={`text-sm leading-none ${player.isScope('line', line.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'}`}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  player.toggleScope(piece, [line], { type: 'line', id: line.id });
+                }}
+                title={player.isScope('line', line.id) ? 'Stop' : 'Play this line'}
+              >
+                {player.isScope('line', line.id) ? '⏹' : '▶'}
+              </button>
+            ) : null}
             <button
               class="text-xs text-red-400 hover:text-red-600"
               onclick={(e) => {

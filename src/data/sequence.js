@@ -104,6 +104,52 @@ export function buildSequence(lines, time) {
 }
 
 /**
+ * Returns the lines belonging to a heading-delimited section: everything after the
+ * heading up to (but excluding) the next heading, or the end of the list. Markers
+ * and other rows within the range are kept so repeats inside the section still
+ * apply when the slice is passed to {@link buildSequence}.
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {string} headingId - The id of the section's heading row.
+ * @returns {Array<object>} The section's lines (empty if the heading isn't found).
+ */
+export function sectionSlice(lines, headingId) {
+  const start = lines.findIndex((l) => l.id === headingId);
+  if (start < 0) return [];
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (lines[i].type === 'heading') {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start + 1, end);
+}
+
+/**
+ * Returns the lines covered by a block-repeat, from its first member line through
+ * the marker row inclusive. Including the marker means {@link expandRepeats} applies
+ * the block's repeat count when the slice is played.
+ *
+ * Note: if the block's members span a heading and the caller has already sliced by
+ * section, out-of-range member indices are simply dropped, yielding a partial
+ * repeat — an accepted limitation for unusual authoring shapes.
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {string} markerId - The id of the block-repeat marker row.
+ * @returns {Array<object>} The block's lines (empty if the marker is missing/invalid).
+ */
+export function blockRepeatSlice(lines, markerId) {
+  const markerIdx = lines.findIndex((l) => l.id === markerId);
+  if (markerIdx < 0 || lines[markerIdx].type !== 'block-repeat') return [];
+  const idxs = lines[markerIdx].lineIds
+    .map((id) => lines.findIndex((l) => l.id === id))
+    .filter((i) => i >= 0);
+  if (!idxs.length) return [];
+  return lines.slice(Math.min(...idxs), markerIdx + 1);
+}
+
+/**
  * Converts a position in beat divisions to seconds at the given tempo.
  * @param {number} div - Position/duration in divisions.
  * @param {number} bpm - Beats per minute.

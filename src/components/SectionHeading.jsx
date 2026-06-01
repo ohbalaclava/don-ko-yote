@@ -1,6 +1,8 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { repeatDecoration } from './repeatDecoration.js';
+import { player } from '../audio/player.js';
+import { sectionSlice } from '../data/sequence.js';
 
 export function SectionHeading() {
   let editing = false;
@@ -73,6 +75,19 @@ export function SectionHeading() {
               )}
             </span>
           )}
+          <button
+            class={`shrink-0 text-base leading-none ${player.isScope('section', heading.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'}`}
+            onclick={(e) => {
+              e.stopPropagation();
+              player.toggleScope(piece, sectionSlice(piece.lines, heading.id), {
+                type: 'section',
+                id: heading.id,
+              });
+            }}
+            title={player.isScope('section', heading.id) ? 'Stop' : 'Play this section'}
+          >
+            {player.isScope('section', heading.id) ? '⏹' : '▶'}
+          </button>
           <button
             class="shrink-0 text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
             onclick={(e) => {

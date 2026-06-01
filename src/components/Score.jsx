@@ -115,13 +115,20 @@ export function Score() {
             ) : null}
 
             <div class="ml-auto flex items-center gap-1">
-              <button
-                class={`text-sm rounded px-2 py-0.5 border ${player.playing && !player.paused ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                onclick={() => player.toggle(piece)}
-                title={player.playing && !player.paused ? 'Pause' : 'Play'}
-              >
-                {player.playing && !player.paused ? '⏸' : '▶'}
-              </button>
+              {(() => {
+                // "Playing" visual reflects whole-piece playback only; a scoped
+                // line/section preview leaves this button showing ▶ (Play all).
+                const allActive = player.scope?.type === 'all' && player.playing && !player.paused;
+                return (
+                  <button
+                    class={`text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    onclick={() => player.toggleAll(piece)}
+                    title={allActive ? 'Pause' : 'Play whole piece'}
+                  >
+                    {allActive ? '⏸' : '▶'}
+                  </button>
+                );
+              })()}
               <button
                 class={`text-sm rounded px-2 py-0.5 border ${player.playing ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                 onclick={() => player.stop()}

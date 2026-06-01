@@ -1,6 +1,8 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
+import { player } from '../audio/player.js';
+import { blockRepeatSlice } from '../data/sequence.js';
 
 export function BlockRepeatRow() {
   return {
@@ -43,6 +45,19 @@ export function BlockRepeatRow() {
               +
             </button>
           </div>
+          <button
+            class={`ml-2 text-base leading-none ${player.isScope('block', item.id) ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-300 hover:text-orange-800 dark:hover:text-orange-100'}`}
+            onclick={(e) => {
+              e.stopPropagation();
+              player.toggleScope(piece, blockRepeatSlice(piece.lines, item.id), {
+                type: 'block',
+                id: item.id,
+              });
+            }}
+            title={player.isScope('block', item.id) ? 'Stop' : 'Play this repeat block'}
+          >
+            {player.isScope('block', item.id) ? '⏹' : '▶'}
+          </button>
           <button
             class="ml-2 text-xs text-red-400 hover:text-red-600"
             onclick={(e) => {
