@@ -739,7 +739,9 @@ export const piece = {
       piece.beatsPerLine > 0 &&
       lineDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
     ) {
-      m.redraw(); // revert SortableJS DOM change
+      // Overflow: reject the move. The dragged node was already reverted in the
+      // Sortable onEnd handler, so a redraw repaints the unchanged line.
+      m.redraw();
       return;
     }
     fromLine.sounds.splice(idx, 1);
@@ -764,6 +766,8 @@ export const piece = {
     if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
       const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
       if (lineDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
+        // Overflow: reject the move. The dragged node was already reverted in the
+        // Sortable onEnd handler, so a redraw repaints the unchanged line.
         m.redraw();
         return;
       }

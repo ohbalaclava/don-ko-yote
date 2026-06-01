@@ -227,6 +227,14 @@ export function Line() {
         const fromLineId = evt.from.dataset.lineId;
         const toLineId = evt.to.dataset.lineId;
         const toDataIndex = domIndexToDataIndex(evt.to, evt.newIndex);
+        // Undo SortableJS's physical DOM mutation before touching the data model.
+        // SortableJS moves the dragged node directly in the DOM (across containers
+        // for cross-line drags), which desyncs Mithril's virtual DOM and corrupts
+        // subsequent patches. Reverting to the pre-drag DOM lets the data-model
+        // change below re-render from a consistent baseline. evt.oldIndex is a full
+        // DOM-child index (matching domIndexToDataIndex's use of evt.newIndex).
+        evt.item.remove();
+        evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
         if (ligatureIds) {
           piece.moveSounds(fromLineId, ligatureIds.split(','), toLineId, toDataIndex);
         } else {
