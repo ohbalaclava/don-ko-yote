@@ -446,10 +446,12 @@ export function Line() {
             )}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
-            <span class="text-xs text-gray-400 dark:text-gray-500">{+beats.toFixed(2)}b</span>
+            <span class="w-8 text-center whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
+              {+beats.toFixed(2)}b
+            </span>
             {selected ? (
               <button
-                class={`text-sm leading-none ${player.isScope('line', line.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'}`}
+                class={`w-8 h-8 flex items-center justify-center rounded text-sm leading-none ${player.isScope('line', line.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}`}
                 onclick={(e) => {
                   e.stopPropagation();
                   player.toggleScope(piece, [line], { type: 'line', id: line.id });
@@ -459,8 +461,10 @@ export function Line() {
                 {player.isScope('line', line.id) ? '⏹' : '▶'}
               </button>
             ) : null}
+            {/* Extra top margin when the play button is shown keeps Remove well clear
+                of Play so a mistap can't delete the line. */}
             <button
-              class="text-xs text-red-400 hover:text-red-600"
+              class={`w-8 h-8 flex items-center justify-center rounded text-xs text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 ${selected ? 'mt-3' : ''}`}
               onclick={(e) => {
                 e.stopPropagation();
                 piece.removeLine(line.id);
