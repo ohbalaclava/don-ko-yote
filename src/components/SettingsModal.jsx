@@ -101,7 +101,7 @@ export function SettingsModal() {
               </div>
 
               <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white">Default show volume</div>
+                <div class="font-medium dark:text-white">Use volume (default)</div>
                 <Toggle
                   checked={settings.defaultShowVolume}
                   onChange={(v) => settings.set('defaultShowVolume', v)}
@@ -109,7 +109,7 @@ export function SettingsModal() {
               </div>
 
               <div class="py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-medium dark:text-white mb-2">Default author</div>
+                <div class="font-medium dark:text-white mb-2">Author (default)</div>
                 <input
                   type="text"
                   class="w-full bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600"
@@ -120,7 +120,7 @@ export function SettingsModal() {
               </div>
 
               <div class="py-4">
-                <div class="font-medium dark:text-white mb-3">Default background</div>
+                <div class="font-medium dark:text-white mb-3">Background (default)</div>
                 {settings.defaultBackground ? (
                   <div class="flex items-start gap-3">
                     <img
