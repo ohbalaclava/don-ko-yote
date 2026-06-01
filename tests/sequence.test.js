@@ -3,7 +3,13 @@ import { describe, it, expect, vi } from 'vitest';
 // piece.js (imported transitively for isSoundLine) pulls in mithril at module load.
 vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 
-import { expandRepeats, buildSequence, divToSeconds } from '../src/data/sequence.js';
+import {
+  expandRepeats,
+  buildSequence,
+  divToSeconds,
+  sectionSlice,
+  blockRepeatSlice,
+} from '../src/data/sequence.js';
 
 // ── Fixture helpers ─────────────────────────────────────────────────────────
 let nextId = 0;
@@ -18,6 +24,9 @@ function line(id, sounds = []) {
 }
 function repeat(id, count, lineIds) {
   return { id, type: 'block-repeat', count, lineIds };
+}
+function heading(id) {
+  return { id, type: 'heading', text: '' };
 }
 
 // ── expandRepeats ───────────────────────────────────────────────────────────
@@ -116,6 +125,69 @@ describe('buildSequence', () => {
 
   it('returns no events for an empty / rests-free score', () => {
     expect(buildSequence([line('a', [])], 4)).toEqual({ events: [], totalDiv: 0 });
+  });
+
+  it('plays a single line exactly once even if it is a block-repeat member', () => {
+    const a = line('a', [sound('TEN', 'R', 4)]);
+    // Passing just the line (no marker in the array) ignores its repeat — the
+    // behaviour a single-line "play this line" preview relies on.
+    const { events, totalDiv } = buildSequence([a], 4);
+    expect(events).toHaveLength(1);
+    expect(totalDiv).toBe(4);
+  });
+});
+
+// ── sectionSlice ────────────────────────────────────────────────────────────
+
+describe('sectionSlice', () => {
+  it('returns the lines after a heading up to the next heading', () => {
+    const lines = [heading('h1'), line('a'), line('b'), heading('h2'), line('c')];
+    expect(sectionSlice(lines, 'h1').map((l) => l.id)).toEqual(['a', 'b']);
+  });
+
+  it('runs to the end of the list when there is no following heading', () => {
+    const lines = [heading('h1'), line('a'), line('b')];
+    expect(sectionSlice(lines, 'h1').map((l) => l.id)).toEqual(['a', 'b']);
+  });
+
+  it('returns [] for an unknown heading id', () => {
+    expect(sectionSlice([line('a')], 'nope')).toEqual([]);
+  });
+
+  it('keeps an internal repeat so buildSequence still unrolls it', () => {
+    const lines = [
+      heading('h1'),
+      line('a', [sound('TEN', 'R', 4)]),
+      repeat('m', 2, ['a']),
+      heading('h2'),
+      line('b', [sound('KEN', 'L', 4)]),
+    ];
+    const { events, totalDiv } = buildSequence(sectionSlice(lines, 'h1'), 4);
+    expect(events.map((e) => e.startDiv)).toEqual([0, 4]); // 'a' played twice
+    expect(totalDiv).toBe(8);
+  });
+});
+
+// ── blockRepeatSlice ─────────────────────────────────────────────────────────
+
+describe('blockRepeatSlice', () => {
+  it('includes the member lines and the marker so the repeat applies', () => {
+    const lines = [
+      line('a', [sound('TEN', 'R', 4)]),
+      line('b', [sound('KEN', 'L', 4)]),
+      repeat('m', 2, ['a', 'b']),
+      line('c'),
+    ];
+    const slice = blockRepeatSlice(lines, 'm');
+    expect(slice.map((l) => l.id)).toEqual(['a', 'b', 'm']);
+    const { events, totalDiv } = buildSequence(slice, 4);
+    expect(events).toHaveLength(4); // a,b played twice
+    expect(totalDiv).toBe(16);
+  });
+
+  it('returns [] for a missing id or a non-repeat row', () => {
+    expect(blockRepeatSlice([line('a')], 'a')).toEqual([]);
+    expect(blockRepeatSlice([line('a')], 'nope')).toEqual([]);
   });
 });
 

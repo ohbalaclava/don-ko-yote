@@ -18,6 +18,9 @@ export const player = {
   playing: false,
   paused: false,
   currentSoundId: null,
+  // What is currently playing, so scoped play buttons can show the right state:
+  // { type: 'all' | 'line' | 'section' | 'block', id?: string }. Null when stopped.
+  scope: null,
 
   _events: [],
   _taiko: '',
@@ -42,16 +45,52 @@ export const player = {
     return this.pause();
   },
 
+  /** True when the given scope descriptor matches what's currently playing. */
+  isScope(type, id) {
+    return this.playing && this.scope?.type === type && this.scope?.id === id;
+  },
+
   /**
-   * Starts playback from the beginning. No-ops if already playing or if the score
-   * produces no events.
+   * Play/stop toggle for a scoped selection (a single line, a section, a repeat
+   * block). Playing the active scope again stops it; any other scope is replaced.
+   * Must be called from a user-gesture handler (it resumes the AudioContext).
+   * @param {object} piece
+   * @param {Array<object>} lines - The subset of lines to play.
+   * @param {{ type: string, id?: string }} scope
+   */
+  toggleScope(piece, lines, scope) {
+    const active = this.isScope(scope.type, scope.id);
+    this.stop(); // play() no-ops while playing, so always clear first
+    if (!active) this.play(piece, { lines, scope });
+  },
+
+  /**
+   * The whole-piece play/pause toggle for the main toolbar. Pauses/resumes when
+   * already playing the whole piece; otherwise replaces any scoped preview.
    * @param {object} piece
    */
-  async play(piece) {
+  toggleAll(piece) {
+    if (this.scope?.type === 'all') return this.toggle(piece);
+    this.stop();
+    return this.play(piece, { scope: { type: 'all' } });
+  },
+
+  /**
+   * Starts playback from the beginning. No-ops if already playing or if the
+   * (sub)selection produces no events.
+   * @param {object} piece
+   * @param {{ lines?: Array<object>, scope?: { type: string, id?: string } }} [opts]
+   *   `lines` defaults to the whole piece; `scope` records what is playing for the
+   *   UI (defaults to `{ type: 'all' }`). The count-in is only played for `'all'`
+   *   scope — scoped previews skip it.
+   */
+  async play(piece, opts = {}) {
     if (this.playing) return;
+    const lines = opts.lines ?? piece.lines;
+    const scope = opts.scope ?? { type: 'all' };
     const { bpm, time, taiko } = piece;
     if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
-    const { events, totalDiv } = buildSequence(piece.lines, time);
+    const { events, totalDiv } = buildSequence(lines, time);
     if (!events.length) return;
 
     // Claim control synchronously so a second tap is rejected by the guard above
@@ -59,6 +98,7 @@ export const player = {
     // stop/pause that lands during the await.
     this.playing = true;
     this.paused = false;
+    this.scope = scope;
     this.currentSoundId = null;
     const epoch = ++this._epoch;
     await resumeAudio();
@@ -75,7 +115,9 @@ export const player = {
     this._taiko = taiko;
 
     const base = c.currentTime + LEAD_IN;
-    const countInSec = settings.countIn ? this._scheduleCountIn(base, piece) : 0;
+    // Count-in only for whole-piece playback; scoped previews start immediately.
+    const useCountIn = scope.type === 'all' && settings.countIn;
+    const countInSec = useCountIn ? this._scheduleCountIn(base, piece) : 0;
     this._startTime = base + countInSec;
     this._endTime = this._startTime + divToSeconds(totalDiv, bpm, time);
     this._nextIdx = 0;
@@ -118,6 +160,7 @@ export const player = {
     const wasPaused = this.paused;
     this.playing = false;
     this.paused = false;
+    this.scope = null;
     this.currentSoundId = null;
     // If we stop while paused, the AudioContext is suspended with notes still
     // queued in the lookahead window. Resume so they flush against the (now dead)
