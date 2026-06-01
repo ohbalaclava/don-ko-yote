@@ -2,6 +2,7 @@ import m from 'mithril';
 import Sortable from 'sortablejs';
 import { piece, markerDepth, lineDepth, singleLineRepeatMap } from '../data/piece.js';
 import { history } from '../data/history.js';
+import { player } from '../audio/player.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
@@ -47,6 +48,7 @@ export function Score() {
     onremove() {
       if (sortable) sortable.destroy();
       if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+      player.stop(); // stop audio when leaving the score view
     },
     view() {
       const selCount = piece.selection.soundIds.length;
@@ -113,6 +115,21 @@ export function Score() {
             ) : null}
 
             <div class="ml-auto flex items-center gap-1">
+              <button
+                class={`text-sm rounded px-2 py-0.5 border ${player.playing && !player.paused ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                onclick={() => player.toggle(piece)}
+                title={player.playing && !player.paused ? 'Pause' : 'Play'}
+              >
+                {player.playing && !player.paused ? '⏸' : '▶'}
+              </button>
+              <button
+                class={`text-sm rounded px-2 py-0.5 border ${player.playing ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                onclick={() => player.stop()}
+                disabled={!player.playing}
+                title="Stop"
+              >
+                ⏹
+              </button>
               <button
                 class={`text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                 onclick={() => piece.undo()}

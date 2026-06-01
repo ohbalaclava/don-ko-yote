@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { player } from '../audio/player.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
 
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
@@ -40,9 +41,12 @@ export function SoundTile() {
       const time = piece.time;
       const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
-      const borderClass = isSelected
-        ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
-        : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
+      const isPlaying = player.currentSoundId === sound.id;
+      const borderClass = isPlaying
+        ? 'border-green-500 bg-green-100 dark:border-green-400 dark:bg-green-900/40 ring-2 ring-green-400'
+        : isSelected
+          ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
+          : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = settings.proportionalWidth
         ? `width: ${(sound.duration / time) * beatWidthRem}rem`

@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { player } from '../audio/player.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
 import { SoundEditor } from './SoundTile.jsx';
 
@@ -28,12 +29,18 @@ export function LigatureTile() {
             const isEditing =
               !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
             const isSelected = selectionIds ? selectionIds.has(sound.id) : false;
+            const isPlaying = player.currentSoundId === sound.id;
 
             const edgePad = idx === 0 ? 'pl-1' : idx === sounds.length - 1 ? 'pr-1' : '';
+            const subBg = isPlaying
+              ? 'bg-green-100 dark:bg-green-900/40'
+              : isSelected
+                ? 'bg-teal-50 dark:bg-teal-900/40'
+                : '';
             return (
               <div
                 key={sound.id}
-                class={`sound-tile relative flex flex-col items-center py-1 ${edgePad} ${isSelected ? 'bg-teal-50 dark:bg-teal-900/40' : ''}`}
+                class={`sound-tile relative flex flex-col items-center py-1 ${edgePad} ${subBg}`}
                 data-sound-id={sound.id}
                 onclick={(e) => {
                   e.stopPropagation();
