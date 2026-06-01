@@ -12,9 +12,12 @@ export function LigatureTile() {
       const time = piece.time;
       let subPos = startPos;
       const anySelected = selectionIds && sounds.some((s) => selectionIds.has(s.id));
-      const outerBorder = anySelected
-        ? 'border-teal-500 dark:border-teal-400'
-        : 'border-gray-300 dark:border-gray-600';
+      const anyPlaying = sounds.some((s) => player.currentSoundId === s.id);
+      const outerBorder = anyPlaying
+        ? 'border-green-500 dark:border-green-400 ring-2 ring-green-400'
+        : anySelected
+          ? 'border-teal-500 dark:border-teal-400'
+          : 'border-gray-300 dark:border-gray-600';
 
       return (
         <div

@@ -26,6 +26,10 @@ export const player = {
   _nextIdx: 0,
   _timer: null,
   _raf: null,
+  // Bumped by play/resume when they claim control, and by stop/pause. An async
+  // play/resume captures the value before its `await` and bails if it changed,
+  // so a second tap or a stop/pause during the await can't start a stale loop.
+  _epoch: 0,
 
   /**
    * Play / pause / resume in one entry point, suitable for a single toggle button.
@@ -45,12 +49,21 @@ export const player = {
    */
   async play(piece) {
     if (this.playing) return;
-    const { events, totalDiv } = buildSequence(piece.lines, piece.time);
+    const { bpm, time, taiko } = piece;
+    if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
+    const { events, totalDiv } = buildSequence(piece.lines, time);
     if (!events.length) return;
 
+    // Claim control synchronously so a second tap is rejected by the guard above
+    // before this one's `await` resolves, and capture the epoch to detect a
+    // stop/pause that lands during the await.
+    this.playing = true;
+    this.paused = false;
+    this.currentSoundId = null;
+    const epoch = ++this._epoch;
     await resumeAudio();
+    if (this._epoch !== epoch) return;
     const c = getAudioContext();
-    const { bpm, time, taiko } = piece;
 
     this._events = events.map((e) => ({
       sound: { name: e.name, hand: e.hand, volume: e.volume },
@@ -67,9 +80,6 @@ export const player = {
     this._endTime = this._startTime + divToSeconds(totalDiv, bpm, time);
     this._nextIdx = 0;
 
-    this.playing = true;
-    this.paused = false;
-    this.currentSoundId = null;
     this._timer = setInterval(() => this._schedule(), TICK);
     this._schedule();
     this._raf = requestAnimationFrame(() => this._followPlayhead());
@@ -79,6 +89,7 @@ export const player = {
   pause() {
     if (!this.playing || this.paused) return;
     this.paused = true;
+    this._epoch++; // invalidate any in-flight resume()
     suspendAudio(); // freezes the AudioContext clock, halting pending + future notes
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = null;
@@ -87,13 +98,16 @@ export const player = {
 
   async resume() {
     if (!this.playing || !this.paused) return;
+    this.paused = false; // claim synchronously so a second tap is rejected by the guard
+    const epoch = ++this._epoch;
     await resumeAudio();
-    this.paused = false;
+    if (this._epoch !== epoch) return;
     this._raf = requestAnimationFrame(() => this._followPlayhead());
     m.redraw();
   },
 
   stop() {
+    this._epoch++; // invalidate any in-flight play()/resume()
     if (this._timer) clearInterval(this._timer);
     if (this._raf) cancelAnimationFrame(this._raf);
     this._timer = null;
