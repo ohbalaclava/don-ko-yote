@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece } from './piece.js';
+import { VERSION } from '../version.js';
 
 export const patternStore = {
   items: [],
@@ -42,8 +43,10 @@ export const patternStore = {
 
   /** Downloads the current patterns as a JSON file, stripping internal ids. */
   exportJson() {
-    const data = patternStore.items.map(({ id: _id, ...p }) => p);
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const patterns = patternStore.items.map(({ id: _id, ...p }) => p);
+    const blob = new Blob([JSON.stringify({ appVersion: VERSION, patterns }, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -59,7 +62,10 @@ export const patternStore = {
    * @param {string} text
    */
   importJson(text) {
-    const data = JSON.parse(text);
+    const parsed = JSON.parse(text);
+    // Accept both the current { appVersion, patterns: [...] } format and the
+    // legacy bare-array format from exports made before versioning was added.
+    const data = Array.isArray(parsed) ? parsed : (parsed.patterns ?? []);
     if (!Array.isArray(data)) return;
     const currentSetId = piece.symbolSet.id;
     const incoming = data

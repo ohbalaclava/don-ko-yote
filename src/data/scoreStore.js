@@ -4,6 +4,7 @@ import { piece, isSoundLine } from './piece.js';
 import { history } from './history.js';
 import { patternStore } from './patterns.js';
 import { player } from '../audio/player.js';
+import { VERSION } from '../version.js';
 
 /**
  * Returns the id of the last sound line in `lines` (skipping headings, notes,
@@ -153,7 +154,9 @@ export const scoreStore = {
   /** Downloads the current score as a JSON file, stripping the internal database id. */
   exportJson() {
     const { id: _id, ...data } = snapshot();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ appVersion: VERSION, ...data }, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
