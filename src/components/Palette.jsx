@@ -89,7 +89,7 @@ function makeDragGhost(label, sub) {
  * @returns {number | undefined}
  */
 function findInsertionIndex(lineId, clientX) {
-  const container = document.querySelector(`[data-line-id="${lineId}"] .sounds-container`);
+  const container = document.querySelector(`.sounds-container[data-line-id="${lineId}"]`);
   if (!container) return undefined;
 
   const tiles = Array.from(container.querySelectorAll('[data-sound-id], [data-ligature-ids]'));
