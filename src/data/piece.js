@@ -810,13 +810,19 @@ export const piece = {
    * @param {string} lineId
    * @param {{ sounds: Array<{ duration: number }> }} pattern
    */
-  addGroup(lineId, pattern) {
+  addGroup(lineId, pattern, atIndex) {
     const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     let lineIdx = fromIdx;
+    let insertAt = atIndex;
     for (const s of pattern.sounds) {
       lineIdx = targetLineIdx(lineIdx, s.duration);
-      piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
+      if (lineIdx === fromIdx && insertAt != null) {
+        piece.lines[lineIdx].sounds.splice(insertAt, 0, { ...s, id: uid() });
+        insertAt++;
+      } else {
+        piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
+      }
     }
     piece.selectedLineId = piece.lines[lineIdx].id;
     piece._commit();

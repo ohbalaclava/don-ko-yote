@@ -81,11 +81,48 @@ function makeDragGhost(label, sub) {
 }
 
 /**
+ * Calculates the insertion index for a drop at the given position.
+ * Finds the sound tile under/nearest the cursor and returns its index,
+ * or undefined if dropping after all tiles.
+ * @param {string} lineId
+ * @param {number} clientX
+ * @returns {number | undefined}
+ */
+function findInsertionIndex(lineId, clientX) {
+  const container = document.querySelector(`[data-line-id="${lineId}"] .sounds-container`);
+  if (!container) return undefined;
+
+  const tiles = Array.from(container.querySelectorAll('[data-sound-id], [data-ligature-ids]'));
+  let insertIndex = undefined;
+
+  for (let i = 0; i < tiles.length; i++) {
+    const tile = tiles[i];
+    const rect = tile.getBoundingClientRect();
+    // If cursor is to the left of this tile's midpoint, insert before it
+    if (clientX < rect.left + rect.width / 2) {
+      insertIndex = i;
+      break;
+    }
+  }
+
+  // Map DOM index to data index, accounting for ligatures
+  if (insertIndex === undefined) return undefined;
+
+  let count = 0;
+  for (let i = 0; i < insertIndex; i++) {
+    const tile = tiles[i];
+    count += tile.dataset.ligatureIds ? tile.dataset.ligatureIds.split(',').length : 1;
+  }
+  return count;
+}
+
+/**
  * Returns a pointerdown handler that implements tap-or-drag behaviour.
  * A move of less than DRAG_THRESHOLD px is treated as a tap and calls onTap.
- * A larger move shows a ghost element and calls onDrop(lineId) on release,
- * where lineId is read from the nearest [data-line-id] ancestor under the pointer.
- * @param {{ onTap: () => void, onDrop: (lineId: string) => void, ghostLabel: string, ghostSub: string }} options
+ * A larger move shows a ghost element and calls onDrop(lineId, index) on release,
+ * where lineId is read from the nearest [data-line-id] ancestor under the pointer,
+ * and index is the insertion position within that line (or undefined to append).
+ * @param {{ onTap: () => void, onDrop: (lineId: string, index?: number) => void, ghostLabel: string, ghostSub: string }} options
  * @returns {(e: PointerEvent) => void}
  */
 function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
@@ -119,7 +156,11 @@ function dragBehaviour({ onTap, onDrop, ghostLabel, ghostSub }) {
         dragEl = null;
         const target = document.elementFromPoint(ev.clientX, ev.clientY);
         const container = target?.closest('[data-line-id]');
-        if (container) onDrop(container.dataset.lineId);
+        if (container) {
+          const lineId = container.dataset.lineId;
+          const insertIndex = findInsertionIndex(lineId, ev.clientX);
+          onDrop(lineId, insertIndex);
+        }
       } else {
         onTap();
       }
@@ -153,8 +194,8 @@ function SoundPaletteTile() {
             !piece.lineSelectMode &&
             piece.selectedLineId &&
             piece.addSound(piece.selectedLineId, sym),
-          onDrop: (lineId) =>
-            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, sym),
+          onDrop: (lineId, insertIndex) =>
+            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, sym, insertIndex),
         });
       }
       const dur = sym.duration ?? sym.alternatives?.[0]?.duration ?? 1;
@@ -190,8 +231,10 @@ function ImplicitPaletteTile() {
             !piece.lineSelectMode &&
             piece.selectedLineId &&
             piece.addSound(piece.selectedLineId, implicitSym()),
-          onDrop: (lineId) =>
-            !piece.selectMode && !piece.lineSelectMode && piece.addSound(lineId, implicitSym()),
+          onDrop: (lineId, insertIndex) =>
+            !piece.selectMode &&
+            !piece.lineSelectMode &&
+            piece.addSound(lineId, implicitSym(), insertIndex),
         });
       return (
         <div
@@ -221,8 +264,10 @@ function PatternPaletteTile() {
             !piece.lineSelectMode &&
             piece.selectedLineId &&
             piece.addGroup(piece.selectedLineId, pattern),
-          onDrop: (lineId) =>
-            !piece.selectMode && !piece.lineSelectMode && piece.addGroup(lineId, pattern),
+          onDrop: (lineId, insertIndex) =>
+            !piece.selectMode &&
+            !piece.lineSelectMode &&
+            piece.addGroup(lineId, pattern, insertIndex),
         });
       return (
         <div class="flex items-center gap-1">
