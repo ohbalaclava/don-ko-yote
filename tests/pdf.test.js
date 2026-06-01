@@ -106,10 +106,13 @@ describe('exportPdf', () => {
       expect(texts).toContain('Untitled');
     });
 
-    it('renders subtitle with taiko, jiuchi and beatsPerLine', async () => {
+    it('renders taiko, jiuchi and BPM as header metadata', async () => {
+      mockPiece.bpm = 120;
       await exportPdf();
       const texts = mockDoc.text.mock.calls.map(([t]) => t);
-      expect(texts).toContain('Shime  ·  七三  ·  4 beats/line');
+      expect(texts).toContain('Shime');
+      expect(texts).toContain('七三');
+      expect(texts).toContain('120 BPM');
     });
   });
 
@@ -147,11 +150,17 @@ describe('exportPdf', () => {
       expect(texts).toContain('forte');
     });
 
-    it('omits instruction text when absent', async () => {
+    it('draws exactly one extra text call when an instruction is present', async () => {
       mockPiece.lines = [makeLine([makeSound()])];
       await exportPdf();
-      // title + subtitle + hand + name + line number = 5 calls
-      expect(mockDoc.text).toHaveBeenCalledTimes(5);
+      const withoutInstruction = mockDoc.text.mock.calls.length;
+
+      vi.clearAllMocks();
+      mockPiece.lines = [makeLine([makeSound({ instruction: 'forte' })])];
+      await exportPdf();
+      const withInstruction = mockDoc.text.mock.calls.length;
+
+      expect(withInstruction).toBe(withoutInstruction + 1);
     });
   });
 
