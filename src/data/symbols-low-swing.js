@@ -10,8 +10,8 @@ export const LOW_SWING = {
   symbols: [
     { name: 'DON', duration: 3, hand: 'R', volume: 4 },
     { name: 'KON', duration: 3, hand: 'L', volume: 4 },
-    { name: 'SU', duration: 3, editable: true },
-    { name: 'KI', duration: 3, hand: 'B', volume: 4, editable: true },
+    { name: 'SU', duration: 3 },
+    { name: 'KI', duration: 3, hand: 'B', volume: 4 },
     { name: 'DO', duration: 2, hand: 'R', volume: 4 },
     { name: 'KO', duration: 1, hand: 'L', volume: 4 },
     { name: 'KA', duration: 2, hand: 'R', volume: 4 },
@@ -24,10 +24,10 @@ export const LOW_SWING = {
     { name: 'ra', duration: 1, hand: 'L', volume: 2 },
     { name: 'un', duration: 1 },
     { name: "'", duration: 1 },
-    { name: 'HUP', duration: 3, editable: true },
-    { name: 'HA', duration: 3, editable: true },
-    { name: 'SO', duration: 3, editable: true },
-    { name: 'RE', duration: 3, editable: true },
+    { name: 'HUP', duration: 3 },
+    { name: 'HA', duration: 3 },
+    { name: 'SO', duration: 3 },
+    { name: 'RE', duration: 3 },
   ],
   patterns: [
     {

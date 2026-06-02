@@ -55,8 +55,7 @@ export function singleLineRepeatMap(lines) {
 
 /**
  * Creates a new sound object from a palette symbol. Symbols with `alternatives`
- * default to the first alternative; `editable` is propagated onto the sound so
- * the inline editor knows to expose duration controls.
+ * default to the first alternative.
  * @param {object} symbol
  */
 function makeSound(symbol) {
@@ -69,7 +68,6 @@ function makeSound(symbol) {
       duration: alt.duration,
       instruction: '',
       alternatives: symbol.alternatives,
-      ...((symbol.editable || alt.editable) && { editable: true }),
       ...(symbol.implicit && { implicit: true }),
       ...(symbol.volume != null && { volume: symbol.volume }),
     };
@@ -80,7 +78,6 @@ function makeSound(symbol) {
     hand: symbol.hand,
     duration: symbol.duration,
     instruction: '',
-    ...(symbol.editable && { editable: true }),
     ...(symbol.implicit && { implicit: true }),
     ...(symbol.volume != null && { volume: symbol.volume }),
   };

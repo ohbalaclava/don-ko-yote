@@ -10,7 +10,7 @@ export const LOW_STRAIGHT = {
   symbols: [
     { name: 'DON', duration: 4, hand: 'R', volume: 4 },
     { name: 'KON', duration: 4, hand: 'L', volume: 4 },
-    { name: 'SU', duration: 4, editable: true },
+    { name: 'SU', duration: 4 },
     { name: 'DO', duration: 2, hand: 'R', volume: 4 },
     { name: 'KO', duration: 2, hand: 'L', volume: 4 },
     { name: 'KA', duration: 2, hand: 'R', volume: 4 },
@@ -25,10 +25,10 @@ export const LOW_STRAIGHT = {
     { name: 'su', duration: 1 },
     { name: 'un', duration: 1 },
     { name: "'", duration: 1 },
-    { name: 'HUP', duration: 4, editable: true },
-    { name: 'HA', duration: 4, editable: true },
-    { name: 'SO', duration: 4, editable: true },
-    { name: 'RE', duration: 4, editable: true },
+    { name: 'HUP', duration: 4 },
+    { name: 'HA', duration: 4 },
+    { name: 'SO', duration: 4 },
+    { name: 'RE', duration: 4 },
   ],
   patterns: [
     {

@@ -10,7 +10,7 @@ export const HIGH_STRAIGHT = {
   symbols: [
     { name: 'TEN', duration: 4, hand: 'R', volume: 4 },
     { name: 'KEN', duration: 4, hand: 'L', volume: 4 },
-    { name: 'SU', duration: 4, editable: true },
+    { name: 'SU', duration: 4 },
     { name: 'TE', duration: 2, hand: 'R', volume: 4 },
     { name: 'KE', duration: 2, hand: 'L', volume: 4 },
     { name: 'zu', duration: 2, hand: 'R', volume: 2 },
@@ -23,8 +23,8 @@ export const HIGH_STRAIGHT = {
     { name: "s'", duration: 1 },
     { name: "'", duration: 1 },
     { name: 'un', duration: 1 },
-    { name: 'HUP', duration: 4, editable: true },
-    { name: 'SO', duration: 4, editable: true },
-    { name: 'RE', duration: 4, editable: true },
+    { name: 'HUP', duration: 4 },
+    { name: 'SO', duration: 4 },
+    { name: 'RE', duration: 4 },
   ],
 };

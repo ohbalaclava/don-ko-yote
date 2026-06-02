@@ -197,7 +197,7 @@ export function SoundEditor() {
 
       const showHand = !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R';
       const showSkin = piece.skins === 2 && !!sound.hand;
-      const showDuration = sound.editable === true && !sound.implicit;
+      const showDuration = !sound.implicit;
       const maxDuration = time;
 
       return [

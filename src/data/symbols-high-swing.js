@@ -10,7 +10,7 @@ export const HIGH_SWING = {
   symbols: [
     { name: 'TEN', duration: 3, hand: 'R', volume: 4 },
     { name: 'KEN', duration: 3, hand: 'L', volume: 4 },
-    { name: 'SU', duration: 3, editable: true },
+    { name: 'SU', duration: 3 },
     { name: 'TE', duration: 2, hand: 'R', volume: 4 },
     { name: 'KE', duration: 1, hand: 'L', volume: 4 },
     {
@@ -21,7 +21,6 @@ export const HIGH_SWING = {
         { hand: 'L', duration: 1 },
         { hand: 'B', duration: 3 },
       ],
-      editable: true,
     },
     { name: 'tsu', duration: 2, hand: 'R', volume: 2 },
     { name: 'ku', duration: 1, hand: 'L', volume: 2 },
@@ -32,8 +31,8 @@ export const HIGH_SWING = {
     { name: "s'", duration: 1 },
     { name: "'", duration: 1 },
     { name: 'un', duration: 1 },
-    { name: 'HUP', duration: 3, editable: true },
-    { name: 'SO', duration: 3, editable: true },
-    { name: 'RE', duration: 3, editable: true },
+    { name: 'HUP', duration: 3 },
+    { name: 'SO', duration: 3 },
+    { name: 'RE', duration: 3 },
   ],
 };
