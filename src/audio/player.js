@@ -7,6 +7,13 @@ const LOOKAHEAD = 0.1; // seconds of audio scheduled ahead of the clock
 const TICK = 25; // scheduler poll interval (ms)
 const LEAD_IN = 0.12; // small delay so the first note isn't scheduled in the past
 
+/** Shallow equality for two Sets of ids. */
+function sameSet(a, b) {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
 /**
  * Singleton playback controller. Flattens the piece into a timed event stream and
  * schedules synth strikes against the AudioContext clock using the classic
@@ -16,13 +23,14 @@ const LEAD_IN = 0.12; // small delay so the first note isn't scheduled in the pa
  */
 export const player = {
   playing: false,
-  currentSoundId: null,
+  // Ids of every sound currently under the playhead. A Set (not a single id) so a
+  // stack's simultaneous parts all highlight at once.
+  currentSoundIds: new Set(),
   // What is currently playing, so scoped play buttons can show the right state:
   // { type: 'all' | 'line' | 'section' | 'block', id?: string }. Null when stopped.
   scope: null,
 
   _events: [],
-  _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
   _nextIdx: 0,
@@ -36,6 +44,11 @@ export const player = {
   /** True when the given scope descriptor matches what's currently playing. */
   isScope(type, id) {
     return this.playing && this.scope?.type === type && this.scope?.id === id;
+  },
+
+  /** True when the given sound id is currently under the playhead. */
+  isCurrent(id) {
+    return this.currentSoundIds.has(id);
   },
 
   /**
@@ -78,7 +91,7 @@ export const player = {
     const scope = opts.scope ?? { type: 'all' };
     const { bpm, time, taiko } = piece;
     if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
-    const { events, totalDiv } = buildSequence(lines, time);
+    const { events, totalDiv } = buildSequence(lines, time, (line) => piece.resolveTaiko(line));
     if (!events.length) return;
 
     // Claim control synchronously so a second tap is rejected by the guard above
@@ -86,7 +99,7 @@ export const player = {
     // stop that lands during the await.
     this.playing = true;
     this.scope = scope;
-    this.currentSoundId = null;
+    this.currentSoundIds = new Set();
     const epoch = ++this._epoch;
     await resumeAudio();
     if (this._epoch !== epoch) return;
@@ -95,11 +108,11 @@ export const player = {
     this._events = events.map((e) => ({
       sound: { name: e.name, hand: e.hand, volume: e.volume },
       soundId: e.soundId,
+      taiko: e.taiko ?? taiko, // per-event taiko, falling back to the score taiko
       atSec: divToSeconds(e.startDiv, bpm, time),
       endSec: divToSeconds(e.startDiv + e.durationDiv, bpm, time),
       audible: e.volume != null,
     }));
-    this._taiko = taiko;
 
     const base = c.currentTime + LEAD_IN;
     // Count-in only for whole-piece playback; scoped previews start immediately.
@@ -126,7 +139,7 @@ export const player = {
     const wasActive = this.playing;
     this.playing = false;
     this.scope = null;
-    this.currentSoundId = null;
+    this.currentSoundIds = new Set();
     if (wasActive) m.redraw();
   },
 
@@ -151,7 +164,7 @@ export const player = {
       const e = this._events[this._nextIdx];
       const when = this._startTime + e.atSec;
       if (when >= horizon) break;
-      if (e.audible) voice.strike(e.sound, when, this._taiko);
+      if (e.audible) voice.strike(e.sound, when, e.taiko);
       this._nextIdx++;
     }
   },
@@ -165,17 +178,15 @@ export const player = {
       return;
     }
     const elapsed = c.currentTime - this._startTime;
-    let id = null;
+    // Collect every event under the playhead (stack parts overlap in time).
+    const ids = new Set();
     if (elapsed >= 0) {
       for (const e of this._events) {
-        if (e.atSec <= elapsed && elapsed < e.endSec) {
-          id = e.soundId;
-          break;
-        }
+        if (e.atSec <= elapsed && elapsed < e.endSec) ids.add(e.soundId);
       }
     }
-    if (id !== this.currentSoundId) {
-      this.currentSoundId = id;
+    if (!sameSet(ids, this.currentSoundIds)) {
+      this.currentSoundIds = ids;
       m.redraw();
     }
     this._raf = requestAnimationFrame(() => this._followPlayhead());

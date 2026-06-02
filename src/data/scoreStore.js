@@ -7,15 +7,19 @@ import { player } from '../audio/player.js';
 import { VERSION } from '../version.js';
 
 /**
- * Returns the id of the last sound line in `lines` (skipping headings, notes,
- * dividers, and block-repeat markers). Falls back to the very last item if no
- * sound line exists, or null for an empty array.
+ * Returns the id of the last editable sounds-holder in `lines` — a sound line, or
+ * the last part of a stack (skipping headings, notes, dividers, and markers). Falls
+ * back to the very last item if none exists, or null for an empty array.
  * @param {Array} lines
  * @returns {string | null}
  */
 function lastSoundLineId(lines) {
   for (let i = lines.length - 1; i >= 0; i--) {
-    if (isSoundLine(lines[i])) return lines[i].id;
+    const item = lines[i];
+    if (isSoundLine(item)) return item.id;
+    if (item.type === 'stack' && item.parts.length) {
+      return item.parts[item.parts.length - 1].id;
+    }
   }
   return lines[lines.length - 1]?.id ?? null;
 }

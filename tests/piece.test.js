@@ -531,3 +531,85 @@ describe('removeLine / deleteSelectedLines — block-repeat pruning', () => {
     expect(marker().lineIds).toEqual([a, c]);
   });
 });
+
+// ── stacks (simultaneous parts) ─────────────────────────────────────────────
+
+describe('stacks', () => {
+  function makeTwoLines() {
+    piece.addSound(piece.lines[0].id, sym('TEN'));
+    piece.addLine();
+    piece.addSound(piece.lines[1].id, sym('KEN', 'L'));
+    return [piece.lines[0].id, piece.lines[1].id];
+  }
+
+  it('folds selected lines into a stack with a part per line, keeping ids', () => {
+    const [a, b] = makeTwoLines();
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.toggleLineSelection(b);
+    piece.addStack();
+    expect(piece.lines).toHaveLength(1);
+    const stack = piece.lines[0];
+    expect(stack.type).toBe('stack');
+    expect(stack.parts.map((p) => p.id)).toEqual([a, b]);
+    expect(stack.parts[0].sounds[0].name).toBe('TEN');
+  });
+
+  it('captures each part taiko from the line that folded into it', () => {
+    const [a, b] = makeTwoLines();
+    piece.setLineTaiko(b, 'Nagado');
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.toggleLineSelection(b);
+    piece.addStack();
+    const stack = piece.lines[0];
+    expect(stack.parts[0].taiko).toBe('Shime'); // piece default
+    expect(stack.parts[1].taiko).toBe('Nagado');
+  });
+
+  it('refuses a stack of fewer than two lines', () => {
+    const [a] = makeTwoLines();
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.addStack();
+    expect(piece.lines.some((l) => l.type === 'stack')).toBe(false);
+  });
+
+  it('routes addSound to a part by its id (no overflow)', () => {
+    const [a, b] = makeTwoLines();
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.toggleLineSelection(b);
+    piece.addStack();
+    const partId = piece.lines[0].parts[0].id;
+    piece.addSound(partId, sym('te', 'R', 1));
+    expect(piece.lines[0].parts[0].sounds.map((s) => s.name)).toEqual(['TEN', 'te']);
+  });
+
+  it('breakStack restores one line per part with its taiko as an override', () => {
+    const [a, b] = makeTwoLines();
+    piece.setLineTaiko(b, 'Nagado');
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.toggleLineSelection(b);
+    piece.addStack();
+    const stackId = piece.lines[0].id;
+    piece.breakStack(stackId);
+    expect(piece.lines).toHaveLength(2);
+    expect(piece.lines[0].id).toBe(a);
+    expect(piece.lines[1].taiko).toBe('Nagado');
+  });
+
+  it('removePart dissolves a stack that drops to one part', () => {
+    const [a, b] = makeTwoLines();
+    piece.toggleLineSelectMode();
+    piece.toggleLineSelection(a);
+    piece.toggleLineSelection(b);
+    piece.addStack();
+    const stack = piece.lines[0];
+    piece.removePart(stack.id, stack.parts[1].id);
+    expect(piece.lines.some((l) => l.type === 'stack')).toBe(false);
+    expect(piece.lines).toHaveLength(1);
+    expect(piece.lines[0].id).toBe(a);
+  });
+});

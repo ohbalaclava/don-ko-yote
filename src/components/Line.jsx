@@ -63,7 +63,11 @@ function handlePaletteDrop(evt) {
   } else if (ds.paletteImplicit != null) {
     piece.addSound(toLineId, { name: '—', duration: piece.time, implicit: true }, toIndex);
   } else if (ds.paletteSound != null) {
-    const sym = piece.symbolSet.symbols.find((s) => s.name === ds.paletteSound);
+    // Resolve the symbol against the drop *target* line's set, which may differ
+    // from the selected line's when taikos are mixed.
+    const toLine = piece.lines.find((l) => l.id === toLineId);
+    const set = toLine ? piece.symbolSetForLine(toLine) : piece.symbolSet;
+    const sym = set.symbols.find((s) => s.name === ds.paletteSound);
     if (sym) piece.addSound(toLineId, sym, toIndex);
   }
 }

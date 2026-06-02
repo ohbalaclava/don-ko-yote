@@ -12,7 +12,7 @@ export function LigatureTile() {
       const time = piece.time;
       let subPos = startPos;
       const anySelected = selectionIds && sounds.some((s) => selectionIds.has(s.id));
-      const anyPlaying = sounds.some((s) => player.currentSoundId === s.id);
+      const anyPlaying = sounds.some((s) => player.isCurrent(s.id));
       const outerBorder = anyPlaying
         ? 'border-green-500 dark:border-green-400 ring-2 ring-green-400'
         : anySelected
@@ -32,7 +32,7 @@ export function LigatureTile() {
             const isEditing =
               !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
             const isSelected = selectionIds ? selectionIds.has(sound.id) : false;
-            const isPlaying = player.currentSoundId === sound.id;
+            const isPlaying = player.isCurrent(sound.id);
 
             const edgePad = idx === 0 ? 'pl-1' : idx === sounds.length - 1 ? 'pr-1' : '';
             const subBg = isPlaying

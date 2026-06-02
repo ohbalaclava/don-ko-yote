@@ -5,7 +5,7 @@ import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
 const uid = () => crypto.randomUUID();
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
-const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
+const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat', 'stack']);
 
 /**
  * True when an item is a real sound line, i.e. not a heading, note, divider,
@@ -103,13 +103,36 @@ function makeBlockRepeat(count, lineIds) {
   return { id: uid(), type: 'block-repeat', count, lineIds };
 }
 
+/** A single part (one taiko's row) inside a stack. Shaped like a sound line. */
+function makeStackPart(taiko, sounds = []) {
+  return { id: uid(), taiko, sounds };
+}
+
+/**
+ * The id of the first editable sounds-holder in the piece — a sound line, or the
+ * first part of the first stack. Used to pick a valid `selectedLineId` fallback,
+ * counting stacks as content.
+ * @returns {string|null}
+ */
+function firstHolderId() {
+  for (const item of piece.lines) {
+    if (isSoundLine(item)) return item.id;
+    if (item.type === 'stack' && item.parts.length) return item.parts[0].id;
+  }
+  return null;
+}
+
 function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
 
 /**
  * Returns the index of the first line (starting from fromIdx) that can fit
- * `duration` divisions. Creates a new line at the end when all lines are full.
+ * `duration` divisions, without crossing a taiko boundary. Overflow stays within
+ * the source line's resolved taiko: the forward scan stops at a taiko-bearing
+ * heading or a stack, and skips any line that resolves to a different taiko. When
+ * no existing line in the run has room, a fresh line is inserted at the boundary
+ * (pinned to the source taiko if inheritance would resolve it differently).
  * When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
  * returns fromIdx unchanged.
  * @param {number} fromIdx - Starting line index.
@@ -119,14 +142,26 @@ function lineDur(line) {
 function targetLineIdx(fromIdx, duration) {
   const max = piece.beatsPerLine * piece.time;
   if (!piece.beatsPerLine || duration > max) return fromIdx;
+  const fromTaiko = piece.resolveTaiko(piece.lines[fromIdx]);
   let i = fromIdx;
   while (i < piece.lines.length) {
     const item = piece.lines[i];
-    if (isSoundLine(item) && lineDur(item) + duration <= max) return i;
+    // A taiko-bearing heading or a stack ends the current taiko run.
+    if (i > fromIdx && ((item.type === 'heading' && item.taiko) || item.type === 'stack')) break;
+    if (
+      isSoundLine(item) &&
+      piece.resolveTaiko(item) === fromTaiko &&
+      lineDur(item) + duration <= max
+    ) {
+      return i;
+    }
     i++;
   }
-  piece.lines.push(makeLine());
-  return piece.lines.length - 1;
+  const line = makeLine();
+  piece.lines.splice(i, 0, line);
+  // Keep the overflow on the source taiko even when inheritance would differ.
+  if (piece.resolveTaiko(line) !== fromTaiko) line.taiko = fromTaiko;
+  return i;
 }
 
 /** True for the structural rows that are skipped when computing line adjacency. */
@@ -237,9 +272,69 @@ export const piece = {
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
 
-  /** Active symbol set, resolved lazily from (taiko, jiuchi). */
+  /**
+   * Resolves a sound-line's effective taiko: its own `taiko` override, else the
+   * nearest preceding taiko-bearing heading, else the score-wide `piece.taiko`.
+   * Plain scores set none of these, so every line resolves to `piece.taiko`.
+   * @param {{ id?: string, taiko?: string } | null} line
+   * @returns {string}
+   */
+  resolveTaiko(line) {
+    if (line?.taiko) return line.taiko;
+    const idx = line ? this.lines.indexOf(line) : -1;
+    if (idx >= 0) {
+      for (let i = idx - 1; i >= 0; i--) {
+        const it = this.lines[i];
+        if (it.type === 'heading' && it.taiko) return it.taiko;
+      }
+    }
+    return this.taiko;
+  },
+
+  /**
+   * Resolves the sounds-holder for an id, which may be a top-level sound line or a
+   * part nested in a stack. Both shapes expose `{ id, sounds }`, so all the sound
+   * mutators operate on the returned `holder` uniformly.
+   * @param {string} id
+   * @returns {{ holder: { id: string, sounds: Array }, isPart: boolean, stack: object|null } | null}
+   */
+  _holder(id) {
+    for (const item of this.lines) {
+      if (isSoundLine(item) && item.id === id) return { holder: item, isPart: false, stack: null };
+      if (item.type === 'stack') {
+        const part = item.parts.find((p) => p.id === id);
+        if (part) return { holder: part, isPart: true, stack: item };
+      }
+    }
+    return null;
+  },
+
+  /** The symbol set for a specific line/part, from its resolved taiko + the score jiuchi. */
+  symbolSetForLine(line) {
+    return getSymbolSet(this.resolveTaiko(line), this.jiuchi) ?? _defaultSet;
+  },
+
+  /** Number of skins (1 or 2) on a specific line's resolved taiko. */
+  skinsFor(line) {
+    const t = this.resolveTaiko(line);
+    return this.symbolSetForLine(line).taiko.find((x) => x.name === t)?.skins ?? 1;
+  },
+
+  /** The selected sounds-holder (line or stack part), or null when none is selected. */
+  get _selectedLine() {
+    return this._holder(this.selectedLineId)?.holder ?? null;
+  },
+
+  /**
+   * Active symbol set for the editing context — the selected line's set (so the
+   * palette and tiles follow the line being edited), falling back to the score
+   * default when no line is selected.
+   */
   get symbolSet() {
-    return getSymbolSet(this.taiko, this.jiuchi) ?? _defaultSet;
+    const line = this._selectedLine;
+    return line
+      ? this.symbolSetForLine(line)
+      : (getSymbolSet(this.taiko, this.jiuchi) ?? _defaultSet);
   },
 
   /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
@@ -247,9 +342,12 @@ export const piece = {
     return this.symbolSet.time;
   },
 
-  /** Number of skins on the active taiko (1 or 2). Sounds with a hand can target either skin when 2. */
+  /** Number of skins on the selected line's taiko (1 or 2). */
   get skins() {
-    return this.symbolSet.taiko.find((t) => t.name === this.taiko)?.skins ?? 1;
+    const line = this._selectedLine;
+    return line
+      ? this.skinsFor(line)
+      : (this.symbolSet.taiko.find((t) => t.name === this.taiko)?.skins ?? 1);
   },
 
   /** @type {{ lineId: string, soundId: string } | null} Which tile has its popup open. */
@@ -304,8 +402,9 @@ export const piece = {
     applyPersistedFields(state);
     piece.lines = state.lines;
     piece._resetTransientState();
-    if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
-      piece.selectedLineId = piece.lines.find(isSoundLine)?.id ?? null;
+    // selectedLineId may name a line or a stack part; fall back to the first holder.
+    if (!piece._holder(piece.selectedLineId)) {
+      piece.selectedLineId = firstHolderId();
     }
   },
 
@@ -366,6 +465,31 @@ export const piece = {
   },
   setJiuchi(v) {
     piece.jiuchi = v;
+    piece._commit();
+  },
+  /**
+   * Sets (or clears, with null) a per-section taiko override on a heading. Lines
+   * under the heading inherit it until the next taiko-bearing heading.
+   * @param {string} headingId
+   * @param {string|null} taiko
+   */
+  setHeadingTaiko(headingId, taiko) {
+    const h = piece.lines.find((l) => l.id === headingId);
+    if (!h || h.type !== 'heading') return;
+    if (taiko == null) delete h.taiko;
+    else h.taiko = taiko;
+    piece._commit();
+  },
+  /**
+   * Sets (or clears, with null) a per-line taiko override on a sound line.
+   * @param {string} lineId
+   * @param {string|null} taiko
+   */
+  setLineTaiko(lineId, taiko) {
+    const l = piece.lines.find((l) => l.id === lineId);
+    if (!l || !isSoundLine(l)) return;
+    if (taiko == null) delete l.taiko;
+    else l.taiko = taiko;
     piece._commit();
   },
   setBeatsPerLine(v) {
@@ -587,13 +711,18 @@ export const piece = {
       return item.lineIds.length > 0;
     });
     const realLines = piece.lines.filter(isSoundLine);
-    if (realLines.length === 0) {
+    // A stack counts as content, so only inject an empty line when nothing is left.
+    if (firstHolderId() == null) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
     } else if (piece.selectedLineId === lineId) {
-      const nearIdx = Math.min(idx, realLines.length - 1);
-      piece.selectedLineId = realLines[nearIdx >= 0 ? nearIdx : 0].id;
+      if (realLines.length) {
+        const nearIdx = Math.min(idx, realLines.length - 1);
+        piece.selectedLineId = realLines[nearIdx >= 0 ? nearIdx : 0].id;
+      } else {
+        piece.selectedLineId = firstHolderId();
+      }
     }
     piece._commit();
   },
@@ -610,7 +739,19 @@ export const piece = {
     if (item.type === 'note') return { ...item, id: uid() };
     if (item.type === 'divider') return { ...item, id: uid() };
     if (item.type === 'block-repeat') return { ...item, id: uid() };
+    if (item.type === 'stack') {
+      return {
+        ...item,
+        id: uid(),
+        parts: item.parts.map((p) => ({
+          ...p,
+          id: uid(),
+          sounds: p.sounds.map((s) => ({ ...s, id: uid() })),
+        })),
+      };
+    }
     return {
+      ...item,
       id: uid(),
       sounds: item.sounds.map((s) => ({ ...s, id: uid() })),
     };
@@ -646,8 +787,8 @@ export const piece = {
       return item.lineIds.length > 0;
     });
     piece.lineSelection = [];
-    const realLines = piece.lines.filter(isSoundLine);
-    if (realLines.length === 0) {
+    // A stack counts as content, so only inject an empty line when nothing is left.
+    if (firstHolderId() == null) {
       const line = makeLine();
       piece.lines.push(line);
       piece.selectedLineId = line.id;
@@ -693,6 +834,113 @@ export const piece = {
     piece._commit();
   },
 
+  // ── Stacks (simultaneous parts) ────────────────────────────────────────────
+
+  /**
+   * Folds the selected sound lines into a single stack item that plays its parts
+   * simultaneously. Each line becomes a part keyed by its existing id (so editing/
+   * selection references stay valid), tagged with the line's resolved taiko. The
+   * stack is inserted at the position of the first folded line; needs ≥2 lines.
+   */
+  addStack() {
+    const selSet = new Set(piece.lineSelection);
+    const selLines = piece.lines.filter((item) => selSet.has(item.id) && isSoundLine(item));
+    if (selLines.length < 2) return;
+    const foldSet = new Set(selLines.map((l) => l.id));
+    const stack = {
+      id: uid(),
+      type: 'stack',
+      parts: selLines.map((l) => ({ id: l.id, taiko: piece.resolveTaiko(l), sounds: l.sounds })),
+    };
+    // Rebuild lines: drop the folded lines, drop the stack in at the first one's slot.
+    const newLines = [];
+    let inserted = false;
+    for (const item of piece.lines) {
+      if (foldSet.has(item.id)) {
+        if (!inserted) {
+          newLines.push(stack);
+          inserted = true;
+        }
+      } else {
+        newLines.push(item);
+      }
+    }
+    piece.lines = newLines;
+    // Prune folded ids from block-repeat markers (they're now parts, not lines).
+    piece.lines = piece.lines.filter((item) => {
+      if (item.type !== 'block-repeat') return true;
+      item.lineIds = item.lineIds.filter((id) => !foldSet.has(id));
+      return item.lineIds.length > 0;
+    });
+    piece.lineSelection = [];
+    piece.lineSelectMode = false;
+    piece.selectedLineId = stack.parts[0].id;
+    piece._commit();
+  },
+
+  /**
+   * Expands a stack back into individual sound lines, one per part (each keeps its
+   * taiko as a per-line override). Replaces the stack in place.
+   * @param {string} stackId
+   */
+  breakStack(stackId) {
+    const idx = piece.lines.findIndex((l) => l.id === stackId && l.type === 'stack');
+    if (idx === -1) return;
+    const stack = piece.lines[idx];
+    const lines = stack.parts.map((p) => ({
+      id: p.id,
+      sounds: p.sounds,
+      ...(p.taiko ? { taiko: p.taiko } : {}),
+    }));
+    piece.lines.splice(idx, 1, ...lines);
+    piece.selectedLineId = lines[0]?.id ?? firstHolderId();
+    piece._commit();
+  },
+
+  /**
+   * Adds a new empty part (defaulting to the score taiko) to a stack.
+   * @param {string} stackId
+   */
+  addPart(stackId) {
+    const stack = piece.lines.find((l) => l.id === stackId && l.type === 'stack');
+    if (!stack) return;
+    const part = makeStackPart(piece.taiko);
+    stack.parts.push(part);
+    piece.selectedLineId = part.id;
+    piece._commit();
+  },
+
+  /**
+   * Removes a part from a stack. A stack with one or zero remaining parts is
+   * dissolved back into plain lines.
+   * @param {string} stackId
+   * @param {string} partId
+   */
+  removePart(stackId, partId) {
+    const stack = piece.lines.find((l) => l.id === stackId && l.type === 'stack');
+    if (!stack) return;
+    stack.parts = stack.parts.filter((p) => p.id !== partId);
+    if (stack.parts.length <= 1) {
+      piece.breakStack(stackId); // breakStack commits
+      return;
+    }
+    piece._commit();
+  },
+
+  /**
+   * Sets the taiko of a stack part.
+   * @param {string} stackId
+   * @param {string} partId
+   * @param {string} taiko
+   */
+  setPartTaiko(stackId, partId, taiko) {
+    const stack = piece.lines.find((l) => l.id === stackId && l.type === 'stack');
+    const part = stack?.parts.find((p) => p.id === partId);
+    if (!part) return;
+    part.taiko = taiko;
+    piece._commit();
+  },
+
   // ── Sounds ────────────────────────────────────────────────────────────────
 
   /**
@@ -703,6 +951,15 @@ export const piece = {
    * @param {number} [atIndex] - Insert position within the line; appends if omitted.
    */
   addSound(lineId, symbol, atIndex) {
+    const h = piece._holder(lineId);
+    // A stack part is a single wrapping row: no cross-line overflow, just insert.
+    if (h?.isPart) {
+      const s = makeSound(symbol);
+      if (atIndex != null) h.holder.sounds.splice(atIndex, 0, s);
+      else h.holder.sounds.push(s);
+      piece._commit();
+      return;
+    }
     const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     const s = makeSound(symbol);
@@ -725,14 +982,17 @@ export const piece = {
    * @param {number} toIndex
    */
   moveSound(fromLineId, soundId, toLineId, toIndex) {
-    const fromLine = piece.lines.find((l) => l.id === fromLineId);
-    const toLine = piece.lines.find((l) => l.id === toLineId);
-    if (!fromLine || !toLine) return;
+    const from = piece._holder(fromLineId);
+    const to = piece._holder(toLineId);
+    if (!from || !to) return;
+    const fromLine = from.holder;
+    const toLine = to.holder;
     const idx = fromLine.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
     const sound = fromLine.sounds[idx];
     if (
       fromLineId !== toLineId &&
+      !to.isPart && // parts wrap freely — no per-row beat budget
       piece.beatsPerLine > 0 &&
       lineDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
     ) {
@@ -754,13 +1014,15 @@ export const piece = {
    * @param {number} toIndex - Insertion point in the target line's data array.
    */
   moveSounds(fromLineId, soundIds, toLineId, toIndex) {
-    const fromLine = piece.lines.find((l) => l.id === fromLineId);
-    const toLine = piece.lines.find((l) => l.id === toLineId);
-    if (!fromLine || !toLine) return;
+    const from = piece._holder(fromLineId);
+    const to = piece._holder(toLineId);
+    if (!from || !to) return;
+    const fromLine = from.holder;
+    const toLine = to.holder;
     const idSet = new Set(soundIds);
     const sounds = fromLine.sounds.filter((s) => idSet.has(s.id));
     if (sounds.length !== soundIds.length) return;
-    if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
+    if (fromLineId !== toLineId && !to.isPart && piece.beatsPerLine > 0) {
       const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
       if (lineDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
         // Overflow: reject the move. The dragged node was already reverted in the
@@ -775,7 +1037,7 @@ export const piece = {
   },
 
   removeSound(lineId, soundId) {
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = piece._holder(lineId)?.holder;
     if (!line) return;
     line.sounds = line.sounds.filter((s) => s.id !== soundId);
     piece._commit();
@@ -788,7 +1050,7 @@ export const piece = {
    * @param {Partial<{ hand: string, instruction: string }>} patch
    */
   updateSound(lineId, soundId, patch) {
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = piece._holder(lineId)?.holder;
     if (!line) return;
     const s = line.sounds.find((s) => s.id === soundId);
     if (!s) return;
@@ -808,6 +1070,21 @@ export const piece = {
    * @param {{ sounds: Array<{ duration: number }> }} pattern
    */
   addGroup(lineId, pattern, atIndex) {
+    const h = piece._holder(lineId);
+    // A stack part doesn't overflow: insert all the pattern's sounds in place.
+    if (h?.isPart) {
+      let insertAt = atIndex;
+      for (const s of pattern.sounds) {
+        if (insertAt != null) {
+          h.holder.sounds.splice(insertAt, 0, { ...s, id: uid() });
+          insertAt++;
+        } else {
+          h.holder.sounds.push({ ...s, id: uid() });
+        }
+      }
+      piece._commit();
+      return;
+    }
     const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
     if (fromIdx === -1) return;
     let lineIdx = fromIdx;

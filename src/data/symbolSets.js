@@ -25,6 +25,28 @@ export const TAIKO_GROUPS = [
 ];
 
 /**
+ * All taikos usable with a given jiuchi, in first-seen order across the sets that
+ * include that jiuchi (deduped by name). Used by the per-section taiko picker:
+ * with the jiuchi fixed score-wide, these are the taikos a section can switch to.
+ * @param {string} jiuchi
+ * @returns {Array<{ name: string, skins: number }>}
+ */
+export function taikosForJiuchi(jiuchi) {
+  const seen = new Set();
+  const out = [];
+  for (const set of SYMBOL_SETS) {
+    if (!set.jiuchis.includes(jiuchi)) continue;
+    for (const t of set.taiko) {
+      if (!seen.has(t.name)) {
+        seen.add(t.name);
+        out.push(t);
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * Resolves a built-in pattern's sound names against a symbol set, returning
  * a pattern whose sounds are `{ name, hand, duration }` objects ready for
  * `piece.addGroup`. Sound names that aren't found are dropped.

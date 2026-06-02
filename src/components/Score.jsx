@@ -5,6 +5,7 @@ import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
 import { patternStore } from '../data/patterns.js';
 import { Line } from './Line.jsx';
+import { Stack } from './Stack.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
@@ -21,7 +22,8 @@ export function Score() {
       .filter((s) => selectedSet.has(s.id))
       .map(({ id: _id, ...rest }) => rest);
     const name = sounds.map((s) => s.name).join(' ');
-    await patternStore.save(name, sounds, piece.symbolSet.id);
+    // Tag the pattern with the set of the line it was selected from (taikos may be mixed).
+    await patternStore.save(name, sounds, piece.symbolSetForLine(line).id);
     piece.clearSelection();
   }
 
@@ -104,6 +106,13 @@ export function Score() {
                   Repeat
                 </button>,
                 <button
+                  class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
+                  onclick={() => piece.addStack()}
+                  title="Play these lines together as one stack"
+                >
+                  Stack
+                </button>,
+                <button
                   class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
                   onclick={() => piece.deleteSelectedLines()}
                 >
@@ -160,6 +169,9 @@ export function Score() {
                   return (
                     <BlockRepeatRow key={item.id} item={item} depth={markerDepth(item, markers)} />
                   );
+                }
+                if (item.type === 'stack') {
+                  return <Stack key={item.id} stack={item} />;
                 }
                 if (item.type === 'heading') {
                   return (

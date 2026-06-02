@@ -62,7 +62,8 @@ export function expandRepeats(lines) {
         continue;
       }
       const item = lines[i];
-      if (isSoundLine(item)) out.push(item);
+      // Sound lines and stacks are both playable units; other rows produce nothing.
+      if (isSoundLine(item) || item.type === 'stack') out.push(item);
       i++;
     }
     return out;
@@ -81,23 +82,44 @@ export function expandRepeats(lines) {
  *
  * @param {Array<object>} lines - The piece's lines array.
  * @param {number} time - Divisions per beat (e.g. 4 straight, 3 swing).
- * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, volume: number|null, startDiv: number, durationDiv: number }>, totalDiv: number }}
+ * @param {(line: object) => string|undefined} [resolveTaiko] - Maps a line to its
+ *   effective taiko, tagged onto each event so the engine can voice it per strike.
+ *   Defaults to leaving `taiko` undefined (the player falls back to the score taiko).
+ * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, volume: number|null, taiko: string|undefined, startDiv: number, durationDiv: number }>, totalDiv: number }}
  */
-export function buildSequence(lines, time) {
+export function buildSequence(lines, time, resolveTaiko = () => undefined) {
   const events = [];
   let pos = 0;
-  for (const line of expandRepeats(lines)) {
-    for (const s of line.sounds) {
+
+  /** Emits events for one holder (line or stack part) starting at `start`; returns its length. */
+  const emit = (holder, start, taiko) => {
+    let p = start;
+    for (const s of holder.sounds) {
       events.push({
-        lineId: line.id,
+        lineId: holder.id,
         soundId: s.id,
         name: s.name,
         hand: s.hand,
         volume: effectiveVolume(s),
-        startDiv: pos,
+        taiko,
+        startDiv: p,
         durationDiv: s.duration,
       });
-      pos += s.duration;
+      p += s.duration;
+    }
+    return p - start;
+  };
+
+  for (const unit of expandRepeats(lines)) {
+    if (unit.type === 'stack') {
+      // All parts start together; the stack occupies the longest part's span.
+      let maxLen = 0;
+      for (const part of unit.parts) {
+        maxLen = Math.max(maxLen, emit(part, pos, part.taiko));
+      }
+      pos += maxLen;
+    } else {
+      pos += emit(unit, pos, resolveTaiko(unit));
     }
   }
   return { events, totalDiv: pos };

@@ -3,6 +3,7 @@ import { piece } from '../data/piece.js';
 import { repeatDecoration } from './repeatDecoration.js';
 import { player } from '../audio/player.js';
 import { sectionSlice } from '../data/sequence.js';
+import { taikosForJiuchi } from '../data/symbolSets.js';
 
 export function SectionHeading() {
   let editing = false;
@@ -75,6 +76,20 @@ export function SectionHeading() {
               )}
             </span>
           )}
+          <select
+            class="shrink-0 text-xs rounded border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-800 dark:text-gray-300 px-1 py-0.5 max-w-[6rem]"
+            value={heading.taiko ?? ''}
+            onclick={(e) => e.stopPropagation()}
+            onchange={(e) => piece.setHeadingTaiko(heading.id, e.target.value || null)}
+            title="Taiko for this section"
+          >
+            <option value="">Taiko: default</option>
+            {taikosForJiuchi(piece.jiuchi).map((t) => (
+              <option key={t.name} value={t.name}>
+                {t.name}
+              </option>
+            ))}
+          </select>
           <button
             class={`shrink-0 text-base leading-none ${player.isScope('section', heading.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'}`}
             onclick={(e) => {

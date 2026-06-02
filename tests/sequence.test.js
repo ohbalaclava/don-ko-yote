@@ -135,6 +135,68 @@ describe('buildSequence', () => {
     expect(events).toHaveLength(1);
     expect(totalDiv).toBe(4);
   });
+
+  it('tags each event with its line taiko via the resolver', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4)]), line('b', [sound('DON', 'R', 4)])];
+    const taiko = (l) => (l.id === 'a' ? 'Shime' : 'Nagado');
+    const { events } = buildSequence(lines, 4, taiko);
+    expect(events.map((e) => e.taiko)).toEqual(['Shime', 'Nagado']);
+  });
+});
+
+// ── stacks (simultaneous parts) ──────────────────────────────────────────────
+
+function stack(id, parts) {
+  return { id, type: 'stack', parts };
+}
+function part(id, taiko, sounds = []) {
+  return { id, taiko, sounds };
+}
+
+describe('buildSequence with stacks', () => {
+  it('starts every part at the same offset and advances by the longest part', () => {
+    const lines = [
+      stack('st', [
+        part('p1', 'Shime', [sound('TEN', 'R', 4), sound('te', 'R', 2)]), // length 6
+        part('p2', 'Nagado', [sound('DON', 'R', 4)]), // length 4
+      ]),
+      line('after', [sound('KEN', 'L', 4)]),
+    ];
+    const { events, totalDiv } = buildSequence(lines, 4);
+    const byId = Object.fromEntries(events.map((e) => [e.soundId, e]));
+    // Both parts begin at div 0.
+    expect(byId[lines[0].parts[0].sounds[0].id].startDiv).toBe(0);
+    expect(byId[lines[0].parts[1].sounds[0].id].startDiv).toBe(0);
+    // The following line starts after the longest part (6), not the sum.
+    expect(events.at(-1).startDiv).toBe(6);
+    expect(totalDiv).toBe(10);
+  });
+
+  it('voices each part with its own taiko (ignoring the line resolver)', () => {
+    const lines = [
+      stack('st', [
+        part('p1', 'Shime', [sound('TEN', 'R', 4)]),
+        part('p2', 'Nagado', [sound('DON', 'R', 4)]),
+      ]),
+    ];
+    const { events } = buildSequence(lines, 4, () => 'WRONG');
+    expect(events.map((e) => e.taiko).sort()).toEqual(['Nagado', 'Shime']);
+  });
+
+  it('unrolls a block-repeat that wraps a stack as a whole unit', () => {
+    const lines = [
+      stack('st', [
+        part('p1', 'Shime', [sound('TEN', 'R', 4)]),
+        part('p2', 'Nagado', [sound('DON', 'R', 2)]),
+      ]),
+      repeat('m', 2, ['st']),
+    ];
+    const { events, totalDiv } = buildSequence(lines, 4);
+    // 2 parts × 2 plays = 4 events; stack span = 4 (longest part) × 2 = 8.
+    expect(events).toHaveLength(4);
+    expect(events.map((e) => e.startDiv).sort((a, b) => a - b)).toEqual([0, 0, 4, 4]);
+    expect(totalDiv).toBe(8);
+  });
 });
 
 // ── sectionSlice ────────────────────────────────────────────────────────────

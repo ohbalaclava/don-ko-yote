@@ -39,6 +39,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `Header.jsx` — title input plus three icon buttons: ♩ (score settings), ⚙ (app settings), ☰ (menu).
 - `Score.jsx` — scrollable list of `Line` components; toolbar with Select/Cancel toggle, undo/redo buttons, and a Save pattern button when sounds are selected; line reordering via SortableJS (`.line-drag-handle`).
 - `Line.jsx` — a single horizontal row of `SoundTile` / `LigatureTile` / `GroupTile` components. SortableJS handles intra/inter-line drag-to-reorder. Shows beat count and a repeat-count badge. Long-pressing a tile (500ms, <5px movement) enters select mode. Runs `measureInstructions()` to lay out instruction labels below tiles in non-overlapping tracks.
+- `Stack.jsx` — a `{ type: 'stack', parts: [...] }` item rendered as one or more aligned "systems" of simultaneous parts (see multi-taiko note below). Each part is a row on a shared fixed-width division grid (beats line up across parts); a system scrolls horizontally as a unit with the per-part taiko label/picker pinned. Tap-to-add targets the selected part; tiles open the shared `SoundEditor`.
 - `SoundTile.jsx` — a placed sound card; shows name and hand; beat-boundary dot above tile. Tap to open the inline `SoundEditor` (hand L/R, instruction text, remove). Highlighted when selected.
 - `LigatureTile.jsx` — groups two or more consecutive sub-beat sounds of equal duration into a single draggable tile (non-proportional mode only). Each sub-tile can open its own `SoundEditor`.
 - `GroupTile.jsx` — a placed pattern (group) card with purple styling; inline editor offers "Expand in place" or remove.
@@ -49,6 +50,12 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `NewScoreSheet.jsx` — bottom sheet for creating a new score (jiuchi and beats per line).
 - `LoadScoreSheet.jsx` — bottom sheet listing saved scores sorted by recency; supports load and delete.
 - `HelpSheet.jsx` — bottom sheet with brief usage documentation.
+
+### Multiple taiko & stacks
+
+A score has one score-wide `jiuchi` (so timing — `piece.time`, 4 straight / 3 swing — is invariant) but the **taiko can vary below the whole-piece level**. A line/part's effective taiko resolves as: its own `taiko` override → nearest preceding heading's `taiko` → score-wide `piece.taiko` (`piece.resolveTaiko`). Plain single-taiko scores set none of these, so nothing changes for them. `piece.symbolSet`/`piece.skins` resolve against the **selected** line/part; `symbolSetForLine`/`skinsFor` resolve a given one. `SectionHeading` carries an optional taiko picker; `getSymbolSet(taiko, jiuchi)` always resolves because high/low sets at one timing share their jiuchi list.
+
+**Stacks** play parts simultaneously: a `{ id, type: 'stack', parts: [{ id, taiko, sounds }] }` item in `piece.lines`. Parts are sounds-holders shaped like lines; `piece._holder(id)` resolves either a line or a part so all sound mutators work on both. `buildSequence` starts every part of a stack at the same offset and advances by the longest part; each event is tagged with its part's taiko (the engine's `voiceParams(sound, taiko)` already voices per strike). A `block-repeat` can wrap a stack by its single id. Build via the "Stack" button in the line-select toolbar (`piece.addStack`); `breakStack` dissolves it. Known v1 limits: no drag-reorder or tile/pattern select-mode inside stacks; stacks force proportional layout.
 
 ### PDF export (`src/pdf.js`)
 
@@ -91,7 +98,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `1.0`.
+Current version: `1.8`.
 
 ## Adding a new symbol
 

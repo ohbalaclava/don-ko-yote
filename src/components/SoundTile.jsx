@@ -41,7 +41,7 @@ export function SoundTile() {
       const time = piece.time;
       const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
-      const isPlaying = player.currentSoundId === sound.id;
+      const isPlaying = player.isCurrent(sound.id);
       const borderClass = isPlaying
         ? 'border-green-500 bg-green-100 dark:border-green-400 dark:bg-green-900/40 ring-2 ring-green-400'
         : isSelected
@@ -173,10 +173,12 @@ export function SoundEditor() {
   return {
     view({ attrs: { lineId, sound } }) {
       const time = piece.time;
+      // Resolve via _holder so a stack part (keyed by a non-top-level id) is found too.
+      const editLine = piece._holder(lineId)?.holder;
       let showLigature = false;
       let isLigated = false;
       if (!settings.proportionalWidth) {
-        const line = piece.lines.find((l) => l.id === lineId);
+        const line = editLine;
         if (line) {
           const idx = line.sounds.findIndex((s) => s.id === sound.id);
           if (idx >= 1) {
@@ -196,7 +198,8 @@ export function SoundEditor() {
       }
 
       const showHand = !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R';
-      const showSkin = piece.skins === 2 && !!sound.hand;
+      const skins = editLine ? piece.skinsFor(editLine) : piece.skins;
+      const showSkin = skins === 2 && !!sound.hand;
       const showDuration = !sound.implicit;
       const maxDuration = time;
 

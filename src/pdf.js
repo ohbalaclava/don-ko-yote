@@ -183,14 +183,19 @@ export async function exportPdf() {
   // ── Main render loop ─────────────────────────────────────────────────────
 
   for (const item of piece.lines) {
-    // Heading
+    // Heading (append a per-section taiko override when set)
     if (item.type === 'heading') {
-      if (!item.text) continue;
+      const label = item.taiko
+        ? item.text
+          ? `${item.text} — ${item.taiko}`
+          : item.taiko
+        : item.text;
+      if (!label) continue;
       ensureSpace(9);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(0);
-      doc.text(item.text, MARGIN, y + 4);
+      doc.text(label, MARGIN, y + 4);
       y += 6 + LINE_GAP;
       continue;
     }
@@ -222,6 +227,66 @@ export async function exportPdf() {
     if (item.type === 'block-repeat') {
       if (item.lineIds.length > 1)
         pendingSectionBars.push({ lineIds: item.lineIds, count: item.count });
+      continue;
+    }
+
+    // Stack: simultaneous parts drawn as aligned rows, wrapped into systems. Each
+    // part is positioned proportionally across the row so beat N lines up between
+    // parts; the per-part taiko sits in the left margin.
+    if (item.type === 'stack') {
+      const parts = item.parts.map((p) => {
+        let pos = 0;
+        const positioned = p.sounds.map((s) => {
+          const startDiv = pos;
+          pos += s.duration;
+          return { s, startDiv };
+        });
+        return { taiko: p.taiko, items: positioned, length: pos };
+      });
+      const maxLen = parts.reduce((mx, p) => Math.max(mx, p.length), 0);
+      const systemDivs = piece.beatsPerLine > 0 ? piece.beatsPerLine * time : Math.max(1, maxLen);
+      const systemCount = Math.max(1, Math.ceil((maxLen || 1) / systemDivs));
+
+      for (let sys = 0; sys < systemCount; sys++) {
+        const lo = sys * systemDivs;
+        for (const p of parts) {
+          ensureSpace(ROW_H);
+          const rowY = y;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(80);
+          doc.text(p.taiko ?? '', MARGIN, rowY + DOT_ZONE + 6, { maxWidth: LINE_NUM_W + 4 });
+
+          for (const { s, startDiv } of p.items) {
+            if (startDiv < lo || startDiv >= lo + systemDivs) continue;
+            const tx =
+              TILES_X +
+              ((startDiv - lo) / systemDivs) * TILES_W +
+              (s.duration / systemDivs) * (TILES_W / 2);
+            if (startDiv % time === 0) {
+              doc.setFillColor(0);
+              doc.circle(tx, rowY + 1.5, 0.8, 'F');
+            }
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(0);
+            doc.text(s.name, tx, rowY + DOT_ZONE + 5, { align: 'center' });
+            if (s.emphasis) {
+              const nw = doc.getTextWidth(s.name);
+              doc.setDrawColor(0);
+              doc.setLineWidth(0.3);
+              doc.line(tx - nw / 2, rowY + DOT_ZONE + 5.7, tx + nw / 2, rowY + DOT_ZONE + 5.7);
+            }
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6);
+            doc.setTextColor(0);
+            doc.text(s.hand ?? '', tx, rowY + DOT_ZONE + 9, { align: 'center' });
+          }
+          y += ROW_H + ROW_GAP;
+        }
+        y += ROW_GAP;
+      }
+      y += LINE_GAP;
       continue;
     }
 
