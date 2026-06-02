@@ -6,19 +6,20 @@ export const LOW_STRAIGHT = {
     { name: 'Okedo', skins: 1 },
     { name: 'Odaiko', skins: 1 },
   ],
-  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiburoku'],
+  jiuchis: ['Gobu Gobu', 'Mitsu-uchi'],
   symbols: [
     { name: 'DON', duration: 4, hand: 'R', volume: 4 },
     { name: 'KON', duration: 4, hand: 'L', volume: 4 },
-    { name: 'SU', duration: 4 },
     { name: 'DO', duration: 2, hand: 'R', volume: 4 },
     { name: 'KO', duration: 2, hand: 'L', volume: 4 },
     { name: 'KA', duration: 2, hand: 'R', volume: 4 },
     { name: 'RA', duration: 2, hand: 'L', volume: 4 },
     { name: 'KI', duration: 2, hand: 'B', volume: 4 },
+    { name: 'SU', duration: 2 },
     { name: 'do', duration: 1, hand: 'R', volume: 2 },
     { name: 'ko', duration: 1, hand: 'L', volume: 2 },
     { name: 'ro', duration: 1, hand: 'L', volume: 2 },
+    { name: 'ron', duration: 2, hand: 'R', volume: 2 },
     { name: 'ka', duration: 1, hand: 'L', volume: 2 },
     { name: 'ra', duration: 1, hand: 'L', volume: 2 },
     { name: 'ki', duration: 1, hand: 'B', volume: 2 },
@@ -26,9 +27,11 @@ export const LOW_STRAIGHT = {
     { name: 'un', duration: 1 },
     { name: "'", duration: 1 },
     { name: 'HUP', duration: 4 },
+    { name: '[HU] ', duration: 4 },
     { name: 'HA', duration: 4 },
     { name: 'SO', duration: 4 },
     { name: 'RE', duration: 4 },
+    { name: 'sore', duration: 4 },
   ],
   patterns: [
     {
@@ -70,6 +73,10 @@ export const LOW_STRAIGHT = {
     {
       name: 'dorororo',
       sounds: ['do', 'ro', 'ro', 'ro'],
+    },
+    {
+      name: 'dororororon',
+      sounds: ['do', 'ro', 'ro', 'ro', 'ron'],
     },
     {
       name: "ka'doro",
