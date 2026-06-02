@@ -1,6 +1,7 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
+import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
@@ -29,6 +30,42 @@ function domIndexToDataIndex(container, domIndex) {
     count += el.dataset.ligatureIds ? el.dataset.ligatureIds.split(',').length : 1;
   }
   return count;
+}
+
+/**
+ * SortableJS `onAdd` handler for a line's sounds-container. Only acts on clones
+ * dragged from the palette (`evt.pullMode === 'clone'`); in-score cross-line moves
+ * are left to the source line's `onEnd`. Reads the palette tile's `data-palette-*`
+ * attributes to resolve a symbol or pattern, removes the clone SortableJS inserted
+ * (so Mithril's vdom stays authoritative), then commits the insertion at the drop
+ * index. The commit calls `m.redraw()`, which repaints both the line and the palette.
+ * @param {Sortable.SortableEvent} evt
+ */
+function handlePaletteDrop(evt) {
+  if (evt.pullMode !== 'clone') return;
+  const toLineId = evt.to.dataset.lineId;
+  const toIndex = domIndexToDataIndex(evt.to, evt.newIndex);
+  const ds = evt.item.dataset;
+  // Restore the palette's Mithril-owned DOM. With pull:'clone', SortableJS moved the
+  // original tile (evt.item, which Mithril still tracks) into this line and left a
+  // non-Mithril clone (evt.clone) in the palette. Put the original back in the
+  // palette where the clone sits and drop the clone, so Mithril's vdom stays
+  // authoritative and the line loses the stray node. (Falls back to a plain remove
+  // if no clone exists.)
+  if (evt.clone?.parentNode) {
+    evt.clone.parentNode.replaceChild(evt.item, evt.clone);
+  } else {
+    evt.item.remove();
+  }
+  if (ds.palettePattern != null) {
+    const pattern = patternStore.items.find((p) => p.id === ds.palettePattern);
+    if (pattern) piece.addGroup(toLineId, pattern, toIndex);
+  } else if (ds.paletteImplicit != null) {
+    piece.addSound(toLineId, { name: '—', duration: piece.time, implicit: true }, toIndex);
+  } else if (ds.paletteSound != null) {
+    const sym = piece.symbolSet.symbols.find((s) => s.name === ds.paletteSound);
+    if (sym) piece.addSound(toLineId, sym, toIndex);
+  }
 }
 
 const INSTR_LINE_HEIGHT = 18;
@@ -222,6 +259,7 @@ export function Line() {
       filter: '.beat-marker-divider, .repeat-counter',
       animation: 150,
       ghostClass: 'opacity-30',
+      onAdd: handlePaletteDrop,
       onEnd(evt) {
         const ligatureIds = evt.item.dataset.ligatureIds;
         const fromLineId = evt.from.dataset.lineId;
