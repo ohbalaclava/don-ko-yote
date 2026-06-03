@@ -135,4 +135,22 @@ describe('groupSoundsForDisplay', () => {
     const result = groupSoundsForDisplay(sounds, false, 4);
     expect(result).toEqual([{ sound: sounds[0], startPos: 0 }]);
   });
+
+  it("marks a beat landing inside a ligature's last member (swing)", () => {
+    // time 3: TE'(2) + KEN(3) auto-join; beat 1 falls inside KEN (pos 2-5), so the
+    // marker sits in the gap after the ligature tile rather than on its edge.
+    const sounds = [snd("TE'", 'R', 2), snd('KEN', 'L', 3)];
+    const result = groupSoundsForDisplay(sounds, false, 3);
+    expect(result).toHaveLength(2);
+    expect(result[0].sounds).toEqual(sounds);
+    expect(result[1]).toEqual({ type: 'beat-marker', beat: 1 });
+  });
+
+  it('does not mark a ligature whose members each start on a beat', () => {
+    // time 4: two sub-beat sounds joined, both within beat 0 -> no interior beat.
+    const sounds = [snd('do', 'R', 1), snd('ko', 'L', 1)];
+    const result = groupSoundsForDisplay(sounds, false, 4);
+    expect(result).toHaveLength(1);
+    expect(result[0].sounds).toEqual(sounds);
+  });
 });

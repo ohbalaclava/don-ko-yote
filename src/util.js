@@ -92,15 +92,21 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
  * item (no ligature grouping, no beat markers — tiles carry their own dots).
  *
  * In non-proportional mode sounds are grouped via {@link groupIntoLigatures},
- * and a `{ type: 'beat-marker', beat }` item is inserted after each single
- * (non-ligated) tile for every beat boundary strictly inside that tile's span.
- * Ligature tiles of 2+ sounds render their own internal beat dots, so they get
- * no external marker.
+ * and a `{ type: 'beat-marker', beat }` item is inserted after a tile for every
+ * beat boundary strictly inside its trailing sound's span. Ligature tiles render
+ * their own internal beat dots where a member *starts* on a beat; a beat landing
+ * mid-way through the ligature's last member instead falls in the gap after the
+ * tile (only the last member's end coincides with a tile boundary).
  * @param {Array} sounds
  * @param {boolean} proportional
  * @param {number} time - Divisions per beat.
  * @returns {Array}
  */
+/** Total duration (in divisions) of a list of sounds. */
+function sumDuration(sounds) {
+  return sounds.reduce((s, x) => s + x.duration, 0);
+}
+
 export function groupSoundsForDisplay(sounds, proportional, time) {
   if (proportional) {
     let pos = 0;
@@ -114,11 +120,16 @@ export function groupSoundsForDisplay(sounds, proportional, time) {
   const items = [];
   for (const item of groupIntoLigatures(sounds, time)) {
     items.push(item);
-    if ('sound' in item) {
-      const end = item.startPos + item.sound.duration;
-      for (let beat = Math.floor(item.startPos / time) + 1; beat * time < end; beat++) {
-        items.push({ type: 'beat-marker', beat });
-      }
+    // The trailing sound is the only one whose end coincides with the tile's right
+    // edge, so a beat strictly inside it lands in the gap after the tile. For a
+    // single tile that's the sound itself; for a ligature it's the last member
+    // (interior beats of earlier members would fall inside the seamless tile and
+    // are rendered as start-of-member dots by LigatureTile instead).
+    const last = 'sound' in item ? item.sound : item.sounds[item.sounds.length - 1];
+    const end = item.startPos + ('sound' in item ? item.sound.duration : sumDuration(item.sounds));
+    const lastStart = end - last.duration;
+    for (let beat = Math.floor(lastStart / time) + 1; beat * time < end; beat++) {
+      items.push({ type: 'beat-marker', beat });
     }
   }
   return items;
