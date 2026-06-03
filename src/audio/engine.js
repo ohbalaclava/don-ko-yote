@@ -12,7 +12,18 @@ export function getAudioContext() {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
     master.gain.value = 0.9;
-    master.connect(ctx.destination);
+    // Safety limiter on the master bus: normal playing sits below the threshold
+    // and passes through clean, while loud notes (vol 5–8) and dense overlaps are
+    // caught just under 0 dBFS instead of clipping. This lets the per-note gains
+    // run hot (see voiceParams) for usable loudness on weak mobile speakers.
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
   }
   return ctx;
 }
@@ -62,10 +73,12 @@ export function voiceParams(sound, taiko) {
   const first = (sound.name || '').charAt(0).toLowerCase();
   const rim = first === 'k' || first === 'r'; // ka/ki/ko/ra/re/ro — rim-ish
   // Volume 1–8 maps to gain exponentially (~1.6× / +4 dB per step) so accents
-  // read clearly against soft notes. vol 8 is anchored at 0.7 (below the 0.9
-  // master to leave headroom); vol 1 lands at ~0.026, a ~27× dynamic range.
+  // read clearly against soft notes. Anchored at the typical accent (vol 4 → 0.5)
+  // rather than the rarely-used vol 8, so real scores (mostly vol 2–4) play at a
+  // usable level instead of ~10% amplitude. Loud notes run past 1.0 (vol 8 ≈ 3.3)
+  // and are caught by the master limiter rather than clipping.
   const v = Math.min(8, Math.max(1, sound.volume));
-  const gain = 0.7 * Math.pow(1.6, v - 8);
+  const gain = 0.5 * Math.pow(1.6, v - 4);
   const pan = sound.hand === 'L' ? -0.35 : sound.hand === 'R' ? 0.35 : 0;
   return {
     freq: base.freq * (rim ? 1.5 : 1),
