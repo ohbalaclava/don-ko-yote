@@ -79,6 +79,9 @@ export function expandRepeats(lines) {
  * Rest sounds (no hand → `effectiveVolume` is null) are included so a playhead can
  * sweep through them; their `volume` is null and the audio engine skips them.
  *
+ * Accented sounds (`emphasis: true`) play at double their effective volume; the engine
+ * caps the result at 8, so accents read louder without altering the displayed volume.
+ *
  * @param {Array<object>} lines - The piece's lines array.
  * @param {number} time - Divisions per beat (e.g. 4 straight, 3 swing).
  * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, volume: number|null, startDiv: number, durationDiv: number }>, totalDiv: number }}
@@ -88,12 +91,13 @@ export function buildSequence(lines, time) {
   let pos = 0;
   for (const line of expandRepeats(lines)) {
     for (const s of line.sounds) {
+      const vol = effectiveVolume(s);
       events.push({
         lineId: line.id,
         soundId: s.id,
         name: s.name,
         hand: s.hand,
-        volume: effectiveVolume(s),
+        volume: vol != null && s.emphasis ? vol * 2 : vol,
         startDiv: pos,
         durationDiv: s.duration,
       });

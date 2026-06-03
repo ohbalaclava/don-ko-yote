@@ -115,6 +115,26 @@ describe('buildSequence', () => {
     expect(events[1].volume).toBe(4); // TEN is uppercase → default full volume
   });
 
+  it('doubles the volume of accented (emphasis) sounds', () => {
+    const lines = [
+      line('a', [
+        sound('te', 'R', 4), // lowercase → default volume 2
+        sound('te', 'R', 4, { emphasis: true }), // accented → 2 × 2 = 4
+        sound('te', 'R', 4, { volume: 3, emphasis: true }), // explicit 3 → 6
+      ]),
+    ];
+    const { events } = buildSequence(lines, 4);
+    expect(events.map((e) => e.volume)).toEqual([2, 4, 6]);
+  });
+
+  it('leaves rests unaffected by emphasis (volume stays null)', () => {
+    const lines = [line('a', [rest(4)])];
+    // A rest carries no hand, so effectiveVolume is null regardless of emphasis.
+    lines[0].sounds[0].emphasis = true;
+    const { events } = buildSequence(lines, 4);
+    expect(events[0].volume).toBeNull();
+  });
+
   it('reflects repeats in the event stream and total duration', () => {
     const lines = [line('a', [sound('TEN', 'R', 4)]), repeat('m', 2, ['a'])];
     const { events, totalDiv } = buildSequence(lines, 4);
