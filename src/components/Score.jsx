@@ -4,6 +4,7 @@ import { piece, markerDepth, lineDepth, singleLineRepeatMap } from '../data/piec
 import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
 import { patternStore } from '../data/patterns.js';
+import { scrollToScoreBottom } from '../scroll.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
@@ -57,7 +58,7 @@ export function Score() {
       const hasLineSelection = piece.lineSelectMode && lineSelCount > 0;
 
       return (
-        <div class="flex-1 overflow-y-auto flex flex-col">
+        <div class="flex-1 overflow-y-auto flex flex-col scroll-pt-10">
           <div class="sticky top-0 z-10 flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
             <span class="text-xs text-gray-400 dark:text-gray-500 select-none">Select:</span>
             <button
@@ -201,32 +202,44 @@ export function Score() {
             })()}
           </div>
 
-          <div class="px-3 py-2 flex items-center gap-3">
+          <div class="score-actions px-3 py-2 flex items-center gap-3">
             <button
               class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300'}`}
               disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => piece.addLine()}
+              onclick={() => {
+                piece.addLine();
+                scrollToScoreBottom();
+              }}
             >
               + Add line
             </button>
             <button
               class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => piece.addHeading()}
+              onclick={() => {
+                piece.addHeading();
+                scrollToScoreBottom();
+              }}
             >
               + Add heading
             </button>
             <button
               class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => piece.addNote()}
+              onclick={() => {
+                piece.addNote();
+                scrollToScoreBottom();
+              }}
             >
               + Add note
             </button>
             <button
               class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => piece.addDivider()}
+              onclick={() => {
+                piece.addDivider();
+                scrollToScoreBottom();
+              }}
             >
               + Add divider
             </button>

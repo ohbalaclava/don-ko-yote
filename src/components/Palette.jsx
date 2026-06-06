@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
+import { ensureEditTargetVisible } from '../scroll.js';
 
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
@@ -139,7 +140,12 @@ function SoundPaletteTile() {
           data-palette-sound={sym.name}
           class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
           style={`width:${dur * SUBDIV_WIDTH_REM}rem`}
-          onclick={() => canTapAdd() && piece.addSound(piece.selectedLineId, sym)}
+          onclick={() => {
+            if (canTapAdd()) {
+              piece.addSound(piece.selectedLineId, sym);
+              ensureEditTargetVisible();
+            }
+          }}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{hand}</span>
@@ -163,7 +169,12 @@ function ImplicitPaletteTile() {
           data-palette-implicit="1"
           class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
           style={`width:${piece.time * SUBDIV_WIDTH_REM}rem`}
-          onclick={() => canTapAdd() && piece.addSound(piece.selectedLineId, implicitSym())}
+          onclick={() => {
+            if (canTapAdd()) {
+              piece.addSound(piece.selectedLineId, implicitSym());
+              ensureEditTargetVisible();
+            }
+          }}
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>—</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">1–8</span>
@@ -185,7 +196,12 @@ function PatternPaletteTile() {
         >
           <div
             class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] active:border-purple-500"
-            onclick={() => canTapAdd() && piece.addGroup(piece.selectedLineId, pattern)}
+            onclick={() => {
+              if (canTapAdd()) {
+                piece.addGroup(piece.selectedLineId, pattern);
+                ensureEditTargetVisible();
+              }
+            }}
           >
             <span
               class={`font-bold text-sm leading-tight text-purple-800 dark:text-purple-300 font-${settings.font}`}
