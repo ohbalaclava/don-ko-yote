@@ -1,5 +1,6 @@
 import { isSoundLine } from './piece.js';
 import { effectiveVolume } from '../util.js';
+import { isKakegoe, KAKEGOE_VOLUME } from './kakegoe.js';
 
 /**
  * Expands block-repeat markers into a flat, ordered list of sound lines ready for
@@ -78,25 +79,28 @@ export function expandRepeats(lines) {
  *
  * Rest sounds (no hand → `effectiveVolume` is null) are included so a playhead can
  * sweep through them; their `volume` is null and the audio engine skips them.
+ * Kakegoe calls (HUP/HA/SO/RE/sore) also carry no hand but are vocal samples, so
+ * they are given a fixed audible volume here rather than treated as rests.
  *
  * Accented sounds (`emphasis: true`) play at 1.5× their effective volume; the engine
  * caps the result at 8, so accents read louder without altering the displayed volume.
  *
  * @param {Array<object>} lines - The piece's lines array.
  * @param {number} time - Divisions per beat (e.g. 4 straight, 3 swing).
- * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, volume: number|null, startDiv: number, durationDiv: number }>, totalDiv: number }}
+ * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, skin: string|undefined, volume: number|null, startDiv: number, durationDiv: number }>, totalDiv: number }}
  */
 export function buildSequence(lines, time) {
   const events = [];
   let pos = 0;
   for (const line of expandRepeats(lines)) {
     for (const s of line.sounds) {
-      const vol = effectiveVolume(s);
+      const vol = isKakegoe(s.name) ? KAKEGOE_VOLUME : effectiveVolume(s);
       events.push({
         lineId: line.id,
         soundId: s.id,
         name: s.name,
         hand: s.hand,
+        skin: s.skin, // selects the Katsugi front/back recording
         volume: vol != null && s.emphasis ? vol * 1.5 : vol,
         startDiv: pos,
         durationDiv: s.duration,
