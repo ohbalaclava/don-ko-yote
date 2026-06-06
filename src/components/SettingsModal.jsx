@@ -110,6 +110,29 @@ export function SettingsModal() {
                 <Toggle checked={settings.countIn} onChange={(v) => settings.set('countIn', v)} />
               </div>
 
+              <div class="py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-1">
+                  <div>
+                    <div class="font-medium dark:text-white">Playback volume</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      Compensate for quiet or loud devices
+                    </div>
+                  </div>
+                  <div class="text-sm tabular-nums text-gray-500 dark:text-gray-400 w-10 text-right">
+                    {Math.round(settings.volume * 100)}%
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  class="w-full accent-indigo-600"
+                  min="0"
+                  max="1.5"
+                  step="0.05"
+                  value={settings.volume}
+                  oninput={(e) => settings.set('volume', Number(e.target.value))}
+                />
+              </div>
+
               <div class="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="font-medium dark:text-white">Use volume (default)</div>
                 <Toggle

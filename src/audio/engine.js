@@ -9,12 +9,28 @@ let ctx = null;
 let master = null;
 let noiseBuffer = null;
 
+// Master-bus gain is BASE_MASTER scaled by the user's playback-volume setting
+// (1 = default). The setting lets users compensate for quiet/loud devices; the
+// limiter below still catches the resulting peaks.
+const BASE_MASTER = 0.9;
+let masterVolume = 1;
+
+/**
+ * Sets the user playback-volume multiplier (1 = default) and applies it live if
+ * the audio graph already exists. Called by settings on load and change.
+ * @param {number} v - Volume multiplier (0 = silent).
+ */
+export function setMasterVolume(v) {
+  masterVolume = v;
+  if (master) master.gain.value = BASE_MASTER * masterVolume;
+}
+
 /** Lazily creates the shared AudioContext and a master gain node. */
 export function getAudioContext() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
-    master.gain.value = 0.9;
+    master.gain.value = BASE_MASTER * masterVolume;
     // Safety limiter on the master bus: normal playing sits below the threshold
     // and passes through clean, while loud notes (vol 5–8) and dense overlaps are
     // caught just under 0 dBFS instead of clipping. This lets the per-note gains

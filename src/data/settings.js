@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import m from 'mithril';
+import { setMasterVolume } from '../audio/engine.js';
 
 function applyToDOM() {
   document.body.classList.toggle('dark', settings.darkMode);
@@ -13,6 +14,7 @@ export const settings = {
   defaultAuthor: '',
   defaultShowVolume: false,
   countIn: false,
+  volume: 1, // master playback-volume multiplier (1 = default loudness)
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -24,13 +26,16 @@ export const settings = {
       if ('defaultAuthor' in saved) settings.defaultAuthor = saved.defaultAuthor;
       if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
       if ('countIn' in saved) settings.countIn = saved.countIn;
+      if ('volume' in saved) settings.volume = saved.volume;
     }
+    setMasterVolume(settings.volume);
     applyToDOM();
     m.redraw();
   },
 
   async set(key, value) {
     settings[key] = value;
+    if (key === 'volume') setMasterVolume(value);
     await db.kv.set('settings', {
       proportionalWidth: settings.proportionalWidth,
       font: settings.font,
@@ -39,6 +44,7 @@ export const settings = {
       defaultAuthor: settings.defaultAuthor,
       defaultShowVolume: settings.defaultShowVolume,
       countIn: settings.countIn,
+      volume: settings.volume,
     });
     applyToDOM();
     m.redraw();
