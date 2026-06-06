@@ -4,6 +4,7 @@
 // sample set (see samples.js) play those instead of the synth; everything else
 // falls through to synthStrike.
 import { sampleKey, getBuffer, loadSamples } from './samples.js';
+import { isKakegoe } from '../data/kakegoe.js';
 
 let ctx = null;
 let master = null;
@@ -200,7 +201,7 @@ const SAMPLE_BASE_GAIN = 0.8;
  * @returns {boolean} True if a sample was scheduled.
  */
 function sampleStrike(sound, when, taiko) {
-  const key = sampleKey(sound);
+  const key = sampleKey(sound, taiko);
   if (!key) return false;
   const buffer = getBuffer(taiko, key);
   if (!buffer) return false;
@@ -222,10 +223,14 @@ function sampleStrike(sound, when, taiko) {
 /**
  * Plays a sound: a recorded sample when one is available for the taiko, otherwise
  * the synth. The swap is per-strike so a taiko with only some samples (or before
- * decode finishes) still sounds via the synth.
+ * decode finishes) still sounds via the synth. Kakegoe calls are vocal-only — they
+ * have no synth voice, so a missing/unloaded call sample stays silent rather than
+ * triggering a drum hit.
  */
 function strike(sound, when, taiko) {
-  if (!sampleStrike(sound, when, taiko)) synthStrike(sound, when, taiko);
+  if (sampleStrike(sound, when, taiko)) return;
+  if (isKakegoe(sound.name)) return;
+  synthStrike(sound, when, taiko);
 }
 
 /** The active voice. */

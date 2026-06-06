@@ -143,6 +143,22 @@ describe('buildSequence', () => {
     expect(totalDiv).toBe(8);
   });
 
+  it('makes kakegoe calls audible despite having no hand', () => {
+    // HUP/SO etc. carry no hand, so the rest rule would silence them; the builder
+    // gives them a fixed volume so the sample voice plays.
+    const lines = [line('a', [{ id: 'k', name: 'HUP', duration: 4 }, rest(4)])];
+    const { events } = buildSequence(lines, 4);
+    expect(events[0].volume).toBe(4);
+    expect(events[1].volume).toBeNull(); // a genuine rest is still silent
+  });
+
+  it('carries the back-skin marker through to the event stream', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4, { skin: 'back' }), sound('KEN', 'L', 4)])];
+    const { events } = buildSequence(lines, 4);
+    expect(events[0].skin).toBe('back');
+    expect(events[1].skin).toBeUndefined();
+  });
+
   it('returns no events for an empty / rests-free score', () => {
     expect(buildSequence([line('a', [])], 4)).toEqual({ events: [], totalDiv: 0 });
   });

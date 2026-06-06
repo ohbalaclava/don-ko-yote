@@ -2,41 +2,105 @@
 // loads/decodes the wav files into AudioBuffers. Kept separate from engine.js so
 // the name→sample resolver stays a pure, unit-testable function.
 import { getAudioContext } from './engine.js';
+import { isKakegoe, baseSyllable } from '../data/kakegoe.js';
+
+/** Builds an asset URL through BASE_URL so a future subpath deploy stays correct
+ *  (no `base` is set today, so this resolves to `/assets/sounds/<file>`). */
+const url = (file) => `${import.meta.env.BASE_URL}assets/sounds/${file}`;
+
+/**
+ * Kakegoe sample URLs keyed by call (see {@link isKakegoe}). One shared recording
+ * per call, mixed into every taiko's set below so calls sound the same regardless
+ * of the active drum.
+ */
+const KAKEGOE_SAMPLES = {
+  HUP: url('HUP.wav'),
+  HA: url('HA.wav'),
+  SO: url('SO.wav'),
+  RE: url('RE.wav'),
+  sore: url('sore.wav'),
+};
+
+/** Open strike syllables (shared by Shime and Katsugi) that map to a skin/single
+ *  recording. Matched on the bare syllable so articulation variants (`TE'`, `tsu'`)
+ *  fold in. The buzz/press `zu` is handled separately: Shime synthesizes it, while
+ *  Katsugi has its own `Katsugi-zu` recording. */
+const OPEN_STRIKES = new Set(['TEN', 'KEN', 'TE', 'KE', 'tsu', 'ku', 'te', 'ke', 're']);
 
 /**
  * Per-taiko sample sets, keyed by taiko display name. Each set maps a sample key
- * (`'DON-L'` etc.) to the wav URL. Only Nagado is recorded today; adding another
- * taiko is a one-line entry here. URLs go through BASE_URL so a future subpath
- * deploy stays correct (no `base` is set today, so this is `/assets/...`).
+ * to the wav URL. Adding a taiko is one entry here plus a branch in {@link sampleKey}.
+ * Every taiko includes the shared kakegoe calls; taikos with only those (Okedo,
+ * Odaiko) still synth their drum hits while sounding recorded calls.
  */
 const SAMPLE_SETS = {
   Nagado: {
-    'DON-L': `${import.meta.env.BASE_URL}assets/sounds/DON-L.wav`,
-    'DON-R': `${import.meta.env.BASE_URL}assets/sounds/DON-R.wav`,
-    'KA-L': `${import.meta.env.BASE_URL}assets/sounds/KA-L.wav`,
-    'KA-R': `${import.meta.env.BASE_URL}assets/sounds/KA-R.wav`,
-    KI: `${import.meta.env.BASE_URL}assets/sounds/KI.wav`,
+    'DON-L': url('DON-L.wav'),
+    'DON-R': url('DON-R.wav'),
+    'KA-L': url('KA-L.wav'),
+    'KA-R': url('KA-R.wav'),
+    KI: url('KI.wav'),
+    ...KAKEGOE_SAMPLES,
+  },
+  Shime: {
+    Shime: url('Shime.wav'),
+    ...KAKEGOE_SAMPLES,
+  },
+  Katsugi: {
+    'Katsugi-front': url('Katsugi-front.wav'),
+    'Katsugi-back': url('Katsugi-back.wav'),
+    'Katsugi-zu': url('Katsugi-zu.wav'),
+    ...KAKEGOE_SAMPLES,
+  },
+  Okedo: { ...KAKEGOE_SAMPLES },
+  Odaiko: {
+    'Odaiko-L': url('Odaiko-L.wav'),
+    'Odaiko-R': url('Odaiko-R.wav'),
+    ...KAKEGOE_SAMPLES,
   },
 };
 
 /**
- * Resolves a sound to its sample key, or null when the sound has no hand (a rest,
- * which the scheduler never sounds). Family comes from the first syllable's
- * vowel: a centre hit (do/don/ko/kon/ro/ron) reads `o` and uses the DON sample;
- * the rim click (ki) reads `i` and uses the single hand-less KI sample; everything
- * else (ka/ra) uses the rim KA sample. For DON/KA, hand picks the L/R recording
- * (`B`/missing → R).
- * @param {{ name: string, hand?: string }} sound
- * @returns {'DON-L'|'DON-R'|'KA-L'|'KA-R'|'KI'|null}
+ * Resolves a sound to its sample key for the given taiko, or null when no recorded
+ * sample applies (the caller then synthesizes, or stays silent for a call).
+ *
+ * Kakegoe calls (HUP/HA/SO/RE/sore) resolve first and are taiko-independent — they
+ * have no hand. Otherwise a hand is required (rests return null) and resolution is
+ * per taiko:
+ * - Shime: every strike syllable maps to the single `Shime` recording.
+ * - Katsugi: the buzz `zu` maps to its own `Katsugi-zu` recording (both hands and
+ *   skins); other strikes map to `Katsugi-front`, or `Katsugi-back` when the sound
+ *   is marked `skin: 'back'`.
+ * - Nagado: family from the first syllable's vowel — `o` (do/don/ko/ron) → DON,
+ *   `i` (ki) → the hand-less KI recording, else (ka/ra) → KA; hand picks L/R
+ *   (`B`/missing → R).
+ * - Odaiko: every strike maps to the L or R recording by hand (`B`/missing → R).
+ * Other taikos (Okedo) have no drum samples and return null.
+ * @param {{ name: string, hand?: string, skin?: string }} sound
+ * @param {string} taiko - Taiko display name.
+ * @returns {string|null}
  */
-export function sampleKey(sound) {
-  if (sound.hand == null) return null;
-  const letters = (sound.name || '').replace(/[^a-z]/gi, '');
-  const vowel = letters.charAt(1).toLowerCase();
-  if (vowel === 'i') return 'KI'; // ki — its own recording, no L/R variant
-  const family = vowel === 'o' ? 'DON' : 'KA';
-  const suffix = sound.hand === 'L' ? 'L' : 'R';
-  return `${family}-${suffix}`;
+export function sampleKey(sound, taiko) {
+  const name = sound.name || '';
+  if (isKakegoe(name)) return baseSyllable(name); // HUP/HA/SO/RE/sore, no hand needed
+
+  if (sound.hand == null) return null; // rest
+  const syllable = baseSyllable(name);
+
+  if (taiko === 'Shime') return OPEN_STRIKES.has(syllable) ? 'Shime' : null;
+  if (taiko === 'Katsugi') {
+    if (syllable === 'zu') return 'Katsugi-zu'; // own recording, both hands and skins
+    if (!OPEN_STRIKES.has(syllable)) return null;
+    return sound.skin === 'back' ? 'Katsugi-back' : 'Katsugi-front';
+  }
+  if (taiko === 'Nagado') {
+    const vowel = syllable.charAt(1).toLowerCase();
+    if (vowel === 'i') return 'KI'; // ki — its own recording, no L/R variant
+    const family = vowel === 'o' ? 'DON' : 'KA';
+    return `${family}-${sound.hand === 'L' ? 'L' : 'R'}`;
+  }
+  if (taiko === 'Odaiko') return sound.hand === 'L' ? 'Odaiko-L' : 'Odaiko-R';
+  return null;
 }
 
 // Decoded buffers, keyed `${taiko}/${sampleKey}`. A null value marks a key that
