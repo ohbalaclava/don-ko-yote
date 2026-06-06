@@ -180,8 +180,21 @@ export const player = {
     }
     if (id !== this.currentSoundId) {
       this.currentSoundId = id;
+      if (id != null) this._scrollIntoView(id);
       m.redraw();
     }
     this._raf = requestAnimationFrame(() => this._followPlayhead());
+  },
+
+  /**
+   * Keeps the currently-playing tile on screen by scrolling its ancestor scroll
+   * container the minimum amount needed. Tiles carry `data-sound-id`; ligatures
+   * expose the first sub-sound's id on their outer element, so the lookup resolves
+   * for both plain and ligated tiles. `block: 'nearest'` avoids jumpy re-centering
+   * on every note — it only scrolls when the tile has reached the viewport edge.
+   */
+  _scrollIntoView(soundId) {
+    const el = document.querySelector(`[data-sound-id="${soundId}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   },
 };
