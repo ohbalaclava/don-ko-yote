@@ -115,16 +115,16 @@ describe('buildSequence', () => {
     expect(events[1].volume).toBe(4); // TEN is uppercase → default full volume
   });
 
-  it('doubles the volume of accented (emphasis) sounds', () => {
+  it('scales the volume of accented (emphasis) sounds by 1.5×', () => {
     const lines = [
       line('a', [
         sound('te', 'R', 4), // lowercase → default volume 2
-        sound('te', 'R', 4, { emphasis: true }), // accented → 2 × 2 = 4
-        sound('te', 'R', 4, { volume: 3, emphasis: true }), // explicit 3 → 6
+        sound('te', 'R', 4, { emphasis: true }), // accented → 2 × 1.5 = 3
+        sound('te', 'R', 4, { volume: 3, emphasis: true }), // explicit 3 → 4.5
       ]),
     ];
     const { events } = buildSequence(lines, 4);
-    expect(events.map((e) => e.volume)).toEqual([2, 4, 6]);
+    expect(events.map((e) => e.volume)).toEqual([2, 3, 4.5]);
   });
 
   it('leaves rests unaffected by emphasis (volume stays null)', () => {

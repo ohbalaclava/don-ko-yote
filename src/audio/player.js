@@ -90,6 +90,10 @@ export const player = {
     const epoch = ++this._epoch;
     await resumeAudio();
     if (this._epoch !== epoch) return;
+    // Decode any recorded samples for this taiko before scheduling, so the first
+    // hits aren't silent while decode is in flight. No-op for synth-only taikos.
+    await voice.preload(taiko);
+    if (this._epoch !== epoch) return;
     const c = getAudioContext();
 
     this._events = events.map((e) => ({
