@@ -167,6 +167,27 @@ export function HelpSheet() {
                 />
               </Section>
 
+              <Section title="Metronome ▲">
+                <Row
+                  label="Metronome"
+                  desc="Play a beat track alongside the score during playback. Opened from the ▲ button in the header."
+                />
+                <Row
+                  label="Head beat only"
+                  desc="Tick once per beat instead of on every subdivision."
+                />
+                <Row label="Emphasise head" desc="Accent the start of each beat." />
+                <Row
+                  label="Jiuchi"
+                  desc="Which subdivisions to tick when not head-only. 'Match score' follows the piece's jiuchi."
+                />
+                <Row
+                  label="Use Shime sound"
+                  desc="Tick with the Shime TEN sample instead of a synth click."
+                />
+                <Row label="Volume" desc="Level of the metronome track." />
+              </Section>
+
               <Section title="Editor">
                 <Row label="⌫" desc="Delete the last tile on the selected line." />
                 <Row
