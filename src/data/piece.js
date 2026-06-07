@@ -69,6 +69,7 @@ function makeSound(symbol) {
       instruction: '',
       alternatives: symbol.alternatives,
       ...(symbol.implicit && { implicit: true }),
+      ...(symbol.silent && { silent: true }),
       ...(symbol.volume != null && { volume: symbol.volume }),
     };
   }
@@ -79,6 +80,7 @@ function makeSound(symbol) {
     duration: symbol.duration,
     instruction: '',
     ...(symbol.implicit && { implicit: true }),
+    ...(symbol.silent && { silent: true }),
     ...(symbol.volume != null && { volume: symbol.volume }),
   };
 }

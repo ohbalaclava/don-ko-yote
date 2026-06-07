@@ -80,7 +80,9 @@ export function expandRepeats(lines) {
  * Rest sounds (no hand → `effectiveVolume` is null) are included so a playhead can
  * sweep through them; their `volume` is null and the audio engine skips them.
  * Kakegoe calls (HUP/HA/SO/RE/sore) also carry no hand but are vocal samples, so
- * they are given a fixed audible volume here rather than treated as rests.
+ * they are given a fixed audible volume here rather than treated as rests. Silent
+ * tiles (`silent: true`) are always muted, even if their editable text happens to
+ * match a kakegoe word.
  *
  * Accented sounds (`emphasis: true`) play at 1.5× their effective volume; the engine
  * caps the result at 8, so accents read louder without altering the displayed volume.
@@ -94,7 +96,7 @@ export function buildSequence(lines, time) {
   let pos = 0;
   for (const line of expandRepeats(lines)) {
     for (const s of line.sounds) {
-      const vol = isKakegoe(s.name) ? KAKEGOE_VOLUME : effectiveVolume(s);
+      const vol = s.silent ? null : isKakegoe(s.name) ? KAKEGOE_VOLUME : effectiveVolume(s);
       events.push({
         lineId: line.id,
         soundId: s.id,
