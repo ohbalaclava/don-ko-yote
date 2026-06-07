@@ -429,9 +429,23 @@ async function deliverPdf(doc, filename) {
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });
 
+  const canShareFiles = navigator.canShare?.({ files: [file] }) ?? false;
+  const standalone = globalThis.matchMedia?.('(display-mode: standalone)').matches ?? false;
+  const hasController = !!navigator.serviceWorker?.controller;
+
+  // TEMP diagnostic — fires before any branch that can navigate, so device
+  // behaviour is observable regardless of which path runs. Remove once mobile
+  // PDF delivery is confirmed working.
+  globalThis.alert?.(
+    `PDF export diagnostics\n` +
+      `canShare(files): ${canShareFiles}\n` +
+      `standalone: ${standalone}\n` +
+      `sw controller: ${hasController}`
+  );
+
   // 1. Web Share with a file — works on Chrome Android and most mobile PWAs.
   //    Firefox Android reports canShare({files}) === false, so it skips this.
-  if (navigator.canShare?.({ files: [file] })) {
+  if (canShareFiles) {
     try {
       await navigator.share({ files: [file], title: filename });
       return;
@@ -441,16 +455,18 @@ async function deliverPdf(doc, filename) {
     }
   }
 
-  // 2. Installed PWA — jsPDF's blob-URL download opens a blank external tab
-  //    here, so route the download through the service worker instead.
-  const standalone = globalThis.matchMedia?.('(display-mode: standalone)').matches;
-  if (standalone) {
-    if (await serviceWorkerDownload(blob, filename)) return;
-    alert('Could not export the PDF. Try fully closing and reopening the app, then retry.');
-    return;
+  // 2. Service worker download — used whenever a service worker controls the
+  //    page, not just when display-mode reports standalone (Firefox Android
+  //    reports an installed PWA as non-standalone). Sidesteps jsPDF's blob-URL
+  //    download, which a standalone PWA opens as a blank external tab.
+  if (hasController) {
+    const result = await serviceWorkerDownload(blob, filename);
+    globalThis.alert?.(`SW download result: ${result}`); // TEMP diagnostic
+    if (result) return;
   }
 
-  // 3. Regular browser tab — the standard blob download works fine.
+  // 3. No controlling service worker (e.g. dev without SW) — the standard blob
+  //    download works in a regular browser tab.
   doc.save(filename);
 }
 
@@ -470,13 +486,22 @@ async function serviceWorkerDownload(blob, filename) {
 
   const id = crypto.randomUUID();
 
-  // Hand the blob to the SW and wait for acknowledgement before navigating,
-  // so the fetch can't arrive before the blob is stored.
-  await new Promise((resolve) => {
+  // Hand the blob to the SW and wait for acknowledgement before navigating, so
+  // the fetch can't arrive before the blob is stored. A stale SW (old
+  // pass-through with no message handler) never acks, so time out rather than
+  // hang — and report which SW answered for diagnosis.
+  const ack = await new Promise((resolve) => {
     const channel = new MessageChannel();
-    channel.port1.onmessage = () => resolve();
+    const timer = setTimeout(() => resolve(null), 1500);
+    channel.port1.onmessage = (e) => {
+      clearTimeout(timer);
+      resolve(e.data);
+    };
     sw.controller.postMessage({ type: 'pdf-download', id, filename, blob }, [channel.port2]);
   });
+
+  globalThis.alert?.(`SW ack: ${ack ? JSON.stringify(ack) : 'none (timed out — stale SW?)'}`); // TEMP
+  if (!ack?.ok) return false;
 
   const iframe = document.createElement('iframe');
   iframe.hidden = true;

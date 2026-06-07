@@ -12,6 +12,10 @@
 //    app runs as an installed standalone PWA. Instead the page posts the PDF
 //    blob here; we stash it and serve it back from a real same-origin URL with
 //    `Content-Disposition: attachment`, which the PWA downloads natively.
+// Bumped whenever sw.js changes, so the page's ack can confirm which worker
+// actually answered (the JS bundle and the SW cache update independently).
+const SW_VERSION = 'sw-pdf-1';
+
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
@@ -24,7 +28,7 @@ self.addEventListener('message', (event) => {
     pendingDownloads.set(data.id, { blob: data.blob, filename: data.filename });
     // Acknowledge so the page only navigates once the blob is stashed,
     // avoiding a race where the fetch arrives first.
-    event.ports[0]?.postMessage({ ok: true });
+    event.ports[0]?.postMessage({ ok: true, version: SW_VERSION });
   }
 });
 
