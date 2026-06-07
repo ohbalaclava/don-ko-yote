@@ -14,7 +14,7 @@
 //    `Content-Disposition: attachment`, which the PWA downloads natively.
 // Bumped whenever sw.js changes, so the page's ack can confirm which worker
 // actually answered (the JS bundle and the SW cache update independently).
-const SW_VERSION = 'sw-pdf-1';
+const SW_VERSION = 'sw-pdf-2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
@@ -44,8 +44,11 @@ self.addEventListener('fetch', (event) => {
         new Response(entry.blob, {
           headers: {
             'Content-Type': 'application/pdf',
-            // RFC 5987 filename* carries the UTF-8 name (titles may be Japanese).
-            'Content-Disposition': `attachment; filename*=UTF-8''${encoded}`,
+            // `inline` so a top-level navigation to this URL renders the PDF in
+            // the browser's viewer (or downloads it) rather than forcing a
+            // download that a standalone PWA may bounce to a blank tab. RFC 5987
+            // filename* carries the UTF-8 name (titles may be Japanese).
+            'Content-Disposition': `inline; filename*=UTF-8''${encoded}`,
           },
         })
       );

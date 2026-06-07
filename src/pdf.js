@@ -429,23 +429,9 @@ async function deliverPdf(doc, filename) {
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });
 
-  const canShareFiles = navigator.canShare?.({ files: [file] }) ?? false;
-  const standalone = globalThis.matchMedia?.('(display-mode: standalone)').matches ?? false;
-  const hasController = !!navigator.serviceWorker?.controller;
-
-  // TEMP diagnostic — fires before any branch that can navigate, so device
-  // behaviour is observable regardless of which path runs. Remove once mobile
-  // PDF delivery is confirmed working.
-  globalThis.alert?.(
-    `PDF export diagnostics\n` +
-      `canShare(files): ${canShareFiles}\n` +
-      `standalone: ${standalone}\n` +
-      `sw controller: ${hasController}`
-  );
-
   // 1. Web Share with a file — works on Chrome Android and most mobile PWAs.
   //    Firefox Android reports canShare({files}) === false, so it skips this.
-  if (canShareFiles) {
+  if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
       return;
@@ -456,14 +442,9 @@ async function deliverPdf(doc, filename) {
   }
 
   // 2. Service worker download — used whenever a service worker controls the
-  //    page, not just when display-mode reports standalone (Firefox Android
-  //    reports an installed PWA as non-standalone). Sidesteps jsPDF's blob-URL
-  //    download, which a standalone PWA opens as a blank external tab.
-  if (hasController) {
-    const result = await serviceWorkerDownload(blob, filename);
-    globalThis.alert?.(`SW download result: ${result}`); // TEMP diagnostic
-    if (result) return;
-  }
+  //    page. Sidesteps jsPDF's blob-URL download, which a standalone PWA opens
+  //    as a blank external tab.
+  if (navigator.serviceWorker?.controller && (await serviceWorkerDownload(blob, filename))) return;
 
   // 3. No controlling service worker (e.g. dev without SW) — the standard blob
   //    download works in a regular browser tab.
@@ -471,14 +452,19 @@ async function deliverPdf(doc, filename) {
 }
 
 /**
- * Delivers the PDF as a real same-origin download via the service worker,
+ * Delivers the PDF as a real same-origin resource via the service worker,
  * sidestepping the blob-URL download that a standalone PWA opens as a blank
- * tab. Posts the blob to the SW, waits for it to be stashed, then triggers the
- * download through a hidden iframe (so the SPA page itself isn't navigated).
+ * tab. Posts the blob to the SW, waits for it to be stashed, then performs a
+ * top-level navigation to the SW-served URL.
+ *
+ * The navigation is top-level and in-scope (manifest `scope: "/"`), so it stays
+ * inside the PWA window rather than spawning a new browsing context (which
+ * Firefox Android bounces to a blank external tab). The SW serves the PDF
+ * `inline`, so Firefox renders it in its built-in viewer or downloads it.
  *
  * @param {Blob} blob
  * @param {string} filename
- * @returns {Promise<boolean>} true if the download was triggered.
+ * @returns {Promise<boolean>} true if the navigation was triggered.
  */
 async function serviceWorkerDownload(blob, filename) {
   const sw = navigator.serviceWorker;
@@ -503,12 +489,8 @@ async function serviceWorkerDownload(blob, filename) {
   globalThis.alert?.(`SW ack: ${ack ? JSON.stringify(ack) : 'none (timed out — stale SW?)'}`); // TEMP
   if (!ack?.ok) return false;
 
-  const iframe = document.createElement('iframe');
-  iframe.hidden = true;
-  iframe.src = `/download-pdf/${id}`;
-  document.body.appendChild(iframe);
-  setTimeout(() => iframe.remove(), 60000);
-
+  // Must be last — this tears down the page, so nothing after it runs.
+  globalThis.location.assign(`/download-pdf/${id}`);
   return true;
 }
 
