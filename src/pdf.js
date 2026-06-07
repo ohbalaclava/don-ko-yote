@@ -429,22 +429,62 @@ async function deliverPdf(doc, filename) {
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });
 
+  // 1. Web Share with a file — works on Chrome Android and most mobile PWAs.
+  //    Firefox Android reports canShare({files}) === false, so it skips this.
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
+      return;
     } catch (err) {
-      // User dismissed the share sheet — not an error, nothing more to do.
-      if (err?.name === 'AbortError') return;
-      // A real failure: surface it rather than silently falling back to
-      // save(), whose blob-download path is the very thing that fails in the
-      // standalone PWA. A visible message keeps device failures diagnosable.
-      alert(`Couldn't share the PDF: ${err?.name || ''} ${err?.message || err}`);
+      if (err?.name === 'AbortError') return; // user dismissed the sheet
+      // Otherwise fall through to the other strategies.
     }
+  }
+
+  // 2. Installed PWA — jsPDF's blob-URL download opens a blank external tab
+  //    here, so route the download through the service worker instead.
+  const standalone = globalThis.matchMedia?.('(display-mode: standalone)').matches;
+  if (standalone) {
+    if (await serviceWorkerDownload(blob, filename)) return;
+    alert('Could not export the PDF. Try fully closing and reopening the app, then retry.');
     return;
   }
 
-  // No file-share support (desktop browsers): the standard download works.
+  // 3. Regular browser tab — the standard blob download works fine.
   doc.save(filename);
+}
+
+/**
+ * Delivers the PDF as a real same-origin download via the service worker,
+ * sidestepping the blob-URL download that a standalone PWA opens as a blank
+ * tab. Posts the blob to the SW, waits for it to be stashed, then triggers the
+ * download through a hidden iframe (so the SPA page itself isn't navigated).
+ *
+ * @param {Blob} blob
+ * @param {string} filename
+ * @returns {Promise<boolean>} true if the download was triggered.
+ */
+async function serviceWorkerDownload(blob, filename) {
+  const sw = navigator.serviceWorker;
+  if (!sw?.controller) return false;
+
+  const id = crypto.randomUUID();
+
+  // Hand the blob to the SW and wait for acknowledgement before navigating,
+  // so the fetch can't arrive before the blob is stored.
+  await new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => resolve();
+    sw.controller.postMessage({ type: 'pdf-download', id, filename, blob }, [channel.port2]);
+  });
+
+  const iframe = document.createElement('iframe');
+  iframe.hidden = true;
+  iframe.src = `/download-pdf/${id}`;
+  document.body.appendChild(iframe);
+  setTimeout(() => iframe.remove(), 60000);
+
+  return true;
 }
 
 /**
