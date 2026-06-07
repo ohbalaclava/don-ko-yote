@@ -13,7 +13,7 @@ let noiseBuffer = null;
 // Master-bus gain is BASE_MASTER scaled by the user's playback-volume setting
 // (1 = default). The setting lets users compensate for quiet/loud devices; the
 // limiter below still catches the resulting peaks.
-const BASE_MASTER = 0.9;
+const BASE_MASTER = 1.5;
 let masterVolume = 1;
 
 /**
@@ -165,11 +165,12 @@ function synthStrike(sound, when, taiko) {
 }
 
 /**
- * Schedules a short count-in/metronome click at `when`. `accent` (the first beat
- * of a bar, or an emphasised metronome head) is higher and louder.
+ * Schedules a short metronome/count-in click at `when`. `accent` (the first beat
+ * of a bar, or an emphasised metronome head) is higher and louder. Reached via
+ * `voice.tick` (the synth fallback) for both the metronome and the count-in.
  * @param {number} when - Start time in seconds on the AudioContext clock.
  * @param {boolean} [accent=false]
- * @param {number} [gainMul=1] - Volume multiplier (1 = the default count-in level).
+ * @param {number} [gainMul=1] - Volume multiplier (1 = the base click level).
  */
 function click(when, accent = false, gainMul = 1) {
   const c = getAudioContext();
@@ -272,7 +273,6 @@ function strike(sound, when, taiko) {
 /** The active voice. */
 export const voice = {
   strike,
-  click,
   tick: metroTick,
   /** Loads (once) any recorded samples for `taiko`; no-op for synth-only taikos. */
   preload: (taiko) => loadSamples(taiko),

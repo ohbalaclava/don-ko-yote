@@ -176,12 +176,16 @@ export const player = {
   /**
    * Schedules a count-in of clicks ending at `base + return value`. Counts in one
    * bar (`beatsPerLine`), capped at 4 so wide lines don't produce an overlong lead-in.
+   * Plays through the metronome tick voice so the count-in level tracks the metronome
+   * volume setting (a plain synth click, not the Shime sample).
    * @returns {number} The count-in duration in seconds.
    */
   _scheduleCountIn(base, piece) {
     const beats = Math.min(piece.beatsPerLine > 0 ? piece.beatsPerLine : 4, 4);
     const beatSec = divToSeconds(piece.time, piece.bpm, piece.time);
-    for (let i = 0; i < beats; i++) voice.click(base + i * beatSec, i === 0);
+    for (let i = 0; i < beats; i++) {
+      voice.tick(base + i * beatSec, { accent: i === 0, volume: settings.metronomeVolume });
+    }
     return beats * beatSec;
   },
 
