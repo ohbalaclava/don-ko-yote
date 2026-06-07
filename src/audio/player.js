@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { buildSequence, divToSeconds } from '../data/sequence.js';
+import { JIUCHI_PATTERNS, metronomeTicks } from '../data/metronome.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -22,10 +23,12 @@ export const player = {
   scope: null,
 
   _events: [],
+  _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
   _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
   _nextIdx: 0,
+  _nextMetroIdx: 0,
   _timer: null,
   _raf: null,
   // Bumped by play when it claims control, and by stop. An async play captures the
@@ -94,6 +97,12 @@ export const player = {
     // hits aren't silent while decode is in flight. No-op for synth-only taikos.
     await voice.preload(taiko);
     if (this._epoch !== epoch) return;
+    // The Shime TEN metronome sample lives in its own set, which may differ from
+    // the score's taiko, so preload it too. Falls back to a synth click if absent.
+    if (settings.metronome && settings.metronomeShime) {
+      await voice.preload('Shime');
+      if (this._epoch !== epoch) return;
+    }
     const c = getAudioContext();
 
     this._events = events.map((e) => ({
@@ -110,6 +119,7 @@ export const player = {
       audible: e.volume != null,
     }));
     this._taiko = taiko;
+    this._metroTicks = this._buildMetroTicks(piece, totalDiv);
 
     const base = c.currentTime + LEAD_IN;
     // Count-in only for whole-piece playback; scoped previews start immediately.
@@ -118,6 +128,7 @@ export const player = {
     this._startTime = base + countInSec;
     this._endTime = this._startTime + divToSeconds(totalDiv, bpm, time);
     this._nextIdx = 0;
+    this._nextMetroIdx = 0;
 
     this._timer = setInterval(() => this._schedule(), TICK);
     this._schedule();
@@ -132,12 +143,34 @@ export const player = {
     this._timer = null;
     this._raf = null;
     this._events = [];
+    this._metroTicks = [];
     this._nextIdx = 0;
+    this._nextMetroIdx = 0;
     const wasActive = this.playing;
     this.playing = false;
     this.scope = null;
     this.currentSoundId = null;
     if (wasActive) m.redraw();
+  },
+
+  /**
+   * Builds the metronome ticks (relative to division 0) for the current piece, or
+   * an empty list when the metronome is off. The jiuchi defaults to the score's own
+   * (`piece.jiuchi`) but can be overridden via the metronome settings.
+   * @returns {Array<{ atSec: number, accent: boolean }>}
+   */
+  _buildMetroTicks(piece, totalDiv) {
+    if (!settings.metronome) return [];
+    const jiuchi = settings.metronomeJiuchi === 'auto' ? piece.jiuchi : settings.metronomeJiuchi;
+    const ticks = metronomeTicks(totalDiv, piece.time, {
+      positions: JIUCHI_PATTERNS[jiuchi] ?? [1],
+      headOnly: settings.metronomeHeadOnly,
+      emphasise: settings.metronomeEmphasiseHead,
+    });
+    return ticks.map((t) => ({
+      atSec: divToSeconds(t.div, piece.bpm, piece.time),
+      accent: t.accent,
+    }));
   },
 
   /**
@@ -163,6 +196,17 @@ export const player = {
       if (when >= horizon) break;
       if (e.audible) voice.strike(e.sound, when, this._taiko);
       this._nextIdx++;
+    }
+    while (this._nextMetroIdx < this._metroTicks.length) {
+      const t = this._metroTicks[this._nextMetroIdx];
+      const when = this._startTime + t.atSec;
+      if (when >= horizon) break;
+      voice.tick(when, {
+        accent: t.accent,
+        shime: settings.metronomeShime,
+        volume: settings.metronomeVolume,
+      });
+      this._nextMetroIdx++;
     }
   },
 

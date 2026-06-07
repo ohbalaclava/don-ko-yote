@@ -1,0 +1,67 @@
+import { describe, it, expect } from 'vitest';
+import { JIUCHI_PATTERNS, metronomeTicks } from '../src/data/metronome.js';
+
+const divs = (ticks) => ticks.map((t) => t.div);
+
+describe('metronomeTicks', () => {
+  it('ticks once per beat head when headOnly is set', () => {
+    // 2 beats of 4 divisions each.
+    const ticks = metronomeTicks(8, 4, { positions: [1, 3], headOnly: true, emphasise: false });
+    expect(divs(ticks)).toEqual([0, 4]);
+  });
+
+  it('places ticks on the jiuchi subdivisions when not head-only', () => {
+    // Mitsu-uchi = 1,3,4 over 2 straight beats (time 4): divs 0,2,3 then 4,6,7.
+    const ticks = metronomeTicks(8, 4, {
+      positions: JIUCHI_PATTERNS['Mitsu-uchi'],
+      headOnly: false,
+      emphasise: false,
+    });
+    expect(divs(ticks)).toEqual([0, 2, 3, 4, 6, 7]);
+  });
+
+  it('handles swing time (Shichisan = 1 & 3 of a 3-division beat)', () => {
+    const ticks = metronomeTicks(6, 3, {
+      positions: JIUCHI_PATTERNS.Shichisan,
+      headOnly: false,
+      emphasise: false,
+    });
+    expect(divs(ticks)).toEqual([0, 2, 3, 5]);
+  });
+
+  it('accents only beat heads when emphasise is set', () => {
+    const ticks = metronomeTicks(8, 4, {
+      positions: JIUCHI_PATTERNS['Gobu Gobu'], // [1, 3]
+      headOnly: false,
+      emphasise: true,
+    });
+    // Heads (div 0, 4) accented; off-beats (div 2, 6) not.
+    expect(ticks).toEqual([
+      { div: 0, accent: true },
+      { div: 2, accent: false },
+      { div: 4, accent: true },
+      { div: 6, accent: false },
+    ]);
+  });
+
+  it('excludes ticks at or past totalDiv (the end boundary)', () => {
+    // 5 divisions, straight beat: beat 0 full, beat 1 only div 4 exists.
+    const ticks = metronomeTicks(5, 4, { positions: [1, 3], headOnly: false, emphasise: false });
+    expect(divs(ticks)).toEqual([0, 2, 4]);
+  });
+
+  it('skips subdivision positions beyond the time signature', () => {
+    // Mitsu-uchi's position 4 does not exist in a 3-division (swing) beat.
+    const ticks = metronomeTicks(3, 3, {
+      positions: JIUCHI_PATTERNS['Mitsu-uchi'], // [1, 3, 4]
+      headOnly: false,
+      emphasise: false,
+    });
+    expect(divs(ticks)).toEqual([0, 2]);
+  });
+
+  it('returns no ticks for an empty or invalid sequence', () => {
+    expect(metronomeTicks(0, 4, { positions: [1], headOnly: true, emphasise: false })).toEqual([]);
+    expect(metronomeTicks(8, 0, { positions: [1], headOnly: true, emphasise: false })).toEqual([]);
+  });
+});

@@ -6,6 +6,7 @@ import { Score } from './components/Score.jsx';
 import { Palette } from './components/Palette.jsx';
 import { SettingsModal } from './components/SettingsModal.jsx';
 import { ScoreSettingsModal } from './components/ScoreSettingsModal.jsx';
+import { MetronomeSettingsModal } from './components/MetronomeSettingsModal.jsx';
 import { MenuSheet } from './components/MenuSheet.jsx';
 import { ExportSheet } from './components/ExportSheet.jsx';
 import { ImportSheet } from './components/ImportSheet.jsx';
@@ -45,6 +46,7 @@ function App() {
   let scoreActive = false;
   let settingsOpen = false;
   let scoreSettingsOpen = false;
+  let metronomeSettingsOpen = false;
   let menuOpen = false;
   let exportSheetOpen = false;
   let importSheetOpen = false;
@@ -224,6 +226,9 @@ function App() {
             onOpenScoreSettings={() => {
               scoreSettingsOpen = true;
             }}
+            onOpenMetronomeSettings={() => {
+              metronomeSettingsOpen = true;
+            }}
             onOpenMenu={() => {
               menuOpen = true;
             }}
@@ -247,6 +252,14 @@ function App() {
             <ScoreSettingsModal
               onClose={() => {
                 scoreSettingsOpen = false;
+                m.redraw();
+              }}
+            />
+          ) : null}
+          {metronomeSettingsOpen ? (
+            <MetronomeSettingsModal
+              onClose={() => {
+                metronomeSettingsOpen = false;
                 m.redraw();
               }}
             />

@@ -165,23 +165,59 @@ function synthStrike(sound, when, taiko) {
 }
 
 /**
- * Schedules a short count-in click at `when`. `accent` (the first beat of a bar)
- * is higher and louder.
+ * Schedules a short count-in/metronome click at `when`. `accent` (the first beat
+ * of a bar, or an emphasised metronome head) is higher and louder.
  * @param {number} when - Start time in seconds on the AudioContext clock.
  * @param {boolean} [accent=false]
+ * @param {number} [gainMul=1] - Volume multiplier (1 = the default count-in level).
  */
-function click(when, accent = false) {
+function click(when, accent = false, gainMul = 1) {
   const c = getAudioContext();
   const osc = c.createOscillator();
   osc.type = 'square';
   osc.frequency.value = accent ? 1500 : 1000;
   const g = c.createGain();
-  g.gain.setValueAtTime(accent ? 0.35 : 0.22, when);
+  g.gain.setValueAtTime((accent ? 0.35 : 0.22) * gainMul, when);
   g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
   osc.connect(g);
   g.connect(master);
   osc.start(when);
   osc.stop(when + 0.06);
+}
+
+// The synth click is a square wave, which is perceptually much louder and more
+// piercing than a recorded drum hit at the same peak gain. This factor pulls the
+// metronome's synth tick down to roughly match the samples (the score's and the
+// Shime metronome) at the same volume setting; tune by ear against playback.
+const METRO_SYNTH_GAIN = 0.15;
+
+/**
+ * Schedules one metronome tick at `when`. With `shime`, plays the Shime TEN sample
+ * (louder when accented) if its buffer is loaded; otherwise — and whenever `shime`
+ * is off — falls back to the synth click so the tick is never silent.
+ * @param {number} when - Start time in seconds on the AudioContext clock.
+ * @param {object} [opts]
+ * @param {boolean} [opts.accent=false] - Emphasised head beat.
+ * @param {boolean} [opts.shime=false] - Use the Shime TEN sample.
+ * @param {number} [opts.volume=1] - Metronome volume multiplier.
+ */
+function metroTick(when, { accent = false, shime = false, volume = 1 } = {}) {
+  if (!(volume > 0)) return; // silent, and avoids an exponential ramp from gain 0
+  if (shime) {
+    const buffer = getBuffer('Shime', 'Shime');
+    if (buffer) {
+      const c = getAudioContext();
+      const g = c.createGain();
+      g.gain.value = SAMPLE_BASE_GAIN * volume * (accent ? 1.5 : 1);
+      const src = c.createBufferSource();
+      src.buffer = buffer;
+      src.connect(g);
+      g.connect(master);
+      src.start(when);
+      return;
+    }
+  }
+  click(when, accent, volume * METRO_SYNTH_GAIN);
 }
 
 // Base gain for sampled strikes at the typical accent (volume 4), before the
@@ -237,6 +273,7 @@ function strike(sound, when, taiko) {
 export const voice = {
   strike,
   click,
+  tick: metroTick,
   /** Loads (once) any recorded samples for `taiko`; no-op for synth-only taikos. */
   preload: (taiko) => loadSamples(taiko),
 };

@@ -15,6 +15,12 @@ export const settings = {
   defaultShowVolume: false,
   countIn: false,
   volume: 1, // master playback-volume multiplier (1 = default loudness)
+  metronome: false, // play a metronome during playback
+  metronomeHeadOnly: true, // tick only the beat head, vs. all jiuchi subdivisions
+  metronomeEmphasiseHead: true, // accent the head of every beat
+  metronomeJiuchi: 'auto', // 'auto' follows piece.jiuchi; else a jiuchi name
+  metronomeShime: false, // use the Shime TEN sample instead of a synth click
+  metronomeVolume: 1, // independent metronome volume multiplier
 
   async load() {
     const saved = await db.kv.get('settings');
@@ -27,6 +33,13 @@ export const settings = {
       if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
       if ('countIn' in saved) settings.countIn = saved.countIn;
       if ('volume' in saved) settings.volume = saved.volume;
+      if ('metronome' in saved) settings.metronome = saved.metronome;
+      if ('metronomeHeadOnly' in saved) settings.metronomeHeadOnly = saved.metronomeHeadOnly;
+      if ('metronomeEmphasiseHead' in saved)
+        settings.metronomeEmphasiseHead = saved.metronomeEmphasiseHead;
+      if ('metronomeJiuchi' in saved) settings.metronomeJiuchi = saved.metronomeJiuchi;
+      if ('metronomeShime' in saved) settings.metronomeShime = saved.metronomeShime;
+      if ('metronomeVolume' in saved) settings.metronomeVolume = saved.metronomeVolume;
     }
     setMasterVolume(settings.volume);
     applyToDOM();
@@ -45,6 +58,12 @@ export const settings = {
       defaultShowVolume: settings.defaultShowVolume,
       countIn: settings.countIn,
       volume: settings.volume,
+      metronome: settings.metronome,
+      metronomeHeadOnly: settings.metronomeHeadOnly,
+      metronomeEmphasiseHead: settings.metronomeEmphasiseHead,
+      metronomeJiuchi: settings.metronomeJiuchi,
+      metronomeShime: settings.metronomeShime,
+      metronomeVolume: settings.metronomeVolume,
     });
     applyToDOM();
     m.redraw();
