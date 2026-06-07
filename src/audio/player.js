@@ -97,7 +97,13 @@ export const player = {
     const c = getAudioContext();
 
     this._events = events.map((e) => ({
-      sound: { name: e.name, hand: e.hand, skin: e.skin, volume: e.volume },
+      sound: {
+        name: e.name,
+        hand: e.hand,
+        skin: e.skin,
+        volume: e.volume,
+        duration: e.durationDiv,
+      },
       soundId: e.soundId,
       atSec: divToSeconds(e.startDiv, bpm, time),
       endSec: divToSeconds(e.startDiv + e.durationDiv, bpm, time),

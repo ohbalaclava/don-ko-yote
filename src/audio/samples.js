@@ -17,14 +17,16 @@ const KAKEGOE_SAMPLES = {
   HUP: url('HUP.wav'),
   HA: url('HA.wav'),
   SO: url('SO.wav'),
+  'SO-2': url('SO-2.wav'), // shorter SO, used when the call's duration is reduced
   RE: url('RE.wav'),
+  'RE-1': url('RE-1.wav'), // shorter RE, used when the call's duration is reduced
   sore: url('sore.wav'),
 };
 
 /** Open strike syllables (shared by Shime and Katsugi) that map to a skin/single
  *  recording. Matched on the bare syllable so articulation variants (`TE'`, `tsu'`)
- *  fold in. The buzz/press `zu` is handled separately: Shime synthesizes it, while
- *  Katsugi has its own `Katsugi-zu` recording. */
+ *  fold in. The buzz/press `zu` is handled separately: it has its own recording per
+ *  taiko (`Shime-zu`, `Katsugi-zu`). */
 const OPEN_STRIKES = new Set(['TEN', 'KEN', 'TE', 'KE', 'tsu', 'ku', 'te', 'ke', 're']);
 
 /**
@@ -44,6 +46,7 @@ const SAMPLE_SETS = {
   },
   Shime: {
     Shime: url('Shime.wav'),
+    'Shime-zu': url('Shime-zu.wav'),
     ...KAKEGOE_SAMPLES,
   },
   Katsugi: {
@@ -65,9 +68,11 @@ const SAMPLE_SETS = {
  * sample applies (the caller then synthesizes, or stays silent for a call).
  *
  * Kakegoe calls (HUP/HA/SO/RE/sore) resolve first and are taiko-independent — they
- * have no hand. Otherwise a hand is required (rests return null) and resolution is
- * per taiko:
- * - Shime: every strike syllable maps to the single `Shime` recording.
+ * have no hand. SO and RE switch to a shorter recording (`SO-2`, `RE-1`) once the
+ * user trims the call's duration. Otherwise a hand is required (rests return null)
+ * and resolution is per taiko:
+ * - Shime: the buzz/press `zu` maps to `Shime-zu`; every other strike syllable maps
+ *   to the single `Shime` recording.
  * - Katsugi: the buzz `zu` maps to its own `Katsugi-zu` recording (both hands and
  *   skins); other strikes map to `Katsugi-front`, or `Katsugi-back` when the sound
  *   is marked `skin: 'back'`.
@@ -76,18 +81,28 @@ const SAMPLE_SETS = {
  *   (`B`/missing → R).
  * - Odaiko: every strike maps to the L or R recording by hand (`B`/missing → R).
  * Other taikos (Okedo) have no drum samples and return null.
- * @param {{ name: string, hand?: string, skin?: string }} sound
+ * @param {{ name: string, hand?: string, skin?: string, duration?: number }} sound
  * @param {string} taiko - Taiko display name.
  * @returns {string|null}
  */
 export function sampleKey(sound, taiko) {
   const name = sound.name || '';
-  if (isKakegoe(name)) return baseSyllable(name); // HUP/HA/SO/RE/sore, no hand needed
+  if (isKakegoe(name)) {
+    // HUP/HA/SO/RE/sore, no hand needed. SO and RE have shorter recordings used
+    // once the user trims the call's duration (full call is 4 straight / 3 swing).
+    const call = baseSyllable(name);
+    if (call === 'SO' && sound.duration <= 2) return 'SO-2';
+    if (call === 'RE' && sound.duration <= 1) return 'RE-1';
+    return call;
+  }
 
   if (sound.hand == null) return null; // rest
   const syllable = baseSyllable(name);
 
-  if (taiko === 'Shime') return OPEN_STRIKES.has(syllable) ? 'Shime' : null;
+  if (taiko === 'Shime') {
+    if (syllable === 'zu') return 'Shime-zu'; // own buzz/press recording
+    return OPEN_STRIKES.has(syllable) ? 'Shime' : null;
+  }
   if (taiko === 'Katsugi') {
     if (syllable === 'zu') return 'Katsugi-zu'; // own recording, both hands and skins
     if (!OPEN_STRIKES.has(syllable)) return null;

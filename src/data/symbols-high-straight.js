@@ -25,6 +25,5 @@ export const HIGH_STRAIGHT = {
     { name: '[HU]', duration: 4 },
     { name: 'SO', duration: 4 },
     { name: 'RE', duration: 4 },
-    { name: 'sore', duration: 4 },
   ],
 };
