@@ -475,7 +475,7 @@ async function serviceWorkerDownload(blob, filename) {
   // Hand the blob to the SW and wait for acknowledgement before navigating, so
   // the fetch can't arrive before the blob is stored. A stale SW (old
   // pass-through with no message handler) never acks, so time out rather than
-  // hang — and report which SW answered for diagnosis.
+  // hang and fall back to save().
   const ack = await new Promise((resolve) => {
     const channel = new MessageChannel();
     const timer = setTimeout(() => resolve(null), 1500);
@@ -486,7 +486,6 @@ async function serviceWorkerDownload(blob, filename) {
     sw.controller.postMessage({ type: 'pdf-download', id, filename, blob }, [channel.port2]);
   });
 
-  globalThis.alert?.(`SW ack: ${ack ? JSON.stringify(ack) : 'none (timed out — stale SW?)'}`); // TEMP
   if (!ack?.ok) return false;
 
   // Must be last — this tears down the page, so nothing after it runs.
