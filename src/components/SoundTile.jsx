@@ -87,14 +87,23 @@ export function SoundTile() {
               <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
             ) : null}
           </div>
+          {/* Silent text tiles carry free-form text, so in proportional mode the label
+              spans the whole tile (w-full) instead of the fixed one-subdivision column
+              used to centre a sound's syllable over its onset. */}
           <div
-            class={prop ? 'flex flex-col items-center py-0' : 'contents'}
-            style={prop ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined}
+            class={
+              prop ? `flex flex-col items-center py-0${sound.silent ? ' w-full' : ''}` : 'contents'
+            }
+            style={prop && !sound.silent ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined}
           >
             <span
               class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}${sound.skin === 'back' ? ' italic' : ''}`}
             >
-              {sound.name}
+              {sound.silent && !sound.name ? (
+                <span class="text-gray-300 dark:text-gray-600">…</span>
+              ) : (
+                sound.name
+              )}
             </span>
             {piece.showVolume && effectiveVolume(sound) != null ? (
               <div class="w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1">
@@ -224,6 +233,14 @@ export function SoundEditor() {
               }}
             />
           )}
+          {sound.silent && (
+            <input
+              class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-1 py-0.5 text-sm font-bold text-center"
+              value={sound.name}
+              oninput={(e) => piece.updateSound(lineId, sound.id, { name: e.target.value })}
+              placeholder="text"
+            />
+          )}
           {showHand && (
             <div>
               <div class="flex gap-1">
@@ -291,7 +308,7 @@ export function SoundEditor() {
             oninput={(e) => piece.updateSound(lineId, sound.id, { instruction: e.target.value })}
             placeholder="e.g. step left"
           />
-          {!sound.implicit && (
+          {!sound.implicit && !sound.silent && (
             <button
               class={`mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}

@@ -74,6 +74,7 @@ export function Palette() {
                 <SoundPaletteTile key={sym.name} sym={sym} />
               ))}
               <ImplicitPaletteTile />
+              <SilentPaletteTile />
             </div>
           </div>
 
@@ -178,6 +179,35 @@ function ImplicitPaletteTile() {
         >
           <span class={`font-bold text-base leading-tight font-${settings.font}`}>—</span>
           <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">1–8</span>
+        </div>
+      );
+    },
+  };
+}
+
+/** Builds a silent-text-tile symbol: one beat long, no hand (so it plays nothing). */
+function silentSym() {
+  return { name: '', duration: piece.time, silent: true };
+}
+
+function SilentPaletteTile() {
+  return {
+    view() {
+      return (
+        <div
+          data-palette-tile
+          data-palette-silent="1"
+          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
+          style={`width:${piece.time * SUBDIV_WIDTH_REM}rem`}
+          onclick={() => {
+            if (canTapAdd()) {
+              piece.addSound(piece.selectedLineId, silentSym());
+              ensureEditTargetVisible();
+            }
+          }}
+        >
+          <span class={`font-bold text-base leading-tight font-${settings.font}`}>T</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">txt</span>
         </div>
       );
     },
