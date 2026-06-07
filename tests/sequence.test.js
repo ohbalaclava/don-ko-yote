@@ -10,6 +10,7 @@ import {
   sectionSlice,
   blockRepeatSlice,
 } from '../src/data/sequence.js';
+import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
 
 // ── Fixture helpers ─────────────────────────────────────────────────────────
 let nextId = 0;
@@ -150,6 +151,19 @@ describe('buildSequence', () => {
     const { events } = buildSequence(lines, 4);
     expect(events[0].volume).toBe(4);
     expect(events[1].volume).toBeNull(); // a genuine rest is still silent
+  });
+
+  it('keeps silent tiles muted even when their text matches a kakegoe word', () => {
+    // A silent text tile is always muted, so a user typing "sore" never plays.
+    const lines = [
+      line('a', [
+        { id: 't', name: 'sore', duration: 4, silent: true },
+        { id: 'k', name: 'sore', duration: 4 },
+      ]),
+    ];
+    const { events } = buildSequence(lines, 4);
+    expect(events[0].volume).toBeNull(); // silent tile stays muted
+    expect(events[1].volume).toBe(KAKEGOE_VOLUME); // plain kakegoe still audible
   });
 
   it('carries the back-skin marker through to the event stream', () => {

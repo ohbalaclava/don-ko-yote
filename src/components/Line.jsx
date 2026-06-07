@@ -62,6 +62,8 @@ function handlePaletteDrop(evt) {
     if (pattern) piece.addGroup(toLineId, pattern, toIndex);
   } else if (ds.paletteImplicit != null) {
     piece.addSound(toLineId, { name: '—', duration: piece.time, implicit: true }, toIndex);
+  } else if (ds.paletteSilent != null) {
+    piece.addSound(toLineId, { name: '', duration: piece.time, silent: true }, toIndex);
   } else if (ds.paletteSound != null) {
     const sym = piece.symbolSet.symbols.find((s) => s.name === ds.paletteSound);
     if (sym) piece.addSound(toLineId, sym, toIndex);
