@@ -406,7 +406,45 @@ export async function exportPdf() {
   drawSectionBars(doc, pendingSectionBars, lineYMap);
   drawFooter(doc, currentPage);
 
-  doc.save(`${piece.title || 'taiko'}.pdf`);
+  await deliverPdf(doc, `${piece.title || 'taiko'}.pdf`);
+}
+
+/**
+ * Delivers the generated PDF to the user.
+ *
+ * `jsPDF.save()` hands off a `blob:` URL via a synthetic download/`window.open`,
+ * which fails inside an installed PWA on Firefox Android: the URL opens in a
+ * separate browsing context that cannot access the blob, yielding a blank page.
+ * When the Web Share API can share files we use it instead (works in the
+ * standalone PWA, lets the user save to Files or send elsewhere); otherwise we
+ * fall back to `save()` for desktop browsers.
+ *
+ * Must be called from within the originating user gesture (the Export tap) so
+ * the share sheet is allowed to open.
+ *
+ * @param {import('jspdf').jsPDF} doc
+ * @param {string} filename
+ */
+async function deliverPdf(doc, filename) {
+  const blob = doc.output('blob');
+  const file = new File([blob], filename, { type: 'application/pdf' });
+
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+    } catch (err) {
+      // User dismissed the share sheet — not an error, nothing more to do.
+      if (err?.name === 'AbortError') return;
+      // A real failure: surface it rather than silently falling back to
+      // save(), whose blob-download path is the very thing that fails in the
+      // standalone PWA. A visible message keeps device failures diagnosable.
+      alert(`Couldn't share the PDF: ${err?.name || ''} ${err?.message || err}`);
+    }
+    return;
+  }
+
+  // No file-share support (desktop browsers): the standard download works.
+  doc.save(filename);
 }
 
 /**

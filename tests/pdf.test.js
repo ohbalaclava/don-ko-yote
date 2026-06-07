@@ -15,6 +15,7 @@ const mockDoc = vi.hoisted(() => ({
   setPage: vi.fn(),
   addImage: vi.fn(),
   getTextWidth: vi.fn(() => 5),
+  output: vi.fn(() => new Blob(['pdf'], { type: 'application/pdf' })),
   save: vi.fn(),
 }));
 
