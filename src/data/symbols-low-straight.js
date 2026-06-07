@@ -31,7 +31,6 @@ export const LOW_STRAIGHT = {
     { name: 'HA', duration: 4 },
     { name: 'SO', duration: 4 },
     { name: 'RE', duration: 4 },
-    { name: 'sore', duration: 4 },
   ],
   patterns: [
     {

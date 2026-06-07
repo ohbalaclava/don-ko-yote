@@ -58,9 +58,9 @@ describe('sampleKey', () => {
       });
     }
 
-    it('does not sample the buzz/press zu (falls through to the synth)', () => {
-      expect(sampleKey({ name: 'zu', hand: 'R' }, 'Shime')).toBeNull();
-      expect(sampleKey({ name: "zu'", hand: 'R' }, 'Shime')).toBeNull();
+    it('maps the buzz/press zu to its own recording', () => {
+      expect(sampleKey({ name: 'zu', hand: 'R' }, 'Shime')).toBe('Shime-zu');
+      expect(sampleKey({ name: "zu'", hand: 'R' }, 'Shime')).toBe('Shime-zu');
     });
 
     it('returns null for a rest', () => {
@@ -118,6 +118,18 @@ describe('sampleKey', () => {
         });
       }
     }
+
+    it('SO/RE switch to the shorter recording once the duration is trimmed', () => {
+      // Full-length call (default 4 straight / 3 swing) → the full recording.
+      expect(sampleKey({ name: 'SO', duration: 4 }, 'Shime')).toBe('SO');
+      expect(sampleKey({ name: 'RE', duration: 3 }, 'Nagado')).toBe('RE');
+      // Trimmed → the short recording. SO uses SO-2 at 2 or below; RE uses RE-1 at 1.
+      expect(sampleKey({ name: 'SO', duration: 2 }, 'Katsugi')).toBe('SO-2');
+      expect(sampleKey({ name: 'SO', duration: 1 }, 'Odaiko')).toBe('SO-2');
+      expect(sampleKey({ name: 'RE', duration: 1 }, 'Shime')).toBe('RE-1');
+      // RE at 2 has no dedicated recording, so it keeps the full RE.
+      expect(sampleKey({ name: 'RE', duration: 2 }, 'Shime')).toBe('RE');
+    });
 
     it('the bracketed/silent [HU] is not a call', () => {
       expect(sampleKey({ name: '[HU]' }, 'Shime')).toBeNull();

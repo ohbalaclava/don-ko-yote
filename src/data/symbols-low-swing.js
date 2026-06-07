@@ -31,8 +31,6 @@ export const LOW_SWING = {
     { name: 'HA', duration: 3 },
     { name: 'SO', duration: 3 },
     { name: 'RE', duration: 3 },
-    { name: "so're", duration: 3 },
-    { name: "yoi'sa", duration: 3 },
   ],
   patterns: [
     {
