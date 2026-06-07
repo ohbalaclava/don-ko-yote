@@ -19,6 +19,7 @@ import { scoreStore } from './data/scoreStore.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { player } from './audio/player.js';
+import { VERSION } from './version.js';
 
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName;
@@ -211,6 +212,7 @@ function App() {
                 }}
               />
             ) : null}
+            <p class="absolute bottom-3 text-xs text-gray-400 dark:text-gray-500">v{VERSION}</p>
           </div>
         );
       }
