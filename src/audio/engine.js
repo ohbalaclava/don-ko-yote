@@ -272,9 +272,11 @@ const SAMPLE_BASE_GAIN = 0.8;
  * @param {{ name: string, hand?: string, volume: number }} sound
  * @param {number} when - Start time in seconds on the AudioContext clock.
  * @param {string} taiko - Taiko display name.
+ * @param {number} [gainMul=1] - Extra gain factor (used to trim each side when
+ *   layering the L and R recordings of a both-hands strike).
  * @returns {boolean} True if a sample was scheduled.
  */
-function sampleStrike(sound, when, taiko) {
+function sampleStrike(sound, when, taiko, gainMul = 1) {
   const key = sampleKey(sound, taiko);
   if (!key) return false;
   const buffer = getBuffer(taiko, key);
@@ -285,7 +287,7 @@ function sampleStrike(sound, when, taiko) {
   // vol-4 accent), but with the sample-specific base gain.
   const v = Math.min(8, Math.max(1, sound.volume));
   const g = c.createGain();
-  g.gain.value = SAMPLE_BASE_GAIN * Math.pow(1.6, v - 4);
+  g.gain.value = SAMPLE_BASE_GAIN * Math.pow(1.6, v - 4) * gainMul;
   const src = c.createBufferSource();
   src.buffer = buffer;
   src.connect(g);
@@ -294,14 +296,35 @@ function sampleStrike(sound, when, taiko) {
   return true;
 }
 
+// Per-side gain when layering the L and R recordings of a both-hands strike. The two
+// recordings are largely uncorrelated, so −3 dB each keeps the combined level close
+// to a single hit while sounding fuller and wider than one stick.
+const LAYER_GAIN = 0.71;
+
 /**
  * Plays a sound: a recorded sample when one is available for the taiko, otherwise
  * the synth. The swap is per-strike so a taiko with only some samples (or before
  * decode finishes) still sounds via the synth. Kakegoe calls are vocal-only — they
  * have no synth voice, so a missing/unloaded call sample stays silent rather than
  * triggering a drum hit.
+ *
+ * A both-hands strike (`hand === 'B'`) whose left and right map to distinct
+ * recordings (e.g. Odaiko-L + Odaiko-R) layers both for a fuller two-stick sound.
+ * Where a single recording already covers 'B' (Nagado KI, the hand-independent Shime
+ * sample) or there is no sample, it falls through to the normal single-voice path.
  */
 function strike(sound, when, taiko) {
+  if (sound.hand === 'B') {
+    const left = { ...sound, hand: 'L' };
+    const right = { ...sound, hand: 'R' };
+    const lKey = sampleKey(left, taiko);
+    const rKey = sampleKey(right, taiko);
+    if (lKey && rKey && lKey !== rKey) {
+      const l = sampleStrike(left, when, taiko, LAYER_GAIN);
+      const r = sampleStrike(right, when, taiko, LAYER_GAIN);
+      if (l || r) return; // else both buffers unloaded — fall through to synth
+    }
+  }
   if (sampleStrike(sound, when, taiko)) return;
   if (isKakegoe(sound.name)) return;
   synthStrike(sound, when, taiko);
