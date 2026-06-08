@@ -8,30 +8,50 @@ import { isKakegoe } from '../data/kakegoe.js';
 
 let ctx = null;
 let master = null;
+let output = null;
 let noiseBuffer = null;
 
-// Master-bus gain is BASE_MASTER scaled by the user's playback-volume setting
-// (1 = default). The setting lets users compensate for quiet/loud devices; the
-// limiter below still catches the resulting peaks.
-const BASE_MASTER = 1.5;
+// Gain staging: voices → master (fixed) → limiter → output (user volume) → soft-clip.
+// `master` runs the per-note gains hot into the limiter for consistent loudness on
+// weak mobile speakers; the user's playback-volume knob lives on `output`, AFTER the
+// limiter, so turning it up actually scales the limited signal instead of just
+// compressing harder (which is why a pre-limiter knob felt dead above ~100%).
+const BASE_MASTER = 10;
 let masterVolume = 1;
 
 /**
  * Sets the user playback-volume multiplier (1 = default) and applies it live if
- * the audio graph already exists. Called by settings on load and change.
+ * the audio graph already exists. Drives the post-limiter output gain — values
+ * above 100% push into the final soft-clip stage rather than hard-clipping.
  * @param {number} v - Volume multiplier (0 = silent).
  */
 export function setMasterVolume(v) {
   masterVolume = v;
-  if (master) master.gain.value = BASE_MASTER * masterVolume;
+  if (output) output.gain.value = masterVolume;
 }
 
-/** Lazily creates the shared AudioContext and a master gain node. */
+/**
+ * Builds a near-linear tanh saturation curve. Passes low levels through almost
+ * untouched (no colouration of normal playback) but rolls loud peaks gracefully
+ * toward ±1 instead of letting the boosted output hard-clip at high volumes.
+ * @returns {Float32Array}
+ */
+function makeSoftClipCurve() {
+  const n = 1024;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x);
+  }
+  return curve;
+}
+
+/** Lazily creates the shared AudioContext and the master → limiter → output graph. */
 export function getAudioContext() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
-    master.gain.value = BASE_MASTER * masterVolume;
+    master.gain.value = BASE_MASTER;
     // Safety limiter on the master bus: normal playing sits below the threshold
     // and passes through clean, while loud notes (vol 5–8) and dense overlaps are
     // caught just under 0 dBFS instead of clipping. This lets the per-note gains
@@ -42,8 +62,17 @@ export function getAudioContext() {
     limiter.ratio.value = 20;
     limiter.attack.value = 0.003;
     limiter.release.value = 0.25;
+    // User playback volume, applied after the limiter so the knob has real range.
+    output = ctx.createGain();
+    output.gain.value = masterVolume;
+    // Final soft-clip: keeps boosted output (>100%) musical instead of hard-clipping.
+    const softClip = ctx.createWaveShaper();
+    softClip.curve = makeSoftClipCurve();
+    softClip.oversample = '4x';
     master.connect(limiter);
-    limiter.connect(ctx.destination);
+    limiter.connect(output);
+    output.connect(softClip);
+    softClip.connect(ctx.destination);
   }
   return ctx;
 }
