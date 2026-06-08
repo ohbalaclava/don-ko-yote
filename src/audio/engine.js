@@ -12,11 +12,14 @@ let output = null;
 let noiseBuffer = null;
 
 // Gain staging: voices → master (fixed) → limiter → output (user volume) → soft-clip.
-// `master` runs the per-note gains hot into the limiter for consistent loudness on
-// weak mobile speakers; the user's playback-volume knob lives on `output`, AFTER the
-// limiter, so turning it up actually scales the limited signal instead of just
-// compressing harder (which is why a pre-limiter knob felt dead above ~100%).
-const BASE_MASTER = 10;
+// `master` is set so a single typical hit (a vol-4 strike) lands near 0 dBFS and the
+// limiter only engages on overlaps/loud accents, rather than clamping every note.
+// An earlier value of 10 ran ~+12 dB into the limiter; its 3 ms attack can't catch a
+// drum transient, so every attack overshot and the soft-clip waveshaped it — audible
+// clicking/distortion, worst when loud. The user's playback-volume knob lives on
+// `output`, AFTER the limiter, so turning it up scales the limited signal instead of
+// just compressing harder (which is why a pre-limiter knob felt dead above ~100%).
+const BASE_MASTER = 2.5;
 let masterVolume = 1;
 
 /**
@@ -31,17 +34,21 @@ export function setMasterVolume(v) {
 }
 
 /**
- * Builds a near-linear tanh saturation curve. Passes low levels through almost
- * untouched (no colouration of normal playback) but rolls loud peaks gracefully
- * toward ±1 instead of letting the boosted output hard-clip at high volumes.
+ * Builds a soft-clip curve that is exactly linear below ±LIN and bends gently toward
+ * ±1 above it. Levels below LIN (now where typical playback sits) pass through with
+ * no colouration; only true peaks — loud accents and dense overlaps — get rolled off
+ * instead of hard-clipping. A plain tanh would already start shaping around ±0.3,
+ * audibly squashing normal notes, so we keep the lower range strictly linear.
  * @returns {Float32Array}
  */
 function makeSoftClipCurve() {
   const n = 1024;
   const curve = new Float32Array(n);
+  const LIN = 0.7; // pass levels below this through untouched
   for (let i = 0; i < n; i++) {
     const x = (i / (n - 1)) * 2 - 1;
-    curve[i] = Math.tanh(x);
+    const a = Math.abs(x);
+    curve[i] = a <= LIN ? x : Math.sign(x) * (LIN + (1 - LIN) * Math.tanh((a - LIN) / (1 - LIN)));
   }
   return curve;
 }
@@ -52,12 +59,13 @@ export function getAudioContext() {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
     master.gain.value = BASE_MASTER;
-    // Safety limiter on the master bus: normal playing sits below the threshold
-    // and passes through clean, while loud notes (vol 5–8) and dense overlaps are
-    // caught just under 0 dBFS instead of clipping. This lets the per-note gains
-    // run hot (see voiceParams) for usable loudness on weak mobile speakers.
+    // Safety limiter on the master bus: with BASE_MASTER set so a typical hit peaks
+    // near 0 dBFS, single notes sit below the threshold and pass through clean, while
+    // loud accents (vol 5–8) and dense overlaps are caught just under 0 dBFS instead
+    // of clipping. Threshold sits close to 0 so it only catches genuine peaks rather
+    // than gain-reducing every note (which is what produced the constant overshoot).
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -3;
+    limiter.threshold.value = -1;
     limiter.knee.value = 0;
     limiter.ratio.value = 20;
     limiter.attack.value = 0.003;
