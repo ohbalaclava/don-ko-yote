@@ -1,5 +1,5 @@
 // Sampled-audio voice data: maps score sounds to recorded drum samples and
-// loads/decodes the wav files into AudioBuffers. Kept separate from engine.js so
+// loads/decodes the audio files into AudioBuffers. Kept separate from engine.js so
 // the name→sample resolver stays a pure, unit-testable function.
 import { getAudioContext } from './engine.js';
 import { isKakegoe, baseSyllable } from '../data/kakegoe.js';
@@ -14,13 +14,13 @@ const url = (file) => `${import.meta.env.BASE_URL}assets/sounds/${file}`;
  * of the active drum.
  */
 const KAKEGOE_SAMPLES = {
-  HUP: url('HUP.wav'),
-  HA: url('HA.wav'),
-  SO: url('SO.wav'),
-  'SO-2': url('SO-2.wav'), // shorter SO, used when the call's duration is reduced
-  RE: url('RE.wav'),
-  'RE-1': url('RE-1.wav'), // shorter RE, used when the call's duration is reduced
-  sore: url('sore.wav'),
+  HUP: url('HUP.m4a'),
+  HA: url('HA.m4a'),
+  SO: url('SO.m4a'),
+  'SO-2': url('SO-2.m4a'), // shorter SO, used when the call's duration is reduced
+  RE: url('RE.m4a'),
+  'RE-1': url('RE-1.m4a'), // shorter RE, used when the call's duration is reduced
+  sore: url('sore.m4a'),
 };
 
 /** Open strike syllables (shared by Shime and Katsugi) that map to a skin/single
@@ -31,34 +31,34 @@ const OPEN_STRIKES = new Set(['TEN', 'KEN', 'TE', 'KE', 'tsu', 'ku', 'te', 'ke',
 
 /**
  * Per-taiko sample sets, keyed by taiko display name. Each set maps a sample key
- * to the wav URL. Adding a taiko is one entry here plus a branch in {@link sampleKey}.
+ * to the audio file URL. Adding a taiko is one entry here plus a branch in {@link sampleKey}.
  * Every taiko includes the shared kakegoe calls; taikos with only those (Okedo,
  * Odaiko) still synth their drum hits while sounding recorded calls.
  */
 const SAMPLE_SETS = {
   Nagado: {
-    'DON-L': url('DON-L.wav'),
-    'DON-R': url('DON-R.wav'),
-    'KA-L': url('KA-L.wav'),
-    'KA-R': url('KA-R.wav'),
-    KI: url('KI.wav'),
+    'DON-L': url('DON-L.m4a'),
+    'DON-R': url('DON-R.m4a'),
+    'KA-L': url('KA-L.m4a'),
+    'KA-R': url('KA-R.m4a'),
+    KI: url('KI.m4a'),
     ...KAKEGOE_SAMPLES,
   },
   Shime: {
-    Shime: url('Shime.wav'),
-    'Shime-zu': url('Shime-zu.wav'),
+    Shime: url('Shime.m4a'),
+    'Shime-zu': url('Shime-zu.m4a'),
     ...KAKEGOE_SAMPLES,
   },
   Katsugi: {
-    'Katsugi-front': url('Katsugi-front.wav'),
-    'Katsugi-back': url('Katsugi-back.wav'),
-    'Katsugi-zu': url('Katsugi-zu.wav'),
+    'Katsugi-front': url('Katsugi-front.m4a'),
+    'Katsugi-back': url('Katsugi-back.m4a'),
+    'Katsugi-zu': url('Katsugi-zu.m4a'),
     ...KAKEGOE_SAMPLES,
   },
   Okedo: { ...KAKEGOE_SAMPLES },
   Odaiko: {
-    'Odaiko-L': url('Odaiko-L.wav'),
-    'Odaiko-R': url('Odaiko-R.wav'),
+    'Odaiko-L': url('Odaiko-L.m4a'),
+    'Odaiko-R': url('Odaiko-R.m4a'),
     ...KAKEGOE_SAMPLES,
   },
 };

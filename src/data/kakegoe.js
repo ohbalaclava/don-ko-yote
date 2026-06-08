@@ -3,7 +3,7 @@
 // silent; the playback layer treats them as audible vocal samples instead (one
 // shared recording per call, independent of the taiko). This module is the single
 // source of truth for which names are calls — imported by both the sequence builder
-// (to make them audible) and the sample resolver (to route them to their wav).
+// (to make them audible) and the sample resolver (to route them to their sample).
 
 /** Base syllables of the calls, after stripping articulation marks (apostrophes,
  *  brackets). The swing sets write `so're`; it normalises to `sore`. Case-sensitive

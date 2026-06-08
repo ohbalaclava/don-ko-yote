@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import { piece, markerDepth, lineDepth, singleLineRepeatMap } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
+import { voice } from '../audio/engine.js';
 import { patternStore } from '../data/patterns.js';
 import { scrollToScoreBottom } from '../scroll.js';
 import { Line } from './Line.jsx';
@@ -45,6 +46,12 @@ export function Score() {
         }
       };
       document.addEventListener('keydown', keydownHandler);
+
+      // Decode this taiko's samples now (score open) so the first Play isn't
+      // delayed by the fetch + decode. Fire-and-forget: loadSamples is memoised,
+      // so play()'s own await resolves instantly once this warms the cache, and
+      // decodeAudioData works on the suspended context without a user gesture.
+      voice.preload(piece.taiko);
     },
     onremove() {
       if (sortable) sortable.destroy();
