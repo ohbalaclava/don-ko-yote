@@ -1,8 +1,7 @@
 import m from 'mithril';
 import { history } from './history.js';
 import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
-
-const uid = () => crypto.randomUUID();
+import { uid } from '../uid.js';
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
 const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);

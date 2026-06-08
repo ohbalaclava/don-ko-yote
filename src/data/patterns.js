@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from './piece.js';
 import { VERSION } from '../version.js';
+import { uid } from '../uid.js';
 
 export const patternStore = {
   items: [],
@@ -14,7 +15,7 @@ export const patternStore = {
    * @returns {{ id: string, name: string, sounds: Array, symbolSetId: string | undefined }}
    */
   save(name, sounds, symbolSetId) {
-    const record = { id: crypto.randomUUID(), name, sounds, symbolSetId };
+    const record = { id: uid(), name, sounds, symbolSetId };
     patternStore.items = [...patternStore.items, record];
     m.redraw();
     return record;
@@ -36,7 +37,7 @@ export const patternStore = {
    */
   setItems(items) {
     patternStore.items = (Array.isArray(items) ? items : []).map((p) =>
-      p.id ? p : { ...p, id: crypto.randomUUID() }
+      p.id ? p : { ...p, id: uid() }
     );
     m.redraw();
   },
@@ -74,7 +75,7 @@ export const patternStore = {
         return !symbolSetId || symbolSetId === currentSetId;
       })
       .map(({ name, sounds, symbolSetId }) => ({
-        id: crypto.randomUUID(),
+        id: uid(),
         name,
         sounds,
         symbolSetId,

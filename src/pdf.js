@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { piece, singleLineRepeatMap } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { effectiveVolume, groupIntoLigatures, packIntoTracks } from './util.js';
+import { uid } from './uid.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -470,7 +471,7 @@ async function serviceWorkerDownload(blob, filename) {
   const sw = navigator.serviceWorker;
   if (!sw?.controller) return false;
 
-  const id = crypto.randomUUID();
+  const id = uid();
 
   // Hand the blob to the SW and wait for acknowledgement before navigating, so
   // the fetch can't arrive before the blob is stored. A stale SW (old

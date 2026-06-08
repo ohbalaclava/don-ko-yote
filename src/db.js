@@ -1,3 +1,5 @@
+import { uid } from './uid.js';
+
 const DB_NAME = 'don-ko-yote';
 // Bumped from 1 → 2 for the multi-symbol-set refactor: scores and patterns
 // stored under the old fractional-duration schema are wiped on upgrade.
@@ -67,7 +69,7 @@ function collection(storeName) {
     delete: (id) => tx(storeName, 'readwrite', (s) => s.delete(id)),
 
     async save(item) {
-      const record = { ...item, id: item.id ?? crypto.randomUUID() };
+      const record = { ...item, id: item.id ?? uid() };
       await tx(storeName, 'readwrite', (s) => s.put(record));
       return record;
     },

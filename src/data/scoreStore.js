@@ -5,6 +5,7 @@ import { history } from './history.js';
 import { patternStore } from './patterns.js';
 import { player } from '../audio/player.js';
 import { VERSION } from '../version.js';
+import { uid } from '../uid.js';
 
 /**
  * Returns the id of the last sound line in `lines` (skipping headings, notes,
@@ -34,7 +35,7 @@ function expandGroupsInLines(lines) {
     for (const s of line.sounds) {
       if (s.type === 'group') {
         for (const gs of s.sounds) {
-          expanded.push({ ...gs, id: crypto.randomUUID() });
+          expanded.push({ ...gs, id: uid() });
         }
       } else {
         expanded.push(s);
