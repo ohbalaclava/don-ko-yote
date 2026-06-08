@@ -15,6 +15,8 @@ export const HIGH_STRAIGHT = {
     { name: 'tsu', duration: 2, hand: 'R', volume: 2 },
     { name: 'ku', duration: 2, hand: 'L', volume: 2 },
     { name: 'SU', duration: 2 },
+    { name: 'ten', duration: 2, hand: 'R', volume: 3 },
+    { name: 'ken', duration: 2, hand: 'L', volume: 3 },
     { name: 'te', duration: 1, hand: 'R', volume: 3 },
     { name: 'ke', duration: 1, hand: 'L', volume: 3 },
     { name: 're', duration: 1, hand: 'L', volume: 3 },

@@ -16,6 +16,8 @@ export const LOW_STRAIGHT = {
     { name: 'RA', duration: 2, hand: 'L', volume: 4 },
     { name: 'KI', duration: 2, hand: 'B', volume: 4 },
     { name: 'SU', duration: 2 },
+    { name: 'don', duration: 2, hand: 'R', volume: 2 },
+    { name: 'kon', duration: 2, hand: 'L', volume: 2 },
     { name: 'do', duration: 1, hand: 'R', volume: 2 },
     { name: 'ko', duration: 1, hand: 'L', volume: 2 },
     { name: 'ro', duration: 1, hand: 'L', volume: 2 },

@@ -18,6 +18,8 @@ export const LOW_SWING = {
     { name: 'KA', duration: 1, hand: 'R', volume: 4 },
     { name: 'RA', duration: 1, hand: 'L', volume: 4 },
     { name: 'SU', duration: 2 },
+    { name: 'don', duration: 2, hand: 'R', volume: 2 },
+    { name: 'kon', duration: 2, hand: 'L', volume: 2 },
     { name: 'do', duration: 1, hand: 'R', volume: 2 },
     { name: 'ko', duration: 1, hand: 'L', volume: 2 },
     { name: 'ro', duration: 1, hand: 'L', volume: 2 },
