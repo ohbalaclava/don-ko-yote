@@ -126,7 +126,7 @@ export function SettingsModal() {
                   type="range"
                   class="w-full accent-indigo-600"
                   min="0"
-                  max="3"
+                  max="2"
                   step="0.05"
                   value={settings.volume}
                   oninput={(e) => settings.set('volume', Number(e.target.value))}
