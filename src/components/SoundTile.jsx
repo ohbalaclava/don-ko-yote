@@ -204,7 +204,8 @@ export function SoundEditor() {
         }
       }
 
-      const showHand = !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R';
+      const showHand =
+        !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R' || sound.hand === 'B';
       const showSkin = piece.skins === 2 && !!sound.hand;
       const showDuration = !sound.implicit;
       const maxDuration = time;
