@@ -8,21 +8,27 @@ describe('sampleKey', () => {
       ['DON', 'R', 'DON-R'],
       ['DO', 'R', 'DON-R'],
       ['do', 'R', 'DON-R'],
+      ['don', 'R', 'DON-R'],
       ['KON', 'L', 'DON-L'],
       ['KO', 'L', 'DON-L'],
       ['ko', 'L', 'DON-L'],
+      ['kon', 'L', 'DON-L'],
       ['ro', 'L', 'DON-L'],
       ['ron', 'R', 'DON-R'],
       ["DO'", 'R', 'DON-R'],
     ];
 
-    // Rim hits (vowel 'a') → KA sample.
+    // Rim hits (any non-'o', non-'i' vowel — ka/ra, and te/ke/ten/ken) → KA sample.
     const kaCases = [
       ['KA', 'R', 'KA-R'],
       ["KA'", 'R', 'KA-R'],
       ['ka', 'L', 'KA-L'],
       ['RA', 'L', 'KA-L'],
       ['ra', 'L', 'KA-L'],
+      ['te', 'R', 'KA-R'],
+      ['ten', 'R', 'KA-R'],
+      ['ke', 'L', 'KA-L'],
+      ['ken', 'L', 'KA-L'],
     ];
 
     // The ki click has its own hand-less recording.
@@ -51,7 +57,21 @@ describe('sampleKey', () => {
   describe('Shime', () => {
     // Every strike syllable maps to the single Shime recording, including the
     // apostrophe variants which normalise to a listed syllable.
-    const hits = ['TEN', 'KEN', 'TE', 'KE', 'tsu', 'ku', 'te', 'ke', 're', "TE'", "tsu'"];
+    const hits = [
+      'TEN',
+      'KEN',
+      'TE',
+      'KE',
+      'ten',
+      'ken',
+      'tsu',
+      'ku',
+      'te',
+      'ke',
+      're',
+      "TE'",
+      "tsu'",
+    ];
     for (const name of hits) {
       it(`${name} → Shime`, () => {
         expect(sampleKey({ name, hand: 'R' }, 'Shime')).toBe('Shime');

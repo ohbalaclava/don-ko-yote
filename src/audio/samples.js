@@ -27,7 +27,19 @@ const KAKEGOE_SAMPLES = {
  *  recording. Matched on the bare syllable so articulation variants (`TE'`, `tsu'`)
  *  fold in. The buzz/press `zu` is handled separately: it has its own recording per
  *  taiko (`Shime-zu`, `Katsugi-zu`). */
-const OPEN_STRIKES = new Set(['TEN', 'KEN', 'TE', 'KE', 'tsu', 'ku', 'te', 'ke', 're']);
+const OPEN_STRIKES = new Set([
+  'TEN',
+  'KEN',
+  'TE',
+  'KE',
+  'ten',
+  'ken',
+  'tsu',
+  'ku',
+  'te',
+  'ke',
+  're',
+]);
 
 /**
  * Per-taiko sample sets, keyed by taiko display name. Each set maps a sample key
