@@ -161,7 +161,17 @@ describe('sampleKey', () => {
     });
   });
 
-  it('returns null for taikos without a drum sample set (Okedo)', () => {
-    expect(sampleKey({ name: 'DON', hand: 'R' }, 'Okedo')).toBeNull();
+  describe('Okedo (borrows Nagado drums)', () => {
+    it('resolves drum hits to the Nagado recordings', () => {
+      expect(sampleKey({ name: 'DON', hand: 'R' }, 'Okedo')).toBe('DON-R');
+      expect(sampleKey({ name: 'ko', hand: 'L' }, 'Okedo')).toBe('DON-L');
+      expect(sampleKey({ name: 'KA', hand: 'R' }, 'Okedo')).toBe('KA-R');
+      expect(sampleKey({ name: 'ten', hand: 'L' }, 'Okedo')).toBe('KA-L');
+      expect(sampleKey({ name: 'ki', hand: 'B' }, 'Okedo')).toBe('KI');
+    });
+
+    it('returns null for a rest', () => {
+      expect(sampleKey({ name: 'SU' }, 'Okedo')).toBeNull();
+    });
   });
 });

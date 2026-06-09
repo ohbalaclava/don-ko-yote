@@ -44,16 +44,22 @@ const OPEN_STRIKES = new Set([
 /**
  * Per-taiko sample sets, keyed by taiko display name. Each set maps a sample key
  * to the audio file URL. Adding a taiko is one entry here plus a branch in {@link sampleKey}.
- * Every taiko includes the shared kakegoe calls; taikos with only those (Okedo,
- * Odaiko) still synth their drum hits while sounding recorded calls.
+ * Every taiko includes the shared kakegoe calls. Okedo has no recordings of its own,
+ * so it reuses Nagado's drum set (see {@link sampleKey}).
  */
+// Nagado's drum recordings (centre DON L/R, rim KA L/R, the ki click). Shared with
+// Okedo, which has no recordings of its own and borrows Nagado's voice.
+const NAGADO_DRUMS = {
+  'DON-L': url('DON-L.m4a'),
+  'DON-R': url('DON-R.m4a'),
+  'KA-L': url('KA-L.m4a'),
+  'KA-R': url('KA-R.m4a'),
+  KI: url('KI.m4a'),
+};
+
 const SAMPLE_SETS = {
   Nagado: {
-    'DON-L': url('DON-L.m4a'),
-    'DON-R': url('DON-R.m4a'),
-    'KA-L': url('KA-L.m4a'),
-    'KA-R': url('KA-R.m4a'),
-    KI: url('KI.m4a'),
+    ...NAGADO_DRUMS,
     ...KAKEGOE_SAMPLES,
   },
   Shime: {
@@ -67,7 +73,10 @@ const SAMPLE_SETS = {
     'Katsugi-zu': url('Katsugi-zu.m4a'),
     ...KAKEGOE_SAMPLES,
   },
-  Okedo: { ...KAKEGOE_SAMPLES },
+  Okedo: {
+    ...NAGADO_DRUMS,
+    ...KAKEGOE_SAMPLES,
+  },
   Odaiko: {
     'Odaiko-L': url('Odaiko-L.m4a'),
     'Odaiko-R': url('Odaiko-R.m4a'),
@@ -88,11 +97,10 @@ const SAMPLE_SETS = {
  * - Katsugi: the buzz `zu` maps to its own `Katsugi-zu` recording (both hands and
  *   skins); other strikes map to `Katsugi-front`, or `Katsugi-back` when the sound
  *   is marked `skin: 'back'`.
- * - Nagado: family from the first syllable's vowel — `o` (do/don/ko/ron) → DON,
- *   `i` (ki) → the hand-less KI recording, else (ka/ra) → KA; hand picks L/R
- *   (`B`/missing → R).
+ * - Nagado / Okedo: family from the first syllable's vowel — `o` (do/don/ko/ron) →
+ *   DON, `i` (ki) → the hand-less KI recording, else (ka/ra) → KA; hand picks L/R
+ *   (`B`/missing → R). Okedo borrows Nagado's recordings.
  * - Odaiko: every strike maps to the L or R recording by hand (`B`/missing → R).
- * Other taikos (Okedo) have no drum samples and return null.
  * @param {{ name: string, hand?: string, skin?: string, duration?: number }} sound
  * @param {string} taiko - Taiko display name.
  * @returns {string|null}
@@ -120,7 +128,8 @@ export function sampleKey(sound, taiko) {
     if (!OPEN_STRIKES.has(syllable)) return null;
     return sound.skin === 'back' ? 'Katsugi-back' : 'Katsugi-front';
   }
-  if (taiko === 'Nagado') {
+  if (taiko === 'Nagado' || taiko === 'Okedo') {
+    // Okedo has no recordings of its own and borrows Nagado's drum voice.
     const vowel = syllable.charAt(1).toLowerCase();
     if (vowel === 'i') return 'KI'; // ki — its own recording, no L/R variant
     const family = vowel === 'o' ? 'DON' : 'KA';
