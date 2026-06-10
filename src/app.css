@@ -15,11 +15,9 @@ body {
   font-family: 'Permanent Marker', cursive;
 }
 
+/* Allow pan gestures so a scroll can start on a tile; SortableJS's delayed
+   drag (see drag.js) prevents scrolling itself once a drag is active. */
 .sound-tile {
-  touch-action: none;
-}
-
-.select-mode .sound-tile {
   touch-action: manipulation;
 }
 

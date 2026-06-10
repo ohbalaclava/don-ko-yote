@@ -4,6 +4,7 @@ import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { ensureEditTargetVisible } from '../scroll.js';
+import { touchDragDelay } from '../drag.js';
 
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
@@ -23,6 +24,7 @@ function makeCloneSource(dom, extra = {}) {
     group: { name: 'sounds', pull: 'clone', put: false },
     sort: false,
     draggable: '[data-palette-tile]',
+    ...touchDragDelay,
     ...extra,
   });
 }

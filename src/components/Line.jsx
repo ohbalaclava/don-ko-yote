@@ -8,6 +8,7 @@ import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { packIntoTracks, groupSoundsForDisplay } from '../util.js';
 import { player } from '../audio/player.js';
+import { touchDragDelay } from '../drag.js';
 
 function lineDuration(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
@@ -261,6 +262,10 @@ export function Line() {
       filter: '.beat-marker-divider, .repeat-counter',
       animation: 150,
       ghostClass: 'opacity-30',
+      ...touchDragDelay,
+      // Once a drag is genuinely underway, the held tile must not also trigger
+      // long-press selection.
+      onStart: lpEnd,
       onAdd: handlePaletteDrop,
       onEnd(evt) {
         const ligatureIds = evt.item.dataset.ligatureIds;

@@ -6,6 +6,7 @@ import { player } from '../audio/player.js';
 import { voice } from '../audio/engine.js';
 import { patternStore } from '../data/patterns.js';
 import { scrollToScoreBottom } from '../scroll.js';
+import { touchDragDelay } from '../drag.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
@@ -34,6 +35,7 @@ export function Score() {
         filter: '.block-repeat-row',
         animation: 150,
         ghostClass: 'opacity-30',
+        ...touchDragDelay,
         onEnd(evt) {
           piece.reorderLine(evt.oldIndex, evt.newIndex);
         },
