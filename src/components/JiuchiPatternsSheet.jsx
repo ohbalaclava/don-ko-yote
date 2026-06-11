@@ -2,6 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { resolvePattern } from '../data/symbolSets.js';
+import { formatBeats } from '../util.js';
 
 export function JiuchiPatternsSheet() {
   return {
@@ -40,7 +41,10 @@ export function JiuchiPatternsSheet() {
 
               <div class="flex flex-col gap-1.5">
                 {patterns.map((p) => {
-                  const dur = +p.sounds.reduce((s, x) => s + x.duration, 0).toFixed(2);
+                  const dur = formatBeats(
+                    p.sounds.reduce((s, x) => s + x.duration, 0),
+                    piece.time
+                  );
                   return (
                     <button
                       key={p.name}

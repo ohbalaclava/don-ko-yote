@@ -4,6 +4,7 @@ import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { ensureEditTargetVisible } from '../scroll.js';
+import { formatBeats } from '../util.js';
 import { touchDragDelay } from '../drag.js';
 
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
@@ -219,7 +220,10 @@ function SilentPaletteTile() {
 function PatternPaletteTile() {
   return {
     view({ attrs: { pattern } }) {
-      const beats = +(pattern.sounds.reduce((s, x) => s + x.duration, 0) / piece.time).toFixed(2);
+      const beats = formatBeats(
+        pattern.sounds.reduce((s, x) => s + x.duration, 0),
+        piece.time
+      );
       return (
         <div
           data-palette-tile

@@ -10,6 +10,20 @@ export function isIntegerBeat(pos, time) {
 }
 
 /**
+ * Formats a duration in divisions as a beat count: whole beats, plus "-n" for
+ * any leftover sub-beat divisions (e.g. 23 divisions at 3 divisions per beat
+ * → "7-2", not "7.67").
+ * @param {number} divisions - Total duration in divisions.
+ * @param {number} time - Divisions per beat.
+ * @returns {string}
+ */
+export function formatBeats(divisions, time) {
+  const whole = Math.floor(divisions / time);
+  const sub = divisions % time;
+  return sub ? `${whole}-${sub}` : `${whole}`;
+}
+
+/**
  * Greedily packs labelled spans into the fewest horizontal tracks so that no two
  * spans on the same track overlap. Spans are placed in the given array order; each
  * goes on the first track whose previously-placed span ends at or before this span's

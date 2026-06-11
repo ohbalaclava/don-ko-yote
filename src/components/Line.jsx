@@ -6,7 +6,7 @@ import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
-import { packIntoTracks, groupSoundsForDisplay } from '../util.js';
+import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { player } from '../audio/player.js';
 import { touchDragDelay } from '../drag.js';
 
@@ -340,7 +340,7 @@ export function Line() {
     },
     view({ attrs: { line, index, repeatDepth = 0, singleRepeat = null } }) {
       const time = piece.time;
-      const beats = lineDuration(line) / time;
+      const beatLabel = formatBeats(lineDuration(line), time);
       const selected = piece.selectedLineId === line.id;
       const isLineSelected = piece.lineSelection.includes(line.id);
       const selectionIds =
@@ -492,7 +492,7 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             <span class="w-8 text-center whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
-              {+beats.toFixed(2)}b
+              {beatLabel}b
             </span>
             {selected ? (
               <button

@@ -1,8 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { packIntoTracks, groupIntoLigatures, groupSoundsForDisplay } from '../src/util.js';
+import {
+  packIntoTracks,
+  groupIntoLigatures,
+  groupSoundsForDisplay,
+  formatBeats,
+} from '../src/util.js';
 
 /** Compact sound factory for grouping tests. */
 const snd = (name, hand, duration, extra = {}) => ({ name, hand, duration, ...extra });
+
+describe('formatBeats', () => {
+  it('shows whole beats without a sub-beat suffix', () => {
+    expect(formatBeats(32, 4)).toBe('8');
+    expect(formatBeats(21, 3)).toBe('7');
+  });
+
+  it('shows leftover divisions as whole-subdivisions', () => {
+    expect(formatBeats(23, 3)).toBe('7-2'); // swing: 7 beats + 2 sub-beats
+    expect(formatBeats(33, 4)).toBe('8-1');
+  });
+
+  it('handles an empty line and sub-beat-only durations', () => {
+    expect(formatBeats(0, 4)).toBe('0');
+    expect(formatBeats(2, 3)).toBe('0-2');
+  });
+});
 
 describe('packIntoTracks', () => {
   it('returns empty result for no spans', () => {
