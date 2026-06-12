@@ -26,7 +26,7 @@ export const player = {
   _events: [],
   _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
   _metroStrikes: [], // { atSec, sound } looped drum strikes for a sounds-kind custom jiuchi
-  _metroTaiko: '', // taiko voice for _metroStrikes (the jiuchi's source taiko)
+  _metroTaiko: '', // taiko voice for _metroStrikes (score taiko, or Shime when flagged)
   _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
@@ -111,15 +111,9 @@ export const player = {
       await voice.preload('Shime');
       if (this._epoch !== epoch) return;
     }
-    // A sounds-kind custom jiuchi plays real drum strikes with its source taiko's
-    // voice, which may also differ from the score's taiko.
     const metroJiuchi = settings.metronome
       ? jiuchiStore.resolveSetting(settings.metronomeJiuchi, piece)
       : null;
-    if (metroJiuchi?.kind === 'sounds') {
-      await voice.preload(metroJiuchi.taiko);
-      if (this._epoch !== epoch) return;
-    }
     const c = getAudioContext();
 
     this._events = events.map((e) => ({
@@ -139,7 +133,9 @@ export const player = {
     if (metroJiuchi?.kind === 'sounds') {
       this._metroTicks = [];
       this._metroStrikes = this._buildMetroStrikes(piece, totalDiv, metroJiuchi);
-      this._metroTaiko = metroJiuchi.taiko;
+      // The Shime flag picks the pattern's voice: Shime, or the score's taiko.
+      // Either way the buffers are already preloaded above.
+      this._metroTaiko = settings.metronomeShime ? 'Shime' : taiko;
     } else {
       this._metroTicks = metroJiuchi ? this._buildMetroTicks(piece, totalDiv, metroJiuchi) : [];
       this._metroStrikes = [];

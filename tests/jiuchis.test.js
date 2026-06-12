@@ -108,7 +108,6 @@ describe('resolveSetting', () => {
       name: 'Mine',
       kind: 'sounds',
       time: 4,
-      taiko: 'Nagado',
       events: [],
       lengthDiv: 8,
     });
@@ -127,7 +126,6 @@ describe('resolveSetting', () => {
       name: 'Swingy',
       kind: 'sounds',
       time: 3,
-      taiko: 'Nagado',
       events: [],
       lengthDiv: 6,
     });
@@ -145,7 +143,6 @@ describe('syncFromPiece', () => {
       name: 'Mine',
       kind: 'sounds',
       time: 4,
-      taiko: 'Shime',
       events: [],
       lengthDiv: 0,
     });
@@ -154,7 +151,6 @@ describe('syncFromPiece', () => {
     const updated = jiuchiStore.get(saved.id);
     expect(updated.lengthDiv).toBe(6);
     expect(updated.events.map((e) => e.startDiv)).toEqual([0, 4]);
-    expect(updated.taiko).toBe('Nagado'); // refreshed from the piece
     expect(updated.name).toBe('Mine'); // name preserved
   });
 

@@ -23,24 +23,6 @@ const KAKEGOE_SAMPLES = {
   sore: url('sore.m4a'),
 };
 
-/** Open strike syllables (shared by Shime and Katsugi) that map to a skin/single
- *  recording. Matched on the bare syllable so articulation variants (`TE'`, `tsu'`)
- *  fold in. The buzz/press `zu` is handled separately: it has its own recording per
- *  taiko (`Shime-zu`, `Katsugi-zu`). */
-const OPEN_STRIKES = new Set([
-  'TEN',
-  'KEN',
-  'TE',
-  'KE',
-  'ten',
-  'ken',
-  'tsu',
-  'ku',
-  'te',
-  'ke',
-  're',
-]);
-
 /**
  * Per-taiko sample sets, keyed by taiko display name. Each set maps a sample key
  * to the audio file URL. Adding a taiko is one entry here plus a branch in {@link sampleKey}.
@@ -121,11 +103,12 @@ export function sampleKey(sound, taiko) {
 
   if (taiko === 'Shime') {
     if (syllable === 'zu') return 'Shime-zu'; // own buzz/press recording
-    return OPEN_STRIKES.has(syllable) ? 'Shime' : null;
+    // Every other strike syllable shares the single recording — including
+    // low-set syllables (DON/ka), which reach a Shime via custom jiuchis.
+    return 'Shime';
   }
   if (taiko === 'Katsugi') {
     if (syllable === 'zu') return 'Katsugi-zu'; // own recording, both hands and skins
-    if (!OPEN_STRIKES.has(syllable)) return null;
     return sound.skin === 'back' ? 'Katsugi-back' : 'Katsugi-front';
   }
   if (taiko === 'Nagado' || taiko === 'Okedo') {

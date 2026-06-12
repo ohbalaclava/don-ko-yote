@@ -140,14 +140,14 @@ export function Score() {
                   </button>,
                   allJiuchiSelected ? (
                     <button
-                      class="text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded px-2 py-1"
+                      class="text-xs font-semibold bg-green-600 hover:bg-green-500 text-white rounded px-2 py-1"
                       onclick={() => piece.unmarkJiuchiLines(piece.lineSelection)}
                     >
                       Unmark jiuchi
                     </button>
                   ) : (
                     <button
-                      class="text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded px-2 py-1"
+                      class="text-xs font-semibold bg-green-600 hover:bg-green-500 text-white rounded px-2 py-1"
                       onclick={async () => {
                         const name = window.prompt('Jiuchi name');
                         if (name) await piece.markSelectionAsJiuchi(name);

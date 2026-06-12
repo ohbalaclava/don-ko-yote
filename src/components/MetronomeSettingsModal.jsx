@@ -240,7 +240,8 @@ export function MetronomeSettingsModal() {
                 <div>
                   <div class="font-medium dark:text-white">Use Shime sound</div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">
-                    Shime TEN sample instead of a synth click
+                    Tick with the Shime TEN sample instead of a synth click; play custom drum
+                    patterns on the Shime instead of the score's taiko
                   </div>
                 </div>
                 <Toggle

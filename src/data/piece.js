@@ -714,7 +714,6 @@ export const piece = {
       name,
       kind: 'sounds',
       time: piece.time,
-      taiko: piece.taiko,
       events,
       lengthDiv,
     });

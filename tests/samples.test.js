@@ -55,8 +55,9 @@ describe('sampleKey', () => {
   });
 
   describe('Shime', () => {
-    // Every strike syllable maps to the single Shime recording, including the
-    // apostrophe variants which normalise to a listed syllable.
+    // Every strike syllable maps to the single Shime recording: the high-set
+    // syllables (with apostrophe variants normalising onto them), and low-set
+    // syllables (DON/ka), which reach a Shime via custom jiuchis.
     const hits = [
       'TEN',
       'KEN',
@@ -71,6 +72,10 @@ describe('sampleKey', () => {
       're',
       "TE'",
       "tsu'",
+      'DON',
+      'kon',
+      'ka',
+      'RA',
     ];
     for (const name of hits) {
       it(`${name} → Shime`, () => {
@@ -92,6 +97,8 @@ describe('sampleKey', () => {
     it('a strike maps to the front recording by default', () => {
       expect(sampleKey({ name: 'TEN', hand: 'R' }, 'Katsugi')).toBe('Katsugi-front');
       expect(sampleKey({ name: 'ke', hand: 'L' }, 'Katsugi')).toBe('Katsugi-front');
+      // Low-set syllables (via custom jiuchis) map like any other strike.
+      expect(sampleKey({ name: 'DON', hand: 'R' }, 'Katsugi')).toBe('Katsugi-front');
     });
 
     it('a back-skin strike maps to the back recording', () => {

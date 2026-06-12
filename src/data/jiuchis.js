@@ -10,10 +10,11 @@ import { jiuchiEventsFromLines } from './sequence.js';
  *
  *   { id, name, kind: 'ticks',  time, positions }            — from the tick-grid
  *     editor; `positions` are 1-indexed subdivisions, played as metronome clicks.
- *   { id, name, kind: 'sounds', time, taiko, events, lengthDiv } — captured from
+ *   { id, name, kind: 'sounds', time, events, lengthDiv }    — captured from
  *     score lines marked as jiuchi; `events` are pre-resolved audible strikes
  *     (see jiuchiEventsFromLines) looped every `lengthDiv` divisions and played
- *     with real drum voices.
+ *     with real drum voices (the playing score's taiko, or Shime when the
+ *     metronome's "Use Shime sound" flag is on).
  *
  * The metronome setting references a custom jiuchi as `'custom:<id>'`, keeping
  * the value space distinct from standard jiuchi names.
@@ -99,13 +100,7 @@ export const jiuchiStore = {
       const existing = jiuchiStore.get(id);
       if (!existing || existing.kind !== 'sounds') continue;
       const { events, lengthDiv } = jiuchiEventsFromLines(lines, piece.time);
-      await jiuchiStore.save({
-        ...existing,
-        time: piece.time,
-        taiko: piece.taiko,
-        events,
-        lengthDiv,
-      });
+      await jiuchiStore.save({ ...existing, time: piece.time, events, lengthDiv });
     }
   },
 };

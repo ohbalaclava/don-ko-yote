@@ -359,7 +359,7 @@ export function Line() {
           : !piece.lineSelectMode && selected
             ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
             : isJiuchi
-              ? 'border-l-4 border-l-amber-400 bg-amber-50 dark:bg-amber-900/20'
+              ? 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/20'
               : showRepeatBars
                 ? 'border-l-4 border-l-transparent bg-orange-50 dark:bg-orange-900/20'
                 : 'border-l-4 border-l-transparent';
@@ -495,7 +495,7 @@ export function Line() {
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
             {isJiuchi ? (
-              <span class="text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 select-none">
+              <span class="text-[10px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 select-none">
                 Jiuchi
               </span>
             ) : null}
