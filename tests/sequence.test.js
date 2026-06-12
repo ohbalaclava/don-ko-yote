@@ -153,6 +153,15 @@ describe('jiuchiEventsFromLines', () => {
     const { events } = jiuchiEventsFromLines(lines, 4);
     expect(events[0].volume).toBe(3); // lowercase default 2 × 1.5
   });
+
+  it("uses the sounds' actual span as the loop length, not whole lines", () => {
+    // A marked line holding 5 beats of sounds (time 4 → 20 divisions) in a score
+    // whose beatsPerLine is 8: the jiuchi is 5 beats long and repeats every 5
+    // beats — the line's unfilled remainder adds nothing.
+    const fiveBeats = Array.from({ length: 5 }, () => sound('DON', 'R', 4));
+    const { lengthDiv } = jiuchiEventsFromLines([line('a', fiveBeats)], 4);
+    expect(lengthDiv).toBe(20);
+  });
 });
 
 // ── buildSequence ─────────────────────────────────────────────────────────────
