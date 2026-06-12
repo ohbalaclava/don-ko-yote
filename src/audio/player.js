@@ -1,6 +1,7 @@
 import m from 'mithril';
-import { buildSequence, divToSeconds } from '../data/sequence.js';
-import { JIUCHI_PATTERNS, metronomeTicks } from '../data/metronome.js';
+import { buildSequence, divToSeconds, excludeJiuchiLines } from '../data/sequence.js';
+import { metronomeTicks, loopEvents } from '../data/metronome.js';
+import { jiuchiStore } from '../data/jiuchis.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -24,11 +25,14 @@ export const player = {
 
   _events: [],
   _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
+  _metroStrikes: [], // { atSec, sound } looped drum strikes for a sounds-kind custom jiuchi
+  _metroTaiko: '', // taiko voice for _metroStrikes (the jiuchi's source taiko)
   _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
   _nextIdx: 0,
   _nextMetroIdx: 0,
+  _nextMetroStrikeIdx: 0,
   _timer: null,
   _raf: null,
   // Bumped by play when it claims control, and by stop. An async play captures the
@@ -77,8 +81,12 @@ export const player = {
    */
   async play(piece, opts = {}) {
     if (this.playing) return;
-    const lines = opts.lines ?? piece.lines;
     const scope = opts.scope ?? { type: 'all' };
+    // Jiuchi-marked lines are the base-rhythm definition, not part of the score,
+    // so they are excluded from playback — except for the per-line ▶, which stays
+    // a direct preview of exactly that line.
+    let lines = opts.lines ?? piece.lines;
+    if (scope.type !== 'line') lines = excludeJiuchiLines(lines);
     const { bpm, time, taiko } = piece;
     if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
     const { events, totalDiv } = buildSequence(lines, time);
@@ -103,6 +111,15 @@ export const player = {
       await voice.preload('Shime');
       if (this._epoch !== epoch) return;
     }
+    // A sounds-kind custom jiuchi plays real drum strikes with its source taiko's
+    // voice, which may also differ from the score's taiko.
+    const metroJiuchi = settings.metronome
+      ? jiuchiStore.resolveSetting(settings.metronomeJiuchi, piece)
+      : null;
+    if (metroJiuchi?.kind === 'sounds') {
+      await voice.preload(metroJiuchi.taiko);
+      if (this._epoch !== epoch) return;
+    }
     const c = getAudioContext();
 
     this._events = events.map((e) => ({
@@ -119,7 +136,15 @@ export const player = {
       audible: e.volume != null,
     }));
     this._taiko = taiko;
-    this._metroTicks = this._buildMetroTicks(piece, totalDiv);
+    if (metroJiuchi?.kind === 'sounds') {
+      this._metroTicks = [];
+      this._metroStrikes = this._buildMetroStrikes(piece, totalDiv, metroJiuchi);
+      this._metroTaiko = metroJiuchi.taiko;
+    } else {
+      this._metroTicks = metroJiuchi ? this._buildMetroTicks(piece, totalDiv, metroJiuchi) : [];
+      this._metroStrikes = [];
+      this._metroTaiko = '';
+    }
 
     const base = c.currentTime + LEAD_IN;
     // Count-in only for whole-piece playback; scoped previews start immediately.
@@ -129,6 +154,7 @@ export const player = {
     this._endTime = this._startTime + divToSeconds(totalDiv, bpm, time);
     this._nextIdx = 0;
     this._nextMetroIdx = 0;
+    this._nextMetroStrikeIdx = 0;
 
     this._timer = setInterval(() => this._schedule(), TICK);
     this._schedule();
@@ -144,8 +170,10 @@ export const player = {
     this._raf = null;
     this._events = [];
     this._metroTicks = [];
+    this._metroStrikes = [];
     this._nextIdx = 0;
     this._nextMetroIdx = 0;
+    this._nextMetroStrikeIdx = 0;
     const wasActive = this.playing;
     this.playing = false;
     this.scope = null;
@@ -154,22 +182,45 @@ export const player = {
   },
 
   /**
-   * Builds the metronome ticks (relative to division 0) for the current piece, or
-   * an empty list when the metronome is off. The jiuchi defaults to the score's own
-   * (`piece.jiuchi`) but can be overridden via the metronome settings.
+   * Builds the metronome ticks (relative to division 0) for a ticks-kind jiuchi
+   * (standard, or a custom one from the tick-grid editor).
+   * @param {object} piece
+   * @param {number} totalDiv
+   * @param {{ positions: number[] }} jiuchi - Resolved ticks-kind descriptor.
    * @returns {Array<{ atSec: number, accent: boolean }>}
    */
-  _buildMetroTicks(piece, totalDiv) {
-    if (!settings.metronome) return [];
-    const jiuchi = settings.metronomeJiuchi === 'auto' ? piece.jiuchi : settings.metronomeJiuchi;
+  _buildMetroTicks(piece, totalDiv, jiuchi) {
     const ticks = metronomeTicks(totalDiv, piece.time, {
-      positions: JIUCHI_PATTERNS[jiuchi] ?? [1],
+      positions: jiuchi.positions,
       headOnly: settings.metronomeHeadOnly,
       emphasise: settings.metronomeEmphasiseHead,
     });
     return ticks.map((t) => ({
       atSec: divToSeconds(t.div, piece.bpm, piece.time),
       accent: t.accent,
+    }));
+  },
+
+  /**
+   * Builds the looped drum strikes for a sounds-kind custom jiuchi: the captured
+   * pattern is tiled across the whole sequence and each event's volume is scaled
+   * by the metronome volume setting (the engine caps the result at 8). The
+   * head-only / emphasise settings don't apply — the pattern plays as authored.
+   * @param {object} piece
+   * @param {number} totalDiv
+   * @param {{ events: Array, lengthDiv: number }} record
+   * @returns {Array<{ atSec: number, sound: object }>}
+   */
+  _buildMetroStrikes(piece, totalDiv, record) {
+    return loopEvents(totalDiv, record.events, record.lengthDiv).map((e) => ({
+      atSec: divToSeconds(e.div, piece.bpm, piece.time),
+      sound: {
+        name: e.name,
+        hand: e.hand,
+        skin: e.skin,
+        volume: e.volume * settings.metronomeVolume,
+        duration: e.durationDiv,
+      },
     }));
   },
 
@@ -211,6 +262,13 @@ export const player = {
         volume: settings.metronomeVolume,
       });
       this._nextMetroIdx++;
+    }
+    while (this._nextMetroStrikeIdx < this._metroStrikes.length) {
+      const s = this._metroStrikes[this._nextMetroStrikeIdx];
+      const when = this._startTime + s.atSec;
+      if (when >= horizon) break;
+      voice.strike(s.sound, when, this._metroTaiko);
+      this._nextMetroStrikeIdx++;
     }
   },
 

@@ -352,14 +352,17 @@ export function Line() {
         repeatDepth > 0 &&
         !(piece.lineSelectMode && isLineSelected) &&
         !(!piece.lineSelectMode && selected);
+      const isJiuchi = !!line.jiuchiId;
       const sideClass =
         piece.lineSelectMode && isLineSelected
           ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
           : !piece.lineSelectMode && selected
             ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
-            : showRepeatBars
-              ? 'border-l-4 border-l-transparent bg-orange-50 dark:bg-orange-900/20'
-              : 'border-l-4 border-l-transparent';
+            : isJiuchi
+              ? 'border-l-4 border-l-amber-400 bg-amber-50 dark:bg-amber-900/20'
+              : showRepeatBars
+                ? 'border-l-4 border-l-transparent bg-orange-50 dark:bg-orange-900/20'
+                : 'border-l-4 border-l-transparent';
       const decoration = showRepeatBars ? repeatDecoration(repeatDepth) : null;
       // When a repeat-block line is selected/highlighted, decoration is suppressed.
       // Use the same left padding the decoration would have used so content doesn't
@@ -491,6 +494,11 @@ export function Line() {
             )}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
+            {isJiuchi ? (
+              <span class="text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 select-none">
+                Jiuchi
+              </span>
+            ) : null}
             <span class="w-8 text-center whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
               {beatLabel}b
             </span>

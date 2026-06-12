@@ -351,12 +351,18 @@ export async function exportPdf() {
         }
       }
 
-      // Line number in left margin (first row only)
+      // Line number in left margin (first row only), with a tag above it when the
+      // line is a jiuchi definition (excluded from playback, shown for reference).
       if (rowIdx === 0) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(0);
         doc.text(`${lineOrdinal}.`, MARGIN, rowY + DOT_ZONE + 6);
+        if (item.jiuchiId) {
+          doc.setFontSize(5);
+          doc.setTextColor(130, 130, 130);
+          doc.text('JIUCHI', MARGIN, rowY + DOT_ZONE + 2);
+        }
       }
 
       // Line multiplier at end of last row

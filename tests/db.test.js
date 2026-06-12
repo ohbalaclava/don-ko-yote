@@ -102,6 +102,58 @@ describe('db.patterns (collection)', () => {
   });
 });
 
+describe('db upgrade', () => {
+  /** Opens the raw database at an old version and seeds it, mimicking a pre-upgrade install. */
+  function seedAtVersion(version, seed) {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('don-ko-yote', version);
+      req.onupgradeneeded = ({ target: { result: db } }) => {
+        db.createObjectStore('kv');
+        db.createObjectStore('scores', { keyPath: 'id' });
+        db.createObjectStore('patterns', { keyPath: 'id' });
+      };
+      req.onsuccess = ({ target: { result: db } }) => {
+        const t = db.transaction(['scores', 'patterns'], 'readwrite');
+        for (const s of seed.scores) t.objectStore('scores').put(s);
+        for (const p of seed.patterns) t.objectStore('patterns').put(p);
+        t.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        t.onerror = () => reject(t.error);
+      };
+      req.onerror = ({ target: { error } }) => reject(error);
+    });
+  }
+
+  it('v2 → v3 preserves existing scores and patterns', async () => {
+    await seedAtVersion(2, {
+      scores: [{ id: 's1', title: 'Keep me', lines: [] }],
+      patterns: [{ id: 'p1', name: 'pat', sounds: [] }],
+    });
+    const db = await freshDb();
+    expect(await db.scores.get('s1')).toMatchObject({ title: 'Keep me' });
+    expect(await db.patterns.get('p1')).toMatchObject({ name: 'pat' });
+  });
+
+  it('v1 → v3 still wipes legacy scores and patterns', async () => {
+    await seedAtVersion(1, {
+      scores: [{ id: 's1', title: 'Legacy', lines: [] }],
+      patterns: [{ id: 'p1', name: 'old', sounds: [] }],
+    });
+    const db = await freshDb();
+    expect(await db.scores.all()).toEqual([]);
+    expect(await db.patterns.all()).toEqual([]);
+  });
+
+  it('creates the jiuchis store on upgrade', async () => {
+    await seedAtVersion(2, { scores: [], patterns: [] });
+    const db = await freshDb();
+    await db.jiuchis.save({ id: 'j1', name: 'Custom', kind: 'ticks', time: 4, positions: [1] });
+    expect(await db.jiuchis.get('j1')).toMatchObject({ name: 'Custom' });
+  });
+});
+
 describe('db.scores (collection)', () => {
   it('all() returns empty array initially', async () => {
     const db = await freshDb();

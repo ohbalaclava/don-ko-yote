@@ -25,6 +25,32 @@ export const JIUCHI_PATTERNS = {
  * @param {boolean} opts.emphasise - When true, the head of every beat is accented.
  * @returns {Array<{ div: number, accent: boolean }>} Ordered ticks.
  */
+/**
+ * Tiles a custom jiuchi's captured events across a sequence, for playing a
+ * sounds-kind jiuchi as the base rhythm. The pattern repeats every `lengthDiv`
+ * divisions; events whose start falls at or past `totalDiv` are dropped, so the
+ * final repetition may be truncated.
+ *
+ * @param {number} totalDiv - Total divisions to cover; events fall in [0, totalDiv).
+ * @param {Array<{ startDiv: number, [key: string]: * }>} events - One loop's events,
+ *   positioned relative to the loop start.
+ * @param {number} lengthDiv - The loop period in divisions (≥ max event startDiv + 1).
+ * @returns {Array<object>} The tiled events, each with `div` (absolute position)
+ *   replacing `startDiv`, other fields copied through.
+ */
+export function loopEvents(totalDiv, events, lengthDiv) {
+  if (!(totalDiv > 0) || !(lengthDiv > 0)) return [];
+  const out = [];
+  for (let base = 0; base < totalDiv; base += lengthDiv) {
+    for (const { startDiv, ...rest } of events) {
+      const div = base + startDiv;
+      if (div >= totalDiv) break;
+      out.push({ div, ...rest });
+    }
+  }
+  return out;
+}
+
 export function metronomeTicks(totalDiv, time, { positions, headOnly, emphasise }) {
   if (!(totalDiv > 0) || !(time > 0)) return [];
   const subs = headOnly ? [1] : positions;

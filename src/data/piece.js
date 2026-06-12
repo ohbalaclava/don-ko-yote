@@ -1,6 +1,8 @@
 import m from 'mithril';
 import { history } from './history.js';
 import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
+import { jiuchiStore } from './jiuchis.js';
+import { jiuchiEventsFromLines } from './sequence.js';
 import { uid } from '../uid.js';
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
@@ -691,6 +693,48 @@ export const piece = {
   /** @param {string} id - block-repeat item ID */
   removeBlockRepeat(id) {
     piece.lines = piece.lines.filter((l) => l.id !== id);
+    piece._commit();
+  },
+
+  /**
+   * Saves the selected sound lines to the global jiuchi library as a sounds-kind
+   * custom jiuchi, then flags those lines with the record's id. Flagged lines are
+   * excluded from normal score playback and instead loop as the base rhythm when
+   * the metronome jiuchi points at this record. The flags are set only after the
+   * library save resolves, so a line never references an unwritten record.
+   * @param {string} name - Library name for the new jiuchi.
+   */
+  async markSelectionAsJiuchi(name) {
+    if (piece.lineSelection.length === 0 || !name) return;
+    const selSet = new Set(piece.lineSelection);
+    const selected = piece.lines.filter((item) => selSet.has(item.id) && isSoundLine(item));
+    if (selected.length === 0) return;
+    const { events, lengthDiv } = jiuchiEventsFromLines(selected, piece.time);
+    const record = await jiuchiStore.save({
+      name,
+      kind: 'sounds',
+      time: piece.time,
+      taiko: piece.taiko,
+      events,
+      lengthDiv,
+    });
+    for (const line of selected) line.jiuchiId = record.id;
+    piece.clearLineSelection();
+    piece._commit();
+  },
+
+  /**
+   * Removes the jiuchi flag from the given lines, returning them to normal score
+   * playback. The library record is left intact — it is an independent copy, and
+   * deleting it is a separate library-management action.
+   * @param {string[]} lineIds
+   */
+  unmarkJiuchiLines(lineIds) {
+    const set = new Set(lineIds);
+    for (const line of piece.lines) {
+      if (set.has(line.id)) delete line.jiuchiId;
+    }
+    piece.clearLineSelection();
     piece._commit();
   },
 

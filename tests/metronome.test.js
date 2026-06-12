@@ -1,7 +1,36 @@
 import { describe, it, expect } from 'vitest';
-import { JIUCHI_PATTERNS, metronomeTicks } from '../src/data/metronome.js';
+import { JIUCHI_PATTERNS, metronomeTicks, loopEvents } from '../src/data/metronome.js';
 
 const divs = (ticks) => ticks.map((t) => t.div);
+
+describe('loopEvents', () => {
+  const pattern = [
+    { startDiv: 0, name: 'DON' },
+    { startDiv: 2, name: 'ka' },
+  ];
+
+  it('tiles the pattern every lengthDiv divisions', () => {
+    const out = loopEvents(8, pattern, 4);
+    expect(out.map((e) => e.div)).toEqual([0, 2, 4, 6]);
+    expect(out.map((e) => e.name)).toEqual(['DON', 'ka', 'DON', 'ka']);
+  });
+
+  it('truncates the final repetition at totalDiv', () => {
+    // Third tile starts at 8; its second event (div 10) falls past totalDiv 10.
+    const out = loopEvents(10, pattern, 4);
+    expect(out.map((e) => e.div)).toEqual([0, 2, 4, 6, 8]);
+  });
+
+  it('replaces startDiv with the absolute div, keeping other fields', () => {
+    const out = loopEvents(4, [{ startDiv: 1, name: 'ka', volume: 2 }], 4);
+    expect(out).toEqual([{ div: 1, name: 'ka', volume: 2 }]);
+  });
+
+  it('returns [] for a non-positive loop length or total', () => {
+    expect(loopEvents(8, pattern, 0)).toEqual([]);
+    expect(loopEvents(0, pattern, 4)).toEqual([]);
+  });
+});
 
 describe('metronomeTicks', () => {
   it('ticks once per beat head when headOnly is set', () => {

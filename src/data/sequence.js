@@ -114,6 +114,45 @@ export function buildSequence(lines, time) {
 }
 
 /**
+ * Removes jiuchi-marked lines (those carrying a `jiuchiId`) from a lines array,
+ * for playback that should skip the base-rhythm definition. Block-repeat markers
+ * whose member lines are all jiuchi-marked are dropped too; markers with a partial
+ * overlap keep their remaining members (the same partial-repeat limitation already
+ * accepted in {@link blockRepeatSlice}).
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @returns {Array<object>} Lines with jiuchi-marked items removed.
+ */
+export function excludeJiuchiLines(lines) {
+  const marked = new Set(lines.filter((l) => l.jiuchiId).map((l) => l.id));
+  if (!marked.size) return lines;
+  return lines.filter((l) => {
+    if (marked.has(l.id)) return false;
+    if (l.type === 'block-repeat') return l.lineIds.some((id) => !marked.has(id));
+    return true;
+  });
+}
+
+/**
+ * Captures a set of lines as a custom jiuchi's looped event list: the lines are
+ * flattened via {@link buildSequence} (repeats unrolled, volumes resolved), rest
+ * events are dropped, and per-score identifiers are stripped so the result is
+ * independent of the source score. `lengthDiv` keeps the full span including
+ * trailing rests, so the loop period is preserved.
+ *
+ * @param {Array<object>} lines - The lines to capture (typically the marked selection).
+ * @param {number} time - Divisions per beat.
+ * @returns {{ events: Array<{ name: string, hand: string|undefined, skin: string|undefined, volume: number, startDiv: number, durationDiv: number }>, lengthDiv: number }}
+ */
+export function jiuchiEventsFromLines(lines, time) {
+  const { events, totalDiv } = buildSequence(lines, time);
+  return {
+    events: events.filter((e) => e.volume != null).map(({ lineId: _l, soundId: _s, ...e }) => e),
+    lengthDiv: totalDiv,
+  };
+}
+
+/**
  * Returns the lines belonging to a heading-delimited section: everything after the
  * heading up to (but excluding) the next heading, or the end of the list. Markers
  * and other rows within the range are kept so repeats inside the section still

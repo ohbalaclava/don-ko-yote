@@ -16,6 +16,7 @@ import { HelpSheet } from './components/HelpSheet.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
+import { jiuchiStore } from './data/jiuchis.js';
 import { piece } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { player } from './audio/player.js';
@@ -41,6 +42,7 @@ document.addEventListener('keydown', (e) => {
 
 scoreStore.init();
 scoreStore.load();
+jiuchiStore.load();
 settings.load();
 
 function App() {

@@ -9,6 +9,8 @@ import {
   divToSeconds,
   sectionSlice,
   blockRepeatSlice,
+  excludeJiuchiLines,
+  jiuchiEventsFromLines,
 } from '../src/data/sequence.js';
 import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
 
@@ -91,6 +93,65 @@ describe('expandRepeats', () => {
       repeat('m', 2, ['a', 'b']),
     ];
     expect(expandRepeats(lines).map((l) => l.id)).toEqual(['a', 'b', 'a', 'b']);
+  });
+});
+
+// ── excludeJiuchiLines ────────────────────────────────────────────────────────
+
+describe('excludeJiuchiLines', () => {
+  const jiuchiLine = (id, sounds = []) => ({ ...line(id, sounds), jiuchiId: 'j1' });
+
+  it('returns the array unchanged when nothing is marked', () => {
+    const lines = [line('a'), line('b')];
+    expect(excludeJiuchiLines(lines)).toBe(lines);
+  });
+
+  it('drops jiuchi-marked lines', () => {
+    const lines = [jiuchiLine('j'), line('a'), line('b')];
+    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['a', 'b']);
+  });
+
+  it('drops a block-repeat marker whose members are all marked', () => {
+    const lines = [jiuchiLine('a'), jiuchiLine('b'), repeat('m', 2, ['a', 'b']), line('c')];
+    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['c']);
+  });
+
+  it('keeps a block-repeat marker with some unmarked members', () => {
+    const lines = [jiuchiLine('a'), line('b'), repeat('m', 2, ['a', 'b'])];
+    const out = excludeJiuchiLines(lines);
+    expect(out.map((l) => l.id)).toEqual(['b', 'm']);
+    // The slimmed-down repeat still expands using its remaining member.
+    expect(expandRepeats(out).map((l) => l.id)).toEqual(['b', 'b']);
+  });
+
+  it('keeps structural rows (headings etc.) untouched', () => {
+    const lines = [heading('h'), jiuchiLine('j'), line('a')];
+    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['h', 'a']);
+  });
+});
+
+// ── jiuchiEventsFromLines ─────────────────────────────────────────────────────
+
+describe('jiuchiEventsFromLines', () => {
+  it('drops rests but preserves the full loop length', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4), rest(4)])];
+    const { events, lengthDiv } = jiuchiEventsFromLines(lines, 4);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ name: 'TEN', startDiv: 0, durationDiv: 4 });
+    expect(lengthDiv).toBe(8); // trailing rest keeps the loop period
+  });
+
+  it('strips per-score identifiers from the captured events', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4)])];
+    const { events } = jiuchiEventsFromLines(lines, 4);
+    expect(events[0]).not.toHaveProperty('lineId');
+    expect(events[0]).not.toHaveProperty('soundId');
+  });
+
+  it('bakes resolved volumes (emphasis) into the events', () => {
+    const lines = [line('a', [sound('te', 'R', 4, { emphasis: true })])];
+    const { events } = jiuchiEventsFromLines(lines, 4);
+    expect(events[0].volume).toBe(3); // lowercase default 2 × 1.5
   });
 });
 

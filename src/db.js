@@ -1,9 +1,9 @@
 import { uid } from './uid.js';
 
 const DB_NAME = 'don-ko-yote';
-// Bumped from 1 → 2 for the multi-symbol-set refactor: scores and patterns
-// stored under the old fractional-duration schema are wiped on upgrade.
-const DB_VERSION = 2;
+// v1 → v2: multi-symbol-set refactor (legacy scores/patterns wiped on upgrade).
+// v2 → v3: additive `jiuchis` store for user-defined base rhythms.
+const DB_VERSION = 3;
 
 let _db = null;
 
@@ -11,7 +11,7 @@ function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-    req.onupgradeneeded = ({ target: { result: db, transaction } }) => {
+    req.onupgradeneeded = ({ target: { result: db, transaction }, oldVersion }) => {
       // Key-value store for singleton data (app settings, score settings)
       if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
 
@@ -20,13 +20,16 @@ function openDB() {
         db.createObjectStore('scores', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('patterns'))
         db.createObjectStore('patterns', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('jiuchis'))
+        db.createObjectStore('jiuchis', { keyPath: 'id' });
 
-      // Wipe legacy data when upgrading from v1: durations and jiuchi IDs no
-      // longer match the new schema, so existing scores/patterns are unusable.
-      if (transaction && db.objectStoreNames.contains('scores'))
-        transaction.objectStore('scores').clear();
-      if (transaction && db.objectStoreNames.contains('patterns'))
-        transaction.objectStore('patterns').clear();
+      // Wipe legacy data only when upgrading from v1: durations and jiuchi IDs no
+      // longer match the v2 schema, so those scores/patterns are unusable. Later
+      // upgrades are additive and must leave existing data intact.
+      if (oldVersion > 0 && oldVersion < 2 && transaction) {
+        if (db.objectStoreNames.contains('scores')) transaction.objectStore('scores').clear();
+        if (db.objectStoreNames.contains('patterns')) transaction.objectStore('patterns').clear();
+      }
     };
 
     req.onsuccess = ({ target: { result } }) => resolve(result);
@@ -91,6 +94,8 @@ function collection(storeName) {
 //  db.patterns.get(id)     → Promise<pattern | undefined>
 //  db.patterns.save(pat)   → Promise<pattern>
 //  db.patterns.delete(id)  → Promise<void>
+//
+//  db.jiuchis — same collection API, for user-defined jiuchis
 
 export const db = {
   kv: {
@@ -101,4 +106,5 @@ export const db = {
 
   scores: collection('scores'),
   patterns: collection('patterns'),
+  jiuchis: collection('jiuchis'),
 };

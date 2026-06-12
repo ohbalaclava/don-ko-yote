@@ -16,14 +16,17 @@ const FONTS = [
 
 export function Toggle() {
   return {
-    view({ attrs: { checked, onChange } }) {
+    view({ attrs: { checked, onChange, disabled = false } }) {
       return (
         <button
           type="button"
           role="switch"
           aria-checked={String(checked)}
-          class={`relative inline-flex w-11 h-6 rounded-full transition-colors focus:outline-none shrink-0 ${checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-          onclick={() => onChange(!checked)}
+          disabled={disabled}
+          class={`relative inline-flex w-11 h-6 rounded-full transition-colors focus:outline-none shrink-0 ${checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onclick={() => {
+            if (!disabled) onChange(!checked);
+          }}
         >
           <span
             class={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : ''}`}
