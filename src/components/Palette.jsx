@@ -73,7 +73,7 @@ export function Palette() {
                 soundSortable = null;
               }}
             >
-              {piece.symbolSet.symbols.map((sym) => (
+              {piece.activeSymbolSet.symbols.map((sym) => (
                 <SoundPaletteTile key={sym.name} sym={sym} />
               ))}
               <ImplicitPaletteTile />
@@ -84,7 +84,7 @@ export function Palette() {
           <div class="flex gap-2">
             {(() => {
               const visiblePatterns = patternStore.items.filter(
-                (p) => !p.symbolSetId || p.symbolSetId === piece.symbolSet.id
+                (p) => !p.symbolSetId || p.symbolSetId === piece.activeSymbolSet.id
               );
               return visiblePatterns.length > 0 ? (
                 <div class="flex-1">
@@ -105,7 +105,7 @@ export function Palette() {
                 </div>
               ) : null;
             })()}
-            {piece.symbolSet.patterns?.length ? (
+            {piece.activeSymbolSet.patterns?.length ? (
               <button
                 class="self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold"
                 onclick={onOpenJiuchiPatterns}

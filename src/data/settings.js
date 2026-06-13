@@ -37,7 +37,12 @@ export const settings = {
       if ('metronomeHeadOnly' in saved) settings.metronomeHeadOnly = saved.metronomeHeadOnly;
       if ('metronomeEmphasiseHead' in saved)
         settings.metronomeEmphasiseHead = saved.metronomeEmphasiseHead;
-      if ('metronomeJiuchi' in saved) settings.metronomeJiuchi = saved.metronomeJiuchi;
+      if ('metronomeJiuchi' in saved) {
+        // Legacy custom-library references no longer exist; fall back to 'auto'.
+        settings.metronomeJiuchi = saved.metronomeJiuchi?.startsWith?.('custom:')
+          ? 'auto'
+          : saved.metronomeJiuchi;
+      }
       if ('metronomeShime' in saved) settings.metronomeShime = saved.metronomeShime;
       if ('metronomeVolume' in saved) settings.metronomeVolume = saved.metronomeVolume;
     }

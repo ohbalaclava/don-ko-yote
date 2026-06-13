@@ -9,7 +9,8 @@ import {
   divToSeconds,
   sectionSlice,
   blockRepeatSlice,
-  excludeJiuchiLines,
+  excludeJiuchiSections,
+  jiuchiRegions,
   jiuchiEventsFromLines,
 } from '../src/data/sequence.js';
 import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
@@ -30,6 +31,12 @@ function repeat(id, count, lineIds) {
 }
 function heading(id) {
   return { id, type: 'heading', text: '' };
+}
+function divider(id) {
+  return { id, type: 'divider' };
+}
+function jiuchiSection(id, taiko = 'Shime') {
+  return { id, type: 'jiuchi-section', taiko };
 }
 
 // ── expandRepeats ───────────────────────────────────────────────────────────
@@ -96,37 +103,90 @@ describe('expandRepeats', () => {
   });
 });
 
-// ── excludeJiuchiLines ────────────────────────────────────────────────────────
+// ── excludeJiuchiSections ──────────────────────────────────────────────────────
 
-describe('excludeJiuchiLines', () => {
-  const jiuchiLine = (id, sounds = []) => ({ ...line(id, sounds), jiuchiId: 'j1' });
-
-  it('returns the array unchanged when nothing is marked', () => {
+describe('excludeJiuchiSections', () => {
+  it('returns the array unchanged when there are no jiuchi sections', () => {
     const lines = [line('a'), line('b')];
-    expect(excludeJiuchiLines(lines)).toBe(lines);
+    expect(excludeJiuchiSections(lines)).toBe(lines);
   });
 
-  it('drops jiuchi-marked lines', () => {
-    const lines = [jiuchiLine('j'), line('a'), line('b')];
-    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['a', 'b']);
+  it('drops the marker and its definition lines up to the next heading', () => {
+    const lines = [jiuchiSection('j'), line('d1'), line('d2'), heading('h'), line('a')];
+    expect(excludeJiuchiSections(lines).map((l) => l.id)).toEqual(['h', 'a']);
   });
 
-  it('drops a block-repeat marker whose members are all marked', () => {
-    const lines = [jiuchiLine('a'), jiuchiLine('b'), repeat('m', 2, ['a', 'b']), line('c')];
-    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['c']);
+  it('ends the definition run at a divider', () => {
+    const lines = [jiuchiSection('j'), line('d1'), divider('dv'), line('a')];
+    expect(excludeJiuchiSections(lines).map((l) => l.id)).toEqual(['dv', 'a']);
   });
 
-  it('keeps a block-repeat marker with some unmarked members', () => {
-    const lines = [jiuchiLine('a'), line('b'), repeat('m', 2, ['a', 'b'])];
-    const out = excludeJiuchiLines(lines);
-    expect(out.map((l) => l.id)).toEqual(['b', 'm']);
-    // The slimmed-down repeat still expands using its remaining member.
-    expect(expandRepeats(out).map((l) => l.id)).toEqual(['b', 'b']);
+  it('runs the definition to the end when there is no following boundary', () => {
+    const lines = [line('a'), jiuchiSection('j'), line('d1'), line('d2')];
+    expect(excludeJiuchiSections(lines).map((l) => l.id)).toEqual(['a']);
   });
 
-  it('keeps structural rows (headings etc.) untouched', () => {
-    const lines = [heading('h'), jiuchiLine('j'), line('a')];
-    expect(excludeJiuchiLines(lines).map((l) => l.id)).toEqual(['h', 'a']);
+  it('drops a block-repeat marker whose members are all within a definition', () => {
+    const lines = [
+      jiuchiSection('j'),
+      line('d1'),
+      line('d2'),
+      repeat('m', 2, ['d1', 'd2']),
+      heading('h'),
+      line('a'),
+    ];
+    expect(excludeJiuchiSections(lines).map((l) => l.id)).toEqual(['h', 'a']);
+  });
+});
+
+// ── jiuchiRegions ──────────────────────────────────────────────────────────────
+
+describe('jiuchiRegions', () => {
+  it('returns no regions when there are no jiuchi sections', () => {
+    expect(jiuchiRegions([line('a', [sound()])], 4)).toEqual([]);
+  });
+
+  it('underlays the score after the section, in main-sequence divisions', () => {
+    const lines = [
+      jiuchiSection('j', 'Shime'),
+      line('d', [sound('TEN', 'R', 4)]), // definition: one 4-div loop
+      heading('h'),
+      line('a', [sound('TEN', 'R', 4)]),
+      line('b', [sound('TEN', 'R', 4)]),
+    ];
+    const regions = jiuchiRegions(lines, 4);
+    expect(regions).toHaveLength(1);
+    expect(regions[0]).toMatchObject({ startDiv: 0, endDiv: 8, lengthDiv: 4, taiko: 'Shime' });
+    expect(regions[0].events).toHaveLength(1);
+  });
+
+  it('persists across a heading and switches at the next section', () => {
+    const lines = [
+      line('intro', [sound('TEN', 'R', 4)]), // 4 div before any section
+      jiuchiSection('j1', 'Shime'),
+      line('d1', [sound('TEN', 'R', 4)]),
+      heading('A'),
+      line('a', [sound('TEN', 'R', 4)]), // under j1, after a heading
+      jiuchiSection('j2', 'Katsugi'),
+      line('d2', [sound('TEN', 'R', 4)]),
+      heading('B'),
+      line('b', [sound('TEN', 'R', 4)]), // under j2
+    ];
+    const regions = jiuchiRegions(lines, 4);
+    expect(regions.map((r) => [r.startDiv, r.endDiv, r.taiko])).toEqual([
+      [4, 8, 'Shime'],
+      [8, 12, 'Katsugi'],
+    ]);
+  });
+
+  it('skips a section whose definition has no audible events', () => {
+    const lines = [jiuchiSection('j'), heading('h'), line('a', [sound('TEN', 'R', 4)])];
+    expect(jiuchiRegions(lines, 4)).toEqual([]);
+  });
+
+  it('skips a trailing section with nothing after it to underlay', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4)]), jiuchiSection('j'), line('d', [sound()])];
+    expect(jiuchiRegions(lines, 4)).toEqual([]);
   });
 });
 

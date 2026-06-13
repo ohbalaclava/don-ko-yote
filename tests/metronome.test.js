@@ -1,7 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { JIUCHI_PATTERNS, metronomeTicks, loopEvents } from '../src/data/metronome.js';
+import {
+  JIUCHI_PATTERNS,
+  metronomeTicks,
+  loopEvents,
+  jiuchiPositions,
+} from '../src/data/metronome.js';
 
 const divs = (ticks) => ticks.map((t) => t.div);
+
+describe('jiuchiPositions', () => {
+  it("'auto' follows the piece's jiuchi", () => {
+    expect(jiuchiPositions('auto', { jiuchi: 'Mitsu-uchi' })).toEqual(
+      JIUCHI_PATTERNS['Mitsu-uchi']
+    );
+  });
+
+  it('resolves a named standard jiuchi', () => {
+    expect(jiuchiPositions('Gobu Gobu', { jiuchi: 'Shichisan' })).toEqual(
+      JIUCHI_PATTERNS['Gobu Gobu']
+    );
+  });
+
+  it('falls back to the beat head for an unknown name', () => {
+    expect(jiuchiPositions('Nonsense', { jiuchi: 'Nonsense' })).toEqual([1]);
+  });
+});
 
 describe('loopEvents', () => {
   const pattern = [

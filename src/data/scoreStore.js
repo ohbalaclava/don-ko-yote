@@ -3,7 +3,6 @@ import { db } from '../db.js';
 import { piece, isSoundLine } from './piece.js';
 import { history } from './history.js';
 import { patternStore } from './patterns.js';
-import { jiuchiStore } from './jiuchis.js';
 import { player } from '../audio/player.js';
 import { VERSION } from '../version.js';
 import { uid } from '../uid.js';
@@ -83,11 +82,8 @@ export const scoreStore = {
       scoreStore.dirty = true;
       clearTimeout(autosaveTimer);
       // snapshot() captures piece.id and patternStore.items; the `state`
-      // argument is piece._snapshot() which omits both. The same debounced hook
-      // also re-captures any jiuchi-marked lines into the global jiuchi library,
-      // so edits to a marked line keep its library record current.
+      // argument is piece._snapshot() which omits both.
       autosaveTimer = setTimeout(() => {
-        jiuchiStore.syncFromPiece(piece);
         db.kv.set('autosave', snapshot());
       }, 2000);
     };

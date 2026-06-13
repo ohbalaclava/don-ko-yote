@@ -12,6 +12,7 @@ import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
 import { DividerRow } from './DividerRow.jsx';
+import { JiuchiSectionRow } from './JiuchiSectionRow.jsx';
 
 export function Score() {
   let sortable;
@@ -65,10 +66,6 @@ export function Score() {
       const hasSelection = piece.selectMode && selCount > 0;
       const lineSelCount = piece.lineSelection.length;
       const hasLineSelection = piece.lineSelectMode && lineSelCount > 0;
-      // Offer "Unmark" only when the whole selection is already jiuchi-marked;
-      // any unmarked line in the selection makes the action "Mark".
-      const selectedLines = piece.lines.filter((l) => piece.lineSelection.includes(l.id));
-      const allJiuchiSelected = selectedLines.length > 0 && selectedLines.every((l) => l.jiuchiId);
       // While a select mode is active the toolbar swaps to a focused action bar
       // (Cancel + count + actions) rather than stacking the idle controls beside
       // the action buttons — keeps the row from overflowing on narrow screens.
@@ -138,24 +135,6 @@ export function Score() {
                   >
                     Repeat
                   </button>,
-                  allJiuchiSelected ? (
-                    <button
-                      class="text-xs font-semibold bg-green-600 hover:bg-green-500 text-white rounded px-2 py-1"
-                      onclick={() => piece.unmarkJiuchiLines(piece.lineSelection)}
-                    >
-                      Unmark jiuchi
-                    </button>
-                  ) : (
-                    <button
-                      class="text-xs font-semibold bg-green-600 hover:bg-green-500 text-white rounded px-2 py-1"
-                      onclick={async () => {
-                        const name = window.prompt('Jiuchi name');
-                        if (name) await piece.markSelectionAsJiuchi(name);
-                      }}
-                    >
-                      Mark jiuchi
-                    </button>
-                  ),
                   <button
                     class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
                     onclick={() => piece.deleteSelectedLines()}
@@ -239,6 +218,15 @@ export function Score() {
                     />
                   );
                 }
+                if (item.type === 'jiuchi-section') {
+                  return (
+                    <JiuchiSectionRow
+                      key={item.id}
+                      section={item}
+                      repeatDepth={lineDepth(item.id, markers)}
+                    />
+                  );
+                }
                 lineOrdinal++;
                 const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
                 // Exclude the single-line marker from the bar depth (it's shown inline).
@@ -296,6 +284,16 @@ export function Score() {
               }}
             >
               + Add divider
+            </button>
+            <button
+              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300'}`}
+              disabled={piece.selectMode || piece.lineSelectMode}
+              onclick={() => {
+                piece.addJiuchiSection();
+                scrollToScoreBottom();
+              }}
+            >
+              + Add jiuchi
             </button>
           </div>
         </div>

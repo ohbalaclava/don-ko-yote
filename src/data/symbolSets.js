@@ -18,6 +18,47 @@ export function getSymbolSet(taiko, jiuchi) {
   );
 }
 
+/**
+ * Finds a symbol set by taiko and beat division (straight=4, swing=3), ignoring
+ * the jiuchi. Used for jiuchi sections, which choose a taiko but inherit the
+ * score's straight/swing feel rather than naming a jiuchi.
+ * @param {string} taiko - Taiko display name.
+ * @param {number} time - Divisions per beat.
+ * @returns {object|null} The matching symbol set, or null.
+ */
+export function symbolSetForTaiko(taiko, time) {
+  return SYMBOL_SETS.find((s) => s.time === time && s.taiko.some((t) => t.name === taiko)) ?? null;
+}
+
+/**
+ * Returns the distinct taikos usable at the given beat division, grouped by drum
+ * family (High vs Low) for picker UI. A taiko qualifies when some symbol set with
+ * that `time` lists it, so a jiuchi section's taiko choices are constrained to the
+ * score's straight/swing feel.
+ * @param {number} time - Divisions per beat.
+ * @returns {Array<{ label: string, taikos: Array<{ name: string, skins: number }> }>}
+ */
+export function taikoGroupsForTime(time) {
+  const sets = SYMBOL_SETS.filter((s) => s.time === time);
+  const pick = (family) => {
+    const seen = new Set();
+    const out = [];
+    for (const s of sets) {
+      if (s.id.split('-')[0] !== family) continue;
+      for (const t of s.taiko) {
+        if (seen.has(t.name)) continue;
+        seen.add(t.name);
+        out.push(t);
+      }
+    }
+    return out;
+  };
+  return [
+    { label: 'High', taikos: pick('high') },
+    { label: 'Low', taikos: pick('low') },
+  ].filter((g) => g.taikos.length);
+}
+
 /** Taikos grouped by drum family (High vs Low), for picker UI. */
 export const TAIKO_GROUPS = [
   { label: 'High', taikos: HIGH_STRAIGHT.taiko },

@@ -1,12 +1,10 @@
 import m from 'mithril';
 import { history } from './history.js';
-import { getSymbolSet, SYMBOL_SETS } from './symbolSets.js';
-import { jiuchiStore } from './jiuchis.js';
-import { jiuchiEventsFromLines } from './sequence.js';
+import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
 import { uid } from '../uid.js';
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
-const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat']);
+const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat', 'jiuchi-section']);
 
 /**
  * True when an item is a real sound line, i.e. not a heading, note, divider,
@@ -106,6 +104,10 @@ function makeBlockRepeat(count, lineIds) {
   return { id: uid(), type: 'block-repeat', count, lineIds };
 }
 
+function makeJiuchiSection(taiko) {
+  return { id: uid(), type: 'jiuchi-section', taiko };
+}
+
 function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
@@ -134,7 +136,29 @@ function targetLineIdx(fromIdx, duration) {
 
 /** True for the structural rows that are skipped when computing line adjacency. */
 function isAdjacencySkipped(item) {
-  return item.type === 'heading' || item.type === 'note';
+  return item.type === 'heading' || item.type === 'note' || item.type === 'jiuchi-section';
+}
+
+/**
+ * Maps each jiuchi-section definition line id to its section's taiko. A jiuchi
+ * section's definition runs from its marker up to (but not including) the next
+ * heading, divider, or jiuchi-section marker. Only sound lines are mapped (the
+ * markers and structural rows in between are irrelevant to callers).
+ * @param {Array<object>} lines - The piece's lines array.
+ * @returns {Map<string, string>} line id → section taiko.
+ */
+export function jiuchiLineMap(lines) {
+  const map = new Map();
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].type !== 'jiuchi-section') continue;
+    const taiko = lines[i].taiko;
+    for (let j = i + 1; j < lines.length; j++) {
+      const t = lines[j].type;
+      if (t === 'heading' || t === 'divider' || t === 'jiuchi-section') break;
+      if (isSoundLine(lines[j])) map.set(lines[j].id, taiko);
+    }
+  }
+  return map;
 }
 
 /**
@@ -243,6 +267,29 @@ export const piece = {
   /** Active symbol set, resolved lazily from (taiko, jiuchi). */
   get symbolSet() {
     return getSymbolSet(this.taiko, this.jiuchi) ?? _defaultSet;
+  },
+
+  /**
+   * The symbol set to author with for the currently selected line: a jiuchi
+   * section's taiko set when the selected line belongs to one, else the score's
+   * own symbol set. The straight/swing `time` is unchanged either way.
+   */
+  get activeSymbolSet() {
+    const taiko = jiuchiLineMap(this.lines).get(this.selectedLineId);
+    if (taiko && taiko !== this.taiko) {
+      return symbolSetForTaiko(taiko, this.time) ?? this.symbolSet;
+    }
+    return this.symbolSet;
+  },
+
+  /**
+   * The taiko a line should sound with: its jiuchi section's taiko when the line
+   * is part of a section definition, else the score's taiko.
+   * @param {string} lineId
+   * @returns {string}
+   */
+  taikoForLine(lineId) {
+    return jiuchiLineMap(this.lines).get(lineId) ?? this.taiko;
   },
 
   /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
@@ -696,44 +743,43 @@ export const piece = {
     piece._commit();
   },
 
+  // ── Jiuchi sections ───────────────────────────────────────────────────────
+
   /**
-   * Saves the selected sound lines to the global jiuchi library as a sounds-kind
-   * custom jiuchi, then flags those lines with the record's id. Flagged lines are
-   * excluded from normal score playback and instead loop as the base rhythm when
-   * the metronome jiuchi points at this record. The flags are set only after the
-   * library save resolves, so a line never references an unwritten record.
-   * @param {string} name - Library name for the new jiuchi.
+   * Appends a jiuchi-section marker plus one empty sound line, and selects that
+   * line so the base rhythm is immediately authorable. The section's lines (up to
+   * the next heading/divider) define a loop played as the base rhythm under the
+   * following score. The taiko defaults to the score's taiko (always valid at the
+   * score's straight/swing time).
    */
-  async markSelectionAsJiuchi(name) {
-    if (piece.lineSelection.length === 0 || !name) return;
-    const selSet = new Set(piece.lineSelection);
-    const selected = piece.lines.filter((item) => selSet.has(item.id) && isSoundLine(item));
-    if (selected.length === 0) return;
-    const { events, lengthDiv } = jiuchiEventsFromLines(selected, piece.time);
-    const record = await jiuchiStore.save({
-      name,
-      kind: 'sounds',
-      time: piece.time,
-      events,
-      lengthDiv,
-    });
-    for (const line of selected) line.jiuchiId = record.id;
-    piece.clearLineSelection();
+  addJiuchiSection() {
+    piece.lines.push(makeJiuchiSection(piece.taiko));
+    const line = makeLine();
+    piece.lines.push(line);
+    piece.selectedLineId = line.id;
     piece._commit();
   },
 
   /**
-   * Removes the jiuchi flag from the given lines, returning them to normal score
-   * playback. The library record is left intact — it is an independent copy, and
-   * deleting it is a separate library-management action.
-   * @param {string[]} lineIds
+   * Changes a jiuchi section's taiko. Its definition lines re-author and replay
+   * with the new taiko's symbol set and voice.
+   * @param {string} id - jiuchi-section marker id
+   * @param {string} taiko
    */
-  unmarkJiuchiLines(lineIds) {
-    const set = new Set(lineIds);
-    for (const line of piece.lines) {
-      if (set.has(line.id)) delete line.jiuchiId;
-    }
-    piece.clearLineSelection();
+  setJiuchiSectionTaiko(id, taiko) {
+    const marker = piece.lines.find((l) => l.id === id);
+    if (!marker || marker.type !== 'jiuchi-section') return;
+    marker.taiko = taiko;
+    piece._commit();
+  },
+
+  /**
+   * Removes a jiuchi-section marker. Its former definition lines stay in place and
+   * revert to ordinary score lines.
+   * @param {string} id - jiuchi-section marker id
+   */
+  removeJiuchiSection(id) {
+    piece.lines = piece.lines.filter((l) => l.id !== id);
     piece._commit();
   },
 

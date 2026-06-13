@@ -45,6 +45,7 @@ vi.mock('../src/data/piece.js', () => ({
         .filter((l) => l.type === 'block-repeat' && l.lineIds.length === 1)
         .map((m) => [m.lineIds[0], m])
     ),
+  jiuchiLineMap: () => new Map(),
 }));
 
 const mockSettings = vi.hoisted(() => ({

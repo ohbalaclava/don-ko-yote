@@ -3,7 +3,8 @@ import { uid } from './uid.js';
 const DB_NAME = 'don-ko-yote';
 // v1 → v2: multi-symbol-set refactor (legacy scores/patterns wiped on upgrade).
 // v2 → v3: additive `jiuchis` store for user-defined base rhythms.
-const DB_VERSION = 3;
+// v3 → v4: jiuchis moved inline into scores; the `jiuchis` store is dropped.
+const DB_VERSION = 4;
 
 let _db = null;
 
@@ -20,8 +21,10 @@ function openDB() {
         db.createObjectStore('scores', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('patterns'))
         db.createObjectStore('patterns', { keyPath: 'id' });
-      if (!db.objectStoreNames.contains('jiuchis'))
-        db.createObjectStore('jiuchis', { keyPath: 'id' });
+
+      // v4 drops the `jiuchis` store: base rhythms are now authored inline in the
+      // score as jiuchi sections rather than kept in a global library.
+      if (db.objectStoreNames.contains('jiuchis')) db.deleteObjectStore('jiuchis');
 
       // Wipe legacy data only when upgrading from v1: durations and jiuchi IDs no
       // longer match the v2 schema, so those scores/patterns are unusable. Later
@@ -94,8 +97,6 @@ function collection(storeName) {
 //  db.patterns.get(id)     → Promise<pattern | undefined>
 //  db.patterns.save(pat)   → Promise<pattern>
 //  db.patterns.delete(id)  → Promise<void>
-//
-//  db.jiuchis — same collection API, for user-defined jiuchis
 
 export const db = {
   kv: {
@@ -106,5 +107,4 @@ export const db = {
 
   scores: collection('scores'),
   patterns: collection('patterns'),
-  jiuchis: collection('jiuchis'),
 };

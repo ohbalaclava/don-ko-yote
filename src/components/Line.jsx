@@ -1,6 +1,6 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece } from '../data/piece.js';
+import { piece, jiuchiLineMap } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { SoundTile } from './SoundTile.jsx';
@@ -352,7 +352,7 @@ export function Line() {
         repeatDepth > 0 &&
         !(piece.lineSelectMode && isLineSelected) &&
         !(!piece.lineSelectMode && selected);
-      const isJiuchi = !!line.jiuchiId;
+      const isJiuchi = jiuchiLineMap(piece.lines).has(line.id);
       const sideClass =
         piece.lineSelectMode && isLineSelected
           ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'

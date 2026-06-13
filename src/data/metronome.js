@@ -14,6 +14,20 @@ export const JIUCHI_PATTERNS = {
 };
 
 /**
+ * Resolves a standard `settings.metronomeJiuchi` value to its tick subdivisions.
+ * 'auto' follows the piece's jiuchi; any other value is treated as a jiuchi name.
+ * Unknown names fall back to ticking the beat head only. The 'inline' value is
+ * handled separately by the player (per-region drum loops), not here.
+ * @param {string} value - The setting value ('auto' or a standard jiuchi name).
+ * @param {{ jiuchi: string }} piece
+ * @returns {number[]} 1-indexed subdivisions to tick on.
+ */
+export function jiuchiPositions(value, piece) {
+  const name = value === 'auto' ? piece.jiuchi : value;
+  return JIUCHI_PATTERNS[name] ?? [1];
+}
+
+/**
  * Builds the metronome ticks over a sequence of `totalDiv` divisions.
  * @param {number} totalDiv - Total divisions to cover; ticks fall in [0, totalDiv).
  * @param {number} time - Divisions per beat (4 straight, 3 swing).

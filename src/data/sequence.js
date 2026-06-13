@@ -113,24 +113,111 @@ export function buildSequence(lines, time) {
   return { events, totalDiv: pos };
 }
 
+/** True for rows that close a jiuchi section's definition run. */
+function endsJiuchiDefinition(item) {
+  return item.type === 'heading' || item.type === 'divider' || item.type === 'jiuchi-section';
+}
+
 /**
- * Removes jiuchi-marked lines (those carrying a `jiuchiId`) from a lines array,
- * for playback that should skip the base-rhythm definition. Block-repeat markers
- * whose member lines are all jiuchi-marked are dropped too; markers with a partial
- * overlap keep their remaining members (the same partial-repeat limitation already
- * accepted in {@link blockRepeatSlice}).
+ * Collects the set of line ids that belong to jiuchi-section definitions: a
+ * jiuchi-section marker plus the contiguous rows after it, up to (but not
+ * including) the next heading, divider, or jiuchi-section marker.
+ * @param {Array<object>} lines
+ * @returns {Set<string>} Ids of the markers and their definition lines.
+ */
+function jiuchiDefinitionIds(lines) {
+  const ids = new Set();
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].type !== 'jiuchi-section') continue;
+    ids.add(lines[i].id);
+    for (let j = i + 1; j < lines.length && !endsJiuchiDefinition(lines[j]); j++) {
+      ids.add(lines[j].id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Removes jiuchi-section markers and their definition lines from a lines array,
+ * leaving the linear melody. The base rhythm those lines define is played
+ * separately as a looping underlay (see {@link jiuchiRegions}). Block-repeat
+ * markers whose member lines are all part of jiuchi definitions are dropped too;
+ * markers with a partial overlap keep their remaining members (the same
+ * partial-repeat limitation already accepted in {@link blockRepeatSlice}).
  *
  * @param {Array<object>} lines - The piece's lines array.
- * @returns {Array<object>} Lines with jiuchi-marked items removed.
+ * @returns {Array<object>} Lines with jiuchi-section content removed.
  */
-export function excludeJiuchiLines(lines) {
-  const marked = new Set(lines.filter((l) => l.jiuchiId).map((l) => l.id));
-  if (!marked.size) return lines;
+export function excludeJiuchiSections(lines) {
+  const excluded = jiuchiDefinitionIds(lines);
+  if (!excluded.size) return lines;
   return lines.filter((l) => {
-    if (marked.has(l.id)) return false;
-    if (l.type === 'block-repeat') return l.lineIds.some((id) => !marked.has(id));
+    if (excluded.has(l.id)) return false;
+    if (l.type === 'block-repeat') return l.lineIds.some((id) => !excluded.has(id));
     return true;
   });
+}
+
+/**
+ * Computes the inline jiuchi regions over the main-sequence timeline. Each
+ * jiuchi-section marker starts a region whose looping rhythm is captured from the
+ * marker's definition lines (the rows up to the next heading/divider/section).
+ * The region underlays the score from the marker's position until the next
+ * jiuchi-section marker (persisting across headings/dividers), played with the
+ * marker's own taiko.
+ *
+ * `startDiv`/`endDiv` are positions in the main sequence — i.e. the timeline of
+ * {@link buildSequence}({@link excludeJiuchiSections}(lines)) — so the regions
+ * align with the audible score. Sections whose definition yields no audible
+ * events produce no region.
+ *
+ * Limitation: a block-repeat whose members straddle a jiuchi-section boundary is
+ * split across segments and yields a partial repeat (consistent with the
+ * {@link blockRepeatSlice} caveat).
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {number} time - Divisions per beat.
+ * @returns {Array<{ startDiv: number, endDiv: number, events: Array<object>, lengthDiv: number, taiko: string }>}
+ */
+export function jiuchiRegions(lines, time) {
+  // Partition the lines into segments split at each jiuchi-section marker.
+  const segments = [];
+  let seg = { marker: null, items: [] };
+  for (const item of lines) {
+    if (item.type === 'jiuchi-section') {
+      segments.push(seg);
+      seg = { marker: item, items: [] };
+    } else {
+      seg.items.push(item);
+    }
+  }
+  segments.push(seg);
+
+  const regions = [];
+  let mainPos = 0; // accumulated main-sequence divisions
+  for (const { marker, items } of segments) {
+    // Definition = leading rows up to the first heading/divider; the rest is body
+    // (the audible score this segment's jiuchi underlays).
+    let split = items.findIndex(endsJiuchiDefinition);
+    if (!marker || split < 0) split = marker ? items.length : 0;
+    const def = marker ? items.slice(0, split) : [];
+    const body = items.slice(marker ? split : 0);
+    const bodyDur = buildSequence(body, time).totalDiv;
+    if (marker && bodyDur > 0) {
+      const { events, lengthDiv } = jiuchiEventsFromLines(def, time);
+      if (events.length && lengthDiv > 0) {
+        regions.push({
+          startDiv: mainPos,
+          endDiv: mainPos + bodyDur,
+          events,
+          lengthDiv,
+          taiko: marker.taiko,
+        });
+      }
+    }
+    mainPos += bodyDur;
+  }
+  return regions;
 }
 
 /**
@@ -140,7 +227,7 @@ export function excludeJiuchiLines(lines) {
  * independent of the source score. `lengthDiv` keeps the full span including
  * trailing rests, so the loop period is preserved.
  *
- * @param {Array<object>} lines - The lines to capture (typically the marked selection).
+ * @param {Array<object>} lines - The lines to capture (a jiuchi section's definition lines).
  * @param {number} time - Divisions per beat.
  * @returns {{ events: Array<{ name: string, hand: string|undefined, skin: string|undefined, volume: number, startDiv: number, durationDiv: number }>, lengthDiv: number }}
  */

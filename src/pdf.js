@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { piece, singleLineRepeatMap } from './data/piece.js';
+import { piece, singleLineRepeatMap, jiuchiLineMap } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { effectiveVolume, groupIntoLigatures, packIntoTracks } from './util.js';
 import { uid } from './uid.js';
@@ -168,6 +168,7 @@ export async function exportPdf() {
 
   // Single-line repeat markers keyed by the line they wrap.
   const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
+  const jiuchiMap = jiuchiLineMap(piece.lines);
 
   /**
    * Rendered y extents per line ID — consumed when drawing section bars.
@@ -215,6 +216,19 @@ export async function exportPdf() {
       doc.setLineWidth(0.2);
       doc.line(MARGIN, y + 2, MARGIN + USABLE_W, y + 2);
       y += 6 + LINE_GAP;
+      continue;
+    }
+
+    // Jiuchi section marker: a small label introducing the base-rhythm region.
+    // The definition lines below it still render (as reference), tagged "JIUCHI".
+    if (item.type === 'jiuchi-section') {
+      ensureSpace(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(80, 130, 80);
+      doc.text(`JIUCHI · ${item.taiko}`, MARGIN, y + 3);
+      doc.setTextColor(0);
+      y += 5 + LINE_GAP;
       continue;
     }
 
@@ -358,7 +372,7 @@ export async function exportPdf() {
         doc.setFontSize(8);
         doc.setTextColor(0);
         doc.text(`${lineOrdinal}.`, MARGIN, rowY + DOT_ZONE + 6);
-        if (item.jiuchiId) {
+        if (jiuchiMap.has(item.id)) {
           doc.setFontSize(5);
           doc.setTextColor(130, 130, 130);
           doc.text('JIUCHI', MARGIN, rowY + DOT_ZONE + 2);

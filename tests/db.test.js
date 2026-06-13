@@ -111,6 +111,7 @@ describe('db upgrade', () => {
         db.createObjectStore('kv');
         db.createObjectStore('scores', { keyPath: 'id' });
         db.createObjectStore('patterns', { keyPath: 'id' });
+        if (version >= 3) db.createObjectStore('jiuchis', { keyPath: 'id' });
       };
       req.onsuccess = ({ target: { result: db } }) => {
         const t = db.transaction(['scores', 'patterns'], 'readwrite');
@@ -146,11 +147,21 @@ describe('db upgrade', () => {
     expect(await db.patterns.all()).toEqual([]);
   });
 
-  it('creates the jiuchis store on upgrade', async () => {
-    await seedAtVersion(2, { scores: [], patterns: [] });
+  it('drops the legacy jiuchis store on upgrade to v4', async () => {
+    await seedAtVersion(3, { scores: [], patterns: [] });
     const db = await freshDb();
-    await db.jiuchis.save({ id: 'j1', name: 'Custom', kind: 'ticks', time: 4, positions: [1] });
-    expect(await db.jiuchis.get('j1')).toMatchObject({ name: 'Custom' });
+    await db.scores.all(); // force the lazy open, triggering the v3 → v4 upgrade
+    const names = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('don-ko-yote');
+      req.onsuccess = ({ target: { result: db } }) => {
+        const list = Array.from(db.objectStoreNames);
+        db.close();
+        resolve(list);
+      };
+      req.onerror = ({ target: { error } }) => reject(error);
+    });
+    expect(names).not.toContain('jiuchis');
+    expect(names).toEqual(expect.arrayContaining(['kv', 'scores', 'patterns']));
   });
 });
 
