@@ -328,6 +328,51 @@ describe('reorderLine', () => {
   });
 });
 
+// ── insert position (add after selected line) ──────────────────────────────────
+
+describe('add rows insert after the selected line', () => {
+  it('addLine inserts after the selected line and selects it', () => {
+    piece.addLine();
+    piece.addLine(); // lines: [L0, L1, L2], L2 selected
+    const [id0] = piece.lines.map((l) => l.id);
+    piece.selectLine(id0);
+    piece.addLine();
+    expect(piece.lines).toHaveLength(4);
+    expect(piece.lines[1].id).toBe(piece.selectedLineId); // new line sits right after L0
+    expect(piece.lines[0].id).toBe(id0);
+  });
+
+  it('addHeading inserts after the selected line without changing selection', () => {
+    piece.addLine();
+    const [id0] = piece.lines.map((l) => l.id);
+    piece.selectLine(id0);
+    piece.addHeading();
+    expect(piece.lines[1].type).toBe('heading');
+    expect(piece.selectedLineId).toBe(id0);
+  });
+
+  it('addDivider inserts after the selected line', () => {
+    piece.addLine();
+    piece.selectLine(piece.lines[0].id);
+    piece.addDivider();
+    expect(piece.lines[1].type).toBe('divider');
+  });
+
+  it('addJiuchiSection inserts marker + line + divider after selected, selecting the line', () => {
+    piece.addLine();
+    const id0 = piece.lines[0].id;
+    piece.selectLine(id0);
+    piece.addJiuchiSection();
+    // [L0, jiuchi-section, line, divider, L1]
+    expect(piece.lines[1].type).toBe('jiuchi-section');
+    expect(isSoundLine(piece.lines[2])).toBe(true);
+    expect(piece.lines[3].type).toBe('divider');
+    expect(piece.selectedLineId).toBe(piece.lines[2].id);
+    // The divider keeps the following melody line out of the jiuchi definition.
+    expect(piece.lines[4].id).not.toBe(undefined);
+  });
+});
+
 // ── clearLines ────────────────────────────────────────────────────────────────
 
 describe('clearLines', () => {

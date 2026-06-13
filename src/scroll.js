@@ -7,10 +7,11 @@ function scrollIntoViewIfPresent(selector) {
 }
 
 /**
- * Scrolls the Score's bottom action bar (+ Add line / heading / note / divider)
- * into view. Used after appending a structural row so the buttons stay reachable
- * as the score grows. Runs on the next frame, after the committed redraw patches
- * the DOM (m.redraw's rAF is registered before this one, so it runs first).
+ * Scrolls the add-row toolbar (+ Add line / heading / note / divider / jiuchi)
+ * into view. The toolbar follows the selected line, so after adding a row this
+ * keeps the buttons — and the freshly inserted row beside them — on screen. Runs
+ * on the next frame, after the committed redraw patches the DOM (m.redraw's rAF is
+ * registered before this one, so it runs first).
  */
 export function scrollToScoreBottom() {
   requestAnimationFrame(() => scrollIntoViewIfPresent('.score-actions'));

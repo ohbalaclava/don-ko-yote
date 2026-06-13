@@ -1,11 +1,10 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece, markerDepth, lineDepth, singleLineRepeatMap } from '../data/piece.js';
+import { piece, markerDepth, lineDepth, singleLineRepeatMap, isSoundLine } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
 import { voice } from '../audio/engine.js';
 import { patternStore } from '../data/patterns.js';
-import { scrollToScoreBottom } from '../scroll.js';
 import { touchDragDelay } from '../drag.js';
 import { Line } from './Line.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
@@ -13,6 +12,7 @@ import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
 import { DividerRow } from './DividerRow.jsx';
 import { JiuchiSectionRow } from './JiuchiSectionRow.jsx';
+import { AddRowActions } from './AddRowActions.jsx';
 
 export function Score() {
   let sortable;
@@ -70,6 +70,10 @@ export function Score() {
       // (Cancel + count + actions) rather than stacking the idle controls beside
       // the action buttons — keeps the row from overflowing on narrow screens.
       const selecting = piece.selectMode || piece.lineSelectMode;
+      // The add-row toolbar normally renders inside the selected line; show a
+      // foot-of-score fallback only when no sound line is selected to host it.
+      const showFallbackActions =
+        !selecting && !piece.lines.some((l) => l.id === piece.selectedLineId && isSoundLine(l));
 
       return (
         <div class="flex-1 overflow-y-auto flex flex-col scroll-pt-10">
@@ -244,58 +248,7 @@ export function Score() {
             })()}
           </div>
 
-          <div class="score-actions px-3 py-2 flex items-center gap-3">
-            <button
-              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300'}`}
-              disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => {
-                piece.addLine();
-                scrollToScoreBottom();
-              }}
-            >
-              + Add line
-            </button>
-            <button
-              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => {
-                piece.addHeading();
-                scrollToScoreBottom();
-              }}
-            >
-              + Add heading
-            </button>
-            <button
-              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => {
-                piece.addNote();
-                scrollToScoreBottom();
-              }}
-            >
-              + Add note
-            </button>
-            <button
-              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => {
-                piece.addDivider();
-                scrollToScoreBottom();
-              }}
-            >
-              + Add divider
-            </button>
-            <button
-              class={`text-sm font-semibold ${piece.selectMode || piece.lineSelectMode ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300'}`}
-              disabled={piece.selectMode || piece.lineSelectMode}
-              onclick={() => {
-                piece.addJiuchiSection();
-                scrollToScoreBottom();
-              }}
-            >
-              + Add jiuchi
-            </button>
-          </div>
+          {showFallbackActions ? <AddRowActions /> : null}
         </div>
       );
     },

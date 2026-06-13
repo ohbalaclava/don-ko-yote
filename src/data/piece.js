@@ -108,6 +108,18 @@ function makeJiuchiSection(taiko) {
   return { id: uid(), type: 'jiuchi-section', taiko };
 }
 
+/**
+ * Inserts one or more items into piece.lines immediately after the currently
+ * selected line, or appends them when there is no valid selection. The add-row
+ * toolbar sits after the selected line, so new rows land where the user is working.
+ * @param {...object} items
+ */
+function insertAfterSelected(...items) {
+  const idx = piece.lines.findIndex((l) => l.id === piece.selectedLineId);
+  if (idx >= 0) piece.lines.splice(idx + 1, 0, ...items);
+  else piece.lines.push(...items);
+}
+
 function lineDur(line) {
   return line.sounds.reduce((sum, s) => sum + s.duration, 0);
 }
@@ -553,7 +565,7 @@ export const piece = {
 
   addLine() {
     const line = makeLine();
-    piece.lines.push(line);
+    insertAfterSelected(line);
     piece.selectedLineId = line.id;
     piece._commit();
   },
@@ -569,7 +581,7 @@ export const piece = {
   },
 
   addHeading() {
-    piece.lines.push(makeHeading());
+    insertAfterSelected(makeHeading());
     piece._commit();
   },
 
@@ -591,7 +603,7 @@ export const piece = {
   },
 
   addNote() {
-    piece.lines.push(makeNote());
+    insertAfterSelected(makeNote());
     piece._commit();
   },
 
@@ -613,7 +625,7 @@ export const piece = {
   },
 
   addDivider() {
-    piece.lines.push(makeDivider());
+    insertAfterSelected(makeDivider());
     piece._commit();
   },
 
@@ -746,16 +758,18 @@ export const piece = {
   // ── Jiuchi sections ───────────────────────────────────────────────────────
 
   /**
-   * Appends a jiuchi-section marker plus one empty sound line, and selects that
-   * line so the base rhythm is immediately authorable. The section's lines (up to
-   * the next heading/divider) define a loop played as the base rhythm under the
-   * following score. The taiko defaults to the score's taiko (always valid at the
-   * score's straight/swing time).
+   * Inserts a jiuchi-section marker, one empty definition line, and a closing
+   * divider after the selected line, then selects the definition line so the base
+   * rhythm is immediately authorable. The marker + definition line (up to the
+   * divider) define a loop played as the base rhythm under the following score.
+   * The divider bounds the definition so that, when inserted mid-score, the lines
+   * after it stay part of the melody (and become what the jiuchi underlays) rather
+   * than being swallowed into the definition. The taiko defaults to the score's
+   * taiko (always valid at the score's straight/swing time).
    */
   addJiuchiSection() {
-    piece.lines.push(makeJiuchiSection(piece.taiko));
     const line = makeLine();
-    piece.lines.push(line);
+    insertAfterSelected(makeJiuchiSection(piece.taiko), line, makeDivider());
     piece.selectedLineId = line.id;
     piece._commit();
   },

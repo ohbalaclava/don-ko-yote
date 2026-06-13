@@ -38,8 +38,9 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 ### UI layer (`src/components/`)
 
 - `Header.jsx` — title input plus icon buttons: ♩ (score settings), ▲ (metronome settings), ⚙ (app settings), ☰ (menu).
-- `Score.jsx` — scrollable list of `Line` components; toolbar with Select/Cancel toggle, undo/redo buttons, and a Save pattern button when sounds are selected; line reordering via SortableJS (`.line-drag-handle`).
-- `Line.jsx` — a single horizontal row of `SoundTile` / `LigatureTile` / `GroupTile` components. SortableJS handles intra/inter-line drag-to-reorder. Shows beat count and a repeat-count badge. Long-pressing a tile (500ms, <5px movement) enters select mode. Runs `measureInstructions()` to lay out instruction labels below tiles in non-overlapping tracks.
+- `Score.jsx` — scrollable list of `Line` components; toolbar with Select/Cancel toggle, undo/redo buttons, and a Save pattern button when sounds are selected; line reordering via SortableJS (`.line-drag-handle`). Renders `AddRowActions` at the foot only as a fallback when no sound line is selected to host it.
+- `AddRowActions.jsx` — the contextual "+ Add line / heading / note / divider / jiuchi" toolbar. The `piece.add*` methods insert the new row immediately after the selected line, so it renders inside the selected `Line` (and additions land where the user is working).
+- `Line.jsx` — a single horizontal row of `SoundTile` / `LigatureTile` / `GroupTile` components, wrapped in a `.line-block` (one SortableJS reorder child per line) that also hosts `AddRowActions` when the line is selected. SortableJS handles intra/inter-line drag-to-reorder. Shows beat count and a repeat-count badge. Long-pressing a tile (500ms, <5px movement) enters select mode. Runs `measureInstructions()` to lay out instruction labels below tiles in non-overlapping tracks.
 - `SoundTile.jsx` — a placed sound card; shows name and hand; beat-boundary dot above tile. Tap to open the inline `SoundEditor` (hand L/R, instruction text, remove). Highlighted when selected.
 - `LigatureTile.jsx` — groups two or more consecutive sub-beat sounds of equal duration into a single draggable tile (non-proportional mode only). Each sub-tile can open its own `SoundEditor`.
 - `GroupTile.jsx` — a placed pattern (group) card with purple styling; inline editor offers "Expand in place" or remove.
@@ -95,7 +96,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `2.0`.
+Current version: `2.1`.
 
 ## Adding a new symbol
 
