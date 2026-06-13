@@ -1,2 +1,4 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and perform LF normalization. eol=lf also keeps
+# Windows working copies LF, so prettier --check (default endOfLine: lf)
+# passes after any fresh checkout regardless of core.autocrlf.
+* text=auto eol=lf
