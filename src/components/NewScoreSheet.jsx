@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
+import { scoreStore } from '../data/scoreStore.js';
 import { TAIKO_GROUPS, ALL_JIUCHIS, getSymbolSet } from '../data/symbolSets.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
@@ -123,6 +124,7 @@ export function NewScoreSheet() {
                   disabled={!valid}
                   onclick={() => {
                     if (!valid) return;
+                    if (!scoreStore.confirmDiscard()) return;
                     player.stop();
                     piece.reset({
                       taiko,
@@ -134,6 +136,7 @@ export function NewScoreSheet() {
                       showVolume: settings.defaultShowVolume,
                     });
                     patternStore.setItems([]);
+                    scoreStore.markClean();
                     onCreated?.();
                     onClose();
                   }}

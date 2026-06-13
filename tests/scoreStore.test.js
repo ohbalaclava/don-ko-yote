@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 
@@ -279,6 +279,72 @@ describe('loadScore', () => {
     await scoreStore.loadScore('score-1');
     expect(piece.editingTile).toBeNull();
     expect(piece.selectMode).toBe(false);
+  });
+});
+
+// ── dirty tracking / confirmDiscard ─────────────────────────────────────────────
+
+describe('dirty tracking', () => {
+  it('clears dirty after save', async () => {
+    scoreStore.dirty = true;
+    await scoreStore.save();
+    expect(scoreStore.dirty).toBe(false);
+  });
+
+  it('clears dirty after loadScore', async () => {
+    fakeDb.scores.get.mockResolvedValue(makeScoreRecord());
+    scoreStore.dirty = true;
+    await scoreStore.loadScore('score-1');
+    expect(scoreStore.dirty).toBe(false);
+  });
+
+  it('marks dirty after importing an unsaved score', () => {
+    scoreStore.dirty = false;
+    scoreStore.importJson(JSON.stringify({ title: 'X', lines: [{ id: 'l1', sounds: [] }] }));
+    expect(scoreStore.dirty).toBe(true);
+  });
+
+  it('marks dirty after loading recovered autosave', () => {
+    scoreStore.autosaveData = makeScoreRecord();
+    scoreStore.dirty = false;
+    scoreStore.loadAutosave();
+    expect(scoreStore.dirty).toBe(true);
+  });
+
+  it('markClean clears the flag', () => {
+    scoreStore.dirty = true;
+    scoreStore.markClean();
+    expect(scoreStore.dirty).toBe(false);
+  });
+});
+
+describe('confirmDiscard', () => {
+  let confirmSpy;
+  beforeEach(() => {
+    confirmSpy = vi.fn(() => true);
+    vi.stubGlobal('window', { confirm: confirmSpy });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns true without prompting when not dirty', () => {
+    scoreStore.dirty = false;
+    expect(scoreStore.confirmDiscard()).toBe(true);
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('prompts and proceeds when the user confirms', () => {
+    scoreStore.dirty = true;
+    confirmSpy.mockReturnValue(true);
+    expect(scoreStore.confirmDiscard()).toBe(true);
+    expect(confirmSpy).toHaveBeenCalledOnce();
+  });
+
+  it('aborts when the user cancels', () => {
+    scoreStore.dirty = true;
+    confirmSpy.mockReturnValue(false);
+    expect(scoreStore.confirmDiscard()).toBe(false);
   });
 });
 

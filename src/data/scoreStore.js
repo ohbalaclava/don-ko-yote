@@ -61,6 +61,9 @@ function snapshot() {
 export const scoreStore = {
   items: [],
   autosaveData: null,
+  // True when the current piece has edits not persisted to a named saved score.
+  // Used to confirm before discarding the piece (new / load / import).
+  dirty: false,
 
   /**
    * Initialises autosave on startup: reads any existing autosave from the
@@ -77,6 +80,7 @@ export const scoreStore = {
     const origPush = history.push.bind(history);
     history.push = (state) => {
       origPush(state);
+      scoreStore.dirty = true;
       clearTimeout(autosaveTimer);
       // snapshot() captures piece.id and patternStore.items; the `state`
       // argument is piece._snapshot() which omits both. The same debounced hook
@@ -92,6 +96,22 @@ export const scoreStore = {
   async load() {
     scoreStore.items = await db.scores.all();
     m.redraw();
+  },
+
+  /** Marks the current piece as having no unsaved changes (after new / save / load). */
+  markClean() {
+    scoreStore.dirty = false;
+  },
+
+  /**
+   * Guards an action that would discard the current piece. Returns true when it
+   * is safe to proceed — either there are no unsaved changes, or the user
+   * confirmed discarding them. Returns false to abort.
+   * @returns {boolean}
+   */
+  confirmDiscard() {
+    if (!scoreStore.dirty) return true;
+    return window.confirm('You have unsaved changes that will be lost. Continue?');
   },
 
   /** Cancels any pending debounce, clears the in-memory cache, and deletes the kv row. */
@@ -116,6 +136,8 @@ export const scoreStore = {
     piece.selectedLineId = lastSoundLineId(piece.lines);
     patternStore.setItems(score.patterns ?? []);
     history.reset(piece._snapshot());
+    // Recovered work that was never saved to a named score — guard it.
+    scoreStore.dirty = true;
     m.redraw();
   },
 
@@ -123,6 +145,7 @@ export const scoreStore = {
     scoreStore.clearAutosave();
     const record = await db.scores.save(snapshot());
     piece.id = record.id;
+    scoreStore.dirty = false;
     scoreStore.items = await db.scores.all();
     m.redraw();
   },
@@ -142,6 +165,7 @@ export const scoreStore = {
     piece.selectedLineId = lastSoundLineId(piece.lines);
     patternStore.setItems(score.patterns ?? []);
     history.reset(piece._snapshot());
+    scoreStore.dirty = false;
     scoreStore.items = await db.scores.all();
     m.redraw();
   },
@@ -189,6 +213,8 @@ export const scoreStore = {
     }
     patternStore.setItems(data.patterns ?? []);
     history.reset(piece._snapshot());
+    // Imported content is not yet saved to a named score — guard it.
+    scoreStore.dirty = true;
     m.redraw();
   },
 };

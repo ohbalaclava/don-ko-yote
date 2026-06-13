@@ -63,6 +63,7 @@ function App() {
    * @param {(() => void) | undefined} onImported - Called after the score is loaded.
    */
   function openImportJson(onImported) {
+    if (!scoreStore.confirmDiscard()) return;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
