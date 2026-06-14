@@ -90,9 +90,11 @@ export function MetronomeSettingsModal() {
                 </div>
                 <div class="flex flex-wrap gap-1">
                   {options.map((o) => {
-                    // Head-only overrides which subdivisions tick, so ticks-kind
-                    // choices are moot while it's on; Inline stays selectable.
-                    const disabled = o.disabled || (settings.metronomeHeadOnly && !o.inline);
+                    // Only Inline-without-a-section is unselectable. The jiuchi
+                    // choice stays changeable regardless of head-only (which just
+                    // flattens a tick pattern) so the auto-selected Inline can
+                    // always be switched away from.
+                    const disabled = o.disabled;
                     return (
                       <button
                         key={o.value}

@@ -47,7 +47,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `Palette.jsx` — sidebar with Sounds and Patterns sections. Tap to add to selected line; drag to any line. `dragBehaviour()` handles the tap-vs-drag distinction (6 px threshold). `PatternPaletteTile` includes a delete button.
 - `SettingsModal.jsx` — bottom sheet for app settings (proportional width, font, dark mode, default background image).
 - `ScoreSettingsModal.jsx` — bottom sheet for score settings (beats per line, BPM, author, icon image upload).
-- `MetronomeSettingsModal.jsx` — bottom sheet for the playback metronome (on/off, head-beat-only, emphasise head, jiuchi, use-Shime, volume). Opened from the ▲ button in `Header`. The jiuchi selector lists `Match score` (auto), the standard jiuchi names, and `Inline` (the score's jiuchi sections; enabled only when one exists). Head-only / emphasise / use-Shime grey out while `Inline` is selected (it plays the authored drum rhythm, not ticks).
+- `MetronomeSettingsModal.jsx` — bottom sheet for the playback metronome (on/off, head-beat-only, emphasise head, jiuchi, use-Shime, volume). Opened from the ▲ button in `Header`. The jiuchi selector lists `Match score` (auto), the standard jiuchi names, and `Inline` (the score's jiuchi sections; enabled only when one exists). Head-only / emphasise / use-Shime grey out while `Inline` is selected (it plays the authored drum rhythm, not ticks); the jiuchi option buttons themselves stay selectable so the choice is always changeable. `piece.addJiuchiSection` auto-selects `Inline` (a default, not a lock).
 - `JiuchiSectionRow.jsx` — the inline `jiuchi-section` marker row: green-styled, with a compact taiko picker constrained to the score's straight/swing time (`taikoGroupsForTime`) and a remove button. Calls `piece.setJiuchiSectionTaiko` / `piece.removeJiuchiSection`.
 - `MenuSheet.jsx` — bottom sheet with New, Save, Load, Export/Import score, Export PDF, Clear, Help actions.
 - `NewScoreSheet.jsx` — bottom sheet for creating a new score (jiuchi and beats per line).
@@ -96,7 +96,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `2.1`.
+Current version: `2.3`.
 
 ## Adding a new symbol
 

@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { history } from './history.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
+import { settings } from './settings.js';
 import { uid } from '../uid.js';
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
@@ -786,11 +787,15 @@ export const piece = {
    * after it stay part of the melody (and become what the jiuchi underlays) rather
    * than being swallowed into the definition. The taiko defaults to the score's
    * taiko (always valid at the score's straight/swing time).
+   *
+   * Adding a section also switches the metronome jiuchi to 'inline' so the new
+   * base rhythm plays; this is a default, not a lock — the user can change it back.
    */
   addJiuchiSection() {
     const line = makeLine();
     insertAfterSelected(makeJiuchiSection(piece.taiko), line, makeDivider());
     piece.selectedLineId = line.id;
+    settings.set('metronomeJiuchi', 'inline');
     piece._commit();
   },
 

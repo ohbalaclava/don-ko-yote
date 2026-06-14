@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 
-const mockSettings = vi.hoisted(() => ({}));
+const mockSettings = vi.hoisted(() => ({ set: vi.fn() }));
 vi.mock('../src/data/settings.js', () => ({ settings: mockSettings }));
 
 import {
@@ -370,6 +370,11 @@ describe('add rows insert after the selected line', () => {
     expect(piece.selectedLineId).toBe(piece.lines[2].id);
     // The divider keeps the following melody line out of the jiuchi definition.
     expect(piece.lines[4].id).not.toBe(undefined);
+  });
+
+  it('addJiuchiSection switches the metronome jiuchi to inline', () => {
+    piece.addJiuchiSection();
+    expect(mockSettings.set).toHaveBeenCalledWith('metronomeJiuchi', 'inline');
   });
 });
 
