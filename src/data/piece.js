@@ -1,7 +1,6 @@
 import m from 'mithril';
 import { history } from './history.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
-import { settings } from './settings.js';
 import { uid } from '../uid.js';
 
 /** Item `type` values that are not sound lines (structural rows / markers). */
@@ -263,6 +262,14 @@ const PERSISTED_FIELDS = {
   version: () => '',
   icon: () => null,
   showVolume: () => false,
+  // Metronome config is stored per-score (not global), so it travels with the
+  // score through save/load/export and undo snapshots.
+  metronome: () => false,
+  metronomeHeadOnly: () => true,
+  metronomeEmphasiseHead: () => true,
+  metronomeJiuchi: () => 'auto',
+  metronomeShime: () => false,
+  metronomeVolume: () => 1,
 };
 
 /** Reads the current persisted scalar fields into a plain object. */
@@ -294,6 +301,12 @@ export const piece = {
   version: '',
   icon: null,
   showVolume: false,
+  metronome: false,
+  metronomeHeadOnly: true,
+  metronomeEmphasiseHead: true,
+  metronomeJiuchi: 'auto',
+  metronomeShime: false,
+  metronomeVolume: 1,
   lines: [_firstLine],
   selectedLineId: _firstLine.id,
 
@@ -424,6 +437,12 @@ export const piece = {
     piece.version = '';
     piece.icon = opts.icon ?? null;
     piece.showVolume = opts.showVolume ?? false;
+    piece.metronome = false;
+    piece.metronomeHeadOnly = true;
+    piece.metronomeEmphasiseHead = true;
+    piece.metronomeJiuchi = 'auto';
+    piece.metronomeShime = false;
+    piece.metronomeVolume = 1;
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
@@ -474,6 +493,21 @@ export const piece = {
   setShowVolume(v) {
     piece.showVolume = v;
     piece._commit();
+  },
+  /**
+   * Updates one per-score metronome field and commits (so it autosaves and is
+   * saved with the score). Used for the discrete toggles and the jiuchi selector.
+   * @param {'metronome'|'metronomeHeadOnly'|'metronomeEmphasiseHead'|'metronomeJiuchi'|'metronomeShime'|'metronomeVolume'} key
+   * @param {boolean|string|number} value
+   */
+  setMetronome(key, value) {
+    piece[key] = value;
+    piece._commit();
+  },
+  /** Live (non-committing) metronome-volume update for slider drags; commit on release via setMetronome. */
+  setMetronomeVolumeLive(v) {
+    piece.metronomeVolume = v;
+    m.redraw();
   },
   selectLine(id) {
     piece.selectedLineId = id;
@@ -795,7 +829,7 @@ export const piece = {
     const line = makeLine();
     insertAfterSelected(makeJiuchiSection(piece.taiko), line, makeDivider());
     piece.selectedLineId = line.id;
-    settings.set('metronomeJiuchi', 'inline');
+    piece.metronomeJiuchi = 'inline'; // captured by the _commit snapshot below
     piece._commit();
   },
 

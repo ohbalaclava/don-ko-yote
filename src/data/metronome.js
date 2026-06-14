@@ -14,7 +14,7 @@ export const JIUCHI_PATTERNS = {
 };
 
 /**
- * Resolves a standard `settings.metronomeJiuchi` value to its tick subdivisions.
+ * Resolves a standard `piece.metronomeJiuchi` value to its tick subdivisions.
  * 'auto' follows the piece's jiuchi; any other value is treated as a jiuchi name.
  * Unknown names fall back to ticking the beat head only. The 'inline' value is
  * handled separately by the player (per-region drum loops), not here.

@@ -30,6 +30,8 @@ export const player = {
   _events: [],
   _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
   _metroStrikes: [], // { atSec, sound, taiko } looped drum strikes for inline jiuchi regions
+  _metroShime: false, // per-score Shime-tick flag, captured at play time for _schedule
+  _metroVolume: 1, // per-score metronome volume, captured at play time for _schedule
   _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
@@ -116,7 +118,7 @@ export const player = {
     // under the part of the score it covers. Only for non-line scopes (a per-line
     // preview is a direct, jiuchi-free playback of that line).
     const useInline =
-      settings.metronome && settings.metronomeJiuchi === 'inline' && scope.type !== 'line';
+      piece.metronome && piece.metronomeJiuchi === 'inline' && scope.type !== 'line';
     const regions = useInline ? jiuchiRegions(sourceLines, time) : [];
     for (const t of new Set(regions.map((r) => r.taiko))) {
       await voice.preload(t);
@@ -124,7 +126,7 @@ export const player = {
     }
     // The Shime TEN metronome sample lives in its own set, which may differ from
     // the score's taiko, so preload it too. Falls back to a synth click if absent.
-    if (settings.metronome && !useInline && settings.metronomeShime) {
+    if (piece.metronome && !useInline && piece.metronomeShime) {
       await voice.preload('Shime');
       if (this._epoch !== epoch) return;
     }
@@ -144,11 +146,15 @@ export const player = {
       audible: e.volume != null,
     }));
     this._taiko = taiko;
+    // Captured for _schedule (which has no piece reference); metronome config is
+    // read once at play time and doesn't change mid-playback.
+    this._metroShime = piece.metronomeShime;
+    this._metroVolume = piece.metronomeVolume;
     if (useInline) {
       this._metroTicks = [];
       this._metroStrikes = this._buildInlineStrikes(piece, regions);
     } else {
-      this._metroTicks = settings.metronome ? this._buildMetroTicks(piece, totalDiv) : [];
+      this._metroTicks = piece.metronome ? this._buildMetroTicks(piece, totalDiv) : [];
       this._metroStrikes = [];
     }
 
@@ -189,16 +195,16 @@ export const player = {
 
   /**
    * Builds the metronome ticks (relative to division 0) for the standard jiuchi
-   * selected by `settings.metronomeJiuchi` ('auto' or a named pattern).
+   * selected by `piece.metronomeJiuchi` ('auto' or a named pattern).
    * @param {object} piece
    * @param {number} totalDiv
    * @returns {Array<{ atSec: number, accent: boolean }>}
    */
   _buildMetroTicks(piece, totalDiv) {
     const ticks = metronomeTicks(totalDiv, piece.time, {
-      positions: jiuchiPositions(settings.metronomeJiuchi, piece),
-      headOnly: settings.metronomeHeadOnly,
-      emphasise: settings.metronomeEmphasiseHead,
+      positions: jiuchiPositions(piece.metronomeJiuchi, piece),
+      headOnly: piece.metronomeHeadOnly,
+      emphasise: piece.metronomeEmphasiseHead,
     });
     return ticks.map((t) => ({
       atSec: divToSeconds(t.div, piece.bpm, piece.time),
@@ -227,7 +233,7 @@ export const player = {
             name: e.name,
             hand: e.hand,
             skin: e.skin,
-            volume: e.volume * settings.metronomeVolume,
+            volume: e.volume * piece.metronomeVolume,
             duration: e.durationDiv,
           },
           taiko: r.taiko,
@@ -249,7 +255,7 @@ export const player = {
     const beats = Math.min(piece.beatsPerLine > 0 ? piece.beatsPerLine : 4, 4);
     const beatSec = divToSeconds(piece.time, piece.bpm, piece.time);
     for (let i = 0; i < beats; i++) {
-      voice.tick(base + i * beatSec, { accent: i === 0, volume: settings.metronomeVolume });
+      voice.tick(base + i * beatSec, { accent: i === 0, volume: piece.metronomeVolume });
     }
     return beats * beatSec;
   },
@@ -272,8 +278,8 @@ export const player = {
       if (when >= horizon) break;
       voice.tick(when, {
         accent: t.accent,
-        shime: settings.metronomeShime,
-        volume: settings.metronomeVolume,
+        shime: this._metroShime,
+        volume: this._metroVolume,
       });
       this._nextMetroIdx++;
     }

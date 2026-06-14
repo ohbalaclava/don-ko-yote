@@ -1,5 +1,4 @@
 import m from 'mithril';
-import { settings } from '../data/settings.js';
 import { ALL_JIUCHIS } from '../data/symbolSets.js';
 import { piece } from '../data/piece.js';
 import { Toggle } from './SettingsModal.jsx';
@@ -16,7 +15,7 @@ export function MetronomeSettingsModal() {
         .concat([{ label: 'Inline', value: 'inline', inline: true, disabled: !hasInline }]);
       // Inline plays each section's drum pattern as authored, so the head-only and
       // emphasise tick options don't apply to it.
-      const inlineSelected = settings.metronomeJiuchi === 'inline';
+      const inlineSelected = piece.metronomeJiuchi === 'inline';
       return (
         <div class="fixed inset-0 z-40 bg-black/50 flex flex-col justify-end" onclick={onClose}>
           <div
@@ -46,8 +45,8 @@ export function MetronomeSettingsModal() {
                   </div>
                 </div>
                 <Toggle
-                  checked={settings.metronome}
-                  onChange={(v) => settings.set('metronome', v)}
+                  checked={piece.metronome}
+                  onChange={(v) => piece.setMetronome('metronome', v)}
                 />
               </div>
 
@@ -61,9 +60,9 @@ export function MetronomeSettingsModal() {
                   </div>
                 </div>
                 <Toggle
-                  checked={settings.metronomeHeadOnly}
+                  checked={piece.metronomeHeadOnly}
                   disabled={inlineSelected}
-                  onChange={(v) => settings.set('metronomeHeadOnly', v)}
+                  onChange={(v) => piece.setMetronome('metronomeHeadOnly', v)}
                 />
               </div>
 
@@ -77,9 +76,9 @@ export function MetronomeSettingsModal() {
                   </div>
                 </div>
                 <Toggle
-                  checked={settings.metronomeEmphasiseHead}
+                  checked={piece.metronomeEmphasiseHead}
                   disabled={inlineSelected}
-                  onChange={(v) => settings.set('metronomeEmphasiseHead', v)}
+                  onChange={(v) => piece.setMetronome('metronomeEmphasiseHead', v)}
                 />
               </div>
 
@@ -104,8 +103,8 @@ export function MetronomeSettingsModal() {
                             ? 'Add a jiuchi section to the score first'
                             : undefined
                         }
-                        class={`rounded border px-2 py-1 text-sm font-medium ${disabled ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300' : settings.metronomeJiuchi === o.value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                        onclick={() => settings.set('metronomeJiuchi', o.value)}
+                        class={`rounded border px-2 py-1 text-sm font-medium ${disabled ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300' : piece.metronomeJiuchi === o.value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                        onclick={() => piece.setMetronome('metronomeJiuchi', o.value)}
                       >
                         {o.label}
                       </button>
@@ -124,9 +123,9 @@ export function MetronomeSettingsModal() {
                   </div>
                 </div>
                 <Toggle
-                  checked={settings.metronomeShime}
+                  checked={piece.metronomeShime}
                   disabled={inlineSelected}
-                  onChange={(v) => settings.set('metronomeShime', v)}
+                  onChange={(v) => piece.setMetronome('metronomeShime', v)}
                 />
               </div>
 
@@ -134,7 +133,7 @@ export function MetronomeSettingsModal() {
                 <div class="flex items-center justify-between mb-1">
                   <div class="font-medium dark:text-white">Metronome volume</div>
                   <div class="text-sm tabular-nums text-gray-500 dark:text-gray-400 w-10 text-right">
-                    {Math.round(settings.metronomeVolume * 100)}%
+                    {Math.round(piece.metronomeVolume * 100)}%
                   </div>
                 </div>
                 <input
@@ -143,8 +142,9 @@ export function MetronomeSettingsModal() {
                   min="0"
                   max="2"
                   step="0.05"
-                  value={settings.metronomeVolume}
-                  oninput={(e) => settings.set('metronomeVolume', Number(e.target.value))}
+                  value={piece.metronomeVolume}
+                  oninput={(e) => piece.setMetronomeVolumeLive(Number(e.target.value))}
+                  onchange={(e) => piece.setMetronome('metronomeVolume', Number(e.target.value))}
                 />
               </div>
             </div>

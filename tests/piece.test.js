@@ -372,9 +372,38 @@ describe('add rows insert after the selected line', () => {
     expect(piece.lines[4].id).not.toBe(undefined);
   });
 
-  it('addJiuchiSection switches the metronome jiuchi to inline', () => {
+  it('addJiuchiSection switches the per-score metronome jiuchi to inline', () => {
+    expect(piece.metronomeJiuchi).toBe('auto');
     piece.addJiuchiSection();
-    expect(mockSettings.set).toHaveBeenCalledWith('metronomeJiuchi', 'inline');
+    expect(piece.metronomeJiuchi).toBe('inline');
+  });
+});
+
+// ── metronome config (per-score) ───────────────────────────────────────────────
+
+describe('per-score metronome config', () => {
+  it('setMetronome updates the field and is captured in the snapshot', () => {
+    piece.setMetronome('metronome', true);
+    piece.setMetronome('metronomeJiuchi', 'Gobu Gobu');
+    const snap = piece._snapshot();
+    expect(snap.metronome).toBe(true);
+    expect(snap.metronomeJiuchi).toBe('Gobu Gobu');
+  });
+
+  it('loadFromData restores metronome config, defaulting missing fields', () => {
+    piece.loadFromData({ metronome: true, metronomeVolume: 1.5 });
+    expect(piece.metronome).toBe(true);
+    expect(piece.metronomeVolume).toBe(1.5);
+    expect(piece.metronomeJiuchi).toBe('auto'); // default applied for missing field
+    expect(piece.metronomeHeadOnly).toBe(true);
+  });
+
+  it('reset clears metronome config back to defaults', () => {
+    piece.setMetronome('metronome', true);
+    piece.setMetronome('metronomeJiuchi', 'inline');
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8 });
+    expect(piece.metronome).toBe(false);
+    expect(piece.metronomeJiuchi).toBe('auto');
   });
 });
 
