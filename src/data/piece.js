@@ -174,6 +174,26 @@ export function jiuchiLineMap(lines) {
 }
 
 /**
+ * True when the given divider closes a jiuchi section's definition — i.e. the
+ * nearest preceding structural row (skipping the definition's own sound/note rows)
+ * is a jiuchi-section marker. Such dividers share the jiuchi green styling so the
+ * definition block reads as one unit.
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {string} dividerId
+ * @returns {boolean}
+ */
+export function isJiuchiCloseDivider(lines, dividerId) {
+  const i = lines.findIndex((l) => l.id === dividerId);
+  if (i < 0 || lines[i].type !== 'divider') return false;
+  for (let j = i - 1; j >= 0; j--) {
+    const t = lines[j].type;
+    if (t === 'jiuchi-section') return true;
+    if (t === 'heading' || t === 'divider') return false;
+  }
+  return false;
+}
+
+/**
  * Re-evaluates block-repeat membership after `moved` has been relocated within
  * piece.lines. The moved line is first removed from every marker, then re-added
  * to a marker only when it now sits between two of that marker's members
