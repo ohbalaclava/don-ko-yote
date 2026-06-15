@@ -174,6 +174,28 @@ export function jiuchiLineMap(lines) {
 }
 
 /**
+ * Returns the `[start, end]` index span (inclusive) of the whole jiuchi section
+ * that begins at `markerIdx`: the marker, its definition rows, and the closing
+ * divider that bounds it. Walking forward from the marker, sound/note rows extend
+ * the span; the first divider is included and ends it (the section's footer); a
+ * heading or another jiuchi-section ends it exclusively. Dragging the marker moves
+ * this whole span as one unit so the section stays intact.
+ * @param {Array<object>} lines
+ * @param {number} markerIdx - Index of a jiuchi-section marker.
+ * @returns {[number, number]}
+ */
+export function jiuchiSectionSpan(lines, markerIdx) {
+  let end = markerIdx;
+  for (let j = markerIdx + 1; j < lines.length; j++) {
+    const t = lines[j].type;
+    if (t === 'heading' || t === 'jiuchi-section') break;
+    end = j;
+    if (t === 'divider') break;
+  }
+  return [markerIdx, end];
+}
+
+/**
  * True when the given divider closes a jiuchi section's definition — i.e. the
  * nearest preceding structural row (skipping the definition's own sound/note rows)
  * is a jiuchi-section marker. Such dividers share the jiuchi green styling so the
@@ -659,11 +681,38 @@ export const piece = {
 
   reorderLine(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
+    // Dragging a jiuchi-section marker moves the whole section (marker, definition
+    // rows, and closing divider) as one block so it stays intact.
+    if (piece.lines[fromIndex]?.type === 'jiuchi-section') {
+      piece._reorderJiuchiSection(fromIndex, toIndex);
+      return;
+    }
     const lines = piece.lines.slice();
     const [moved] = lines.splice(fromIndex, 1);
     lines.splice(toIndex, 0, moved);
     piece.lines = lines;
     updateBlockRepeatMembership(moved);
+    piece._commit();
+  },
+
+  /**
+   * Moves a whole jiuchi section so its marker lands at the single-element drop
+   * index `toIndex` reported by the drag. The block spans the marker through its
+   * closing divider (see jiuchiSectionSpan).
+   * @param {number} fromIndex - Marker index.
+   * @param {number} toIndex - Drop index in single-element terms.
+   */
+  _reorderJiuchiSection(fromIndex, toIndex) {
+    const [start, end] = jiuchiSectionSpan(piece.lines, fromIndex);
+    const blockLen = end - start + 1;
+    const lines = piece.lines.slice();
+    const block = lines.splice(start, blockLen);
+    // When dropping below the block, toIndex was measured with one element removed;
+    // shift it back by the rest of the block so the marker lands where intended.
+    let insertAt = toIndex <= start ? toIndex : toIndex - (blockLen - 1);
+    insertAt = Math.max(0, Math.min(insertAt, lines.length));
+    lines.splice(insertAt, 0, ...block);
+    piece.lines = lines;
     piece._commit();
   },
 

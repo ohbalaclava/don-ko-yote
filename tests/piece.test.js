@@ -11,6 +11,7 @@ import {
   lineDepth,
   isSoundLine,
   singleLineRepeatMap,
+  jiuchiSectionSpan,
 } from '../src/data/piece.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -325,6 +326,65 @@ describe('reorderLine', () => {
     const idsBefore = piece.lines.map((l) => l.id);
     piece.reorderLine(1, 1);
     expect(piece.lines.map((l) => l.id)).toEqual(idsBefore);
+  });
+});
+
+// ── jiuchiSectionSpan ───────────────────────────────────────────────────────────
+
+describe('jiuchiSectionSpan', () => {
+  it('spans the marker through its closing divider', () => {
+    piece.selectLine(piece.lines[0].id);
+    piece.addJiuchiSection(); // [L0, marker, def, divider, L1] -> marker at 1
+    expect(jiuchiSectionSpan(piece.lines, 1)).toEqual([1, 3]);
+  });
+
+  it('ends before a following heading when there is no divider', () => {
+    // Build [marker, def] with no closing divider, then a heading after.
+    const marker = { id: 'm', type: 'jiuchi-section', taiko: piece.taiko };
+    const def = { id: 'd', sounds: [] };
+    const heading = { id: 'h', type: 'heading', text: '' };
+    piece.lines = [marker, def, heading];
+    expect(jiuchiSectionSpan(piece.lines, 0)).toEqual([0, 1]);
+  });
+});
+
+// ── reorderLine — jiuchi section moves as a block ───────────────────────────────
+
+describe('reorderLine (jiuchi section)', () => {
+  function setup() {
+    // [L0, marker, def, divider] then append L1 -> block sits at indices 1..3.
+    piece.selectLine(piece.lines[0].id);
+    piece.addJiuchiSection();
+    piece.lines.push({ id: 'L1', sounds: [] });
+  }
+
+  it('dragging the marker down moves the whole section as one block', () => {
+    setup();
+    const before = piece.lines.map((l) => l.type ?? 'line');
+    expect(before).toEqual(['line', 'jiuchi-section', 'line', 'divider', 'line']);
+    const markerId = piece.lines[1].id;
+    const defId = piece.lines[2].id;
+    const divId = piece.lines[3].id;
+    // Drop the marker at the end (single-element drop index = last index).
+    piece.reorderLine(1, piece.lines.length - 1);
+    const ids = piece.lines.map((l) => l.id);
+    const mi = ids.indexOf(markerId);
+    // Marker, definition, divider stay contiguous and in order, now at the end.
+    expect(ids[mi + 1]).toBe(defId);
+    expect(ids[mi + 2]).toBe(divId);
+    expect(mi + 2).toBe(ids.length - 1);
+  });
+
+  it('dragging the marker up moves the whole section as one block', () => {
+    setup(); // [L0, marker, def, divider, L1], marker at 1
+    const markerId = piece.lines[1].id;
+    const defId = piece.lines[2].id;
+    const divId = piece.lines[3].id;
+    piece.reorderLine(1, 0);
+    const ids = piece.lines.map((l) => l.id);
+    expect(ids[0]).toBe(markerId);
+    expect(ids[1]).toBe(defId);
+    expect(ids[2]).toBe(divId);
   });
 });
 

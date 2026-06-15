@@ -38,7 +38,16 @@ export function Score() {
         ghostClass: 'opacity-30',
         ...touchDragDelay,
         onEnd(evt) {
-          piece.reorderLine(evt.oldIndex, evt.newIndex);
+          const { item, from, oldIndex, newIndex } = evt;
+          // Revert Sortable's DOM mutation so Mithril owns the DOM: the data move
+          // below plus redraw repaints the correct order. Without this, a
+          // jiuchi-section drag (which moves several rows in the data while
+          // Sortable moved only the marker node) leaves the definition/divider
+          // behind. Re-inserting before the element now at oldIndex restores the
+          // pre-drag order.
+          from.removeChild(item);
+          from.insertBefore(item, from.children[oldIndex] ?? null);
+          piece.reorderLine(oldIndex, newIndex);
         },
       });
 
