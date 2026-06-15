@@ -373,168 +373,227 @@ export function Line() {
 
       // The add-row toolbar follows the selected line, so new rows insert here.
       const showActions = selected && !piece.selectMode && !piece.lineSelectMode;
-      return (
-        <div class="line-block">
-          <div
-            class={`flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${sideClass}`}
-            style={decoration ?? { paddingLeft: fallbackPaddingLeft }}
-            onclick={() => {
+      return m('div', { class: 'line-block' }, [
+        m(
+          'div',
+          {
+            class: `flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer ${sideClass}`,
+            style: decoration ?? { paddingLeft: fallbackPaddingLeft },
+            onclick: () => {
               if (piece.lineSelectMode) {
                 piece.toggleLineSelection(line.id);
               } else {
                 piece.selectLine(line.id);
               }
-            }}
-          >
-            <div
-              class="line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none"
-              title="Drag to reorder"
-            >
-              <span class="text-gray-300 dark:text-gray-600 text-sm leading-none">⠿</span>
-              <span
-                class={`text-xs ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`}
-              >
-                {index + 1}
-              </span>
-            </div>
-            <div
-              class="sounds-and-instructions relative flex-1 min-w-0"
-              style={wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : ''}
-            >
-              <div class="flex items-start gap-1">
-                <div
-                  class="sounds-container flex flex-wrap gap-x-1 min-h-[3.5rem] pt-3 flex-1"
-                  style={`row-gap: ${soundsRowGap}px`}
-                  data-line-id={line.id}
-                  onpointerdown={lpStart}
-                  onpointermove={lpMove}
-                  onpointerup={lpEnd}
-                  onpointercancel={lpEnd}
-                  onpointerleave={lpEnd}
-                >
-                  {groupSoundsForDisplay(line.sounds, settings.proportionalWidth, time).map(
-                    (item) => {
-                      if (item.type === 'beat-marker') {
-                        return (
-                          <span
-                            key={'bm-' + item.beat}
-                            class="beat-marker-divider self-stretch relative flex flex-col items-center pointer-events-none select-none"
-                            style="width:2px"
-                          >
-                            <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-                            <span class="w-px h-full bg-gray-300 dark:bg-gray-600" />
-                          </span>
-                        );
-                      }
-                      if (item.sounds) {
-                        return (
-                          <LigatureTile
-                            key={item.sounds[0].id}
-                            sounds={item.sounds}
-                            lineId={line.id}
-                            startPos={item.startPos}
-                            selectionIds={selectionIds}
-                          />
-                        );
-                      }
-                      const s = item.sound;
-                      return (
-                        <SoundTile
-                          key={s.id}
-                          sound={s}
-                          lineId={line.id}
-                          startPos={item.startPos}
-                          isSelected={selectionIds ? selectionIds.has(s.id) : false}
-                        />
-                      );
-                    }
-                  )}
-                  {singleRepeat && (
-                    <div
-                      class="repeat-counter self-center flex items-center gap-1 ml-4 pointer-events-auto"
-                      onpointerdown={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        class="text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                        onclick={(e) => {
-                          e.stopPropagation();
-                          if (singleRepeat.count <= 2) {
-                            piece.removeBlockRepeat(singleRepeat.id);
-                          } else {
-                            piece.setBlockRepeatCount(singleRepeat.id, singleRepeat.count - 1);
+            },
+          },
+          [
+            m(
+              'div',
+              {
+                class:
+                  'line-drag-handle flex flex-col items-center gap-0.5 shrink-0 pt-1 cursor-grab select-none',
+                title: 'Drag to reorder',
+              },
+              [
+                m('span', { class: 'text-gray-300 dark:text-gray-600 text-sm leading-none' }, '⠿'),
+                m(
+                  'span',
+                  {
+                    class: `text-xs ${selected ? 'text-indigo-500 dark:text-indigo-400 font-bold' : 'text-gray-400 dark:text-gray-500'}`,
+                  },
+                  index + 1
+                ),
+              ]
+            ),
+            m(
+              'div',
+              {
+                class: 'sounds-and-instructions relative flex-1 min-w-0',
+                style: wrapperPaddingBottom ? `padding-bottom: ${wrapperPaddingBottom}px` : '',
+              },
+              [
+                m('div', { class: 'flex items-start gap-1' }, [
+                  m(
+                    'div',
+                    {
+                      class: 'sounds-container flex flex-wrap gap-x-1 min-h-[3.5rem] pt-3 flex-1',
+                      style: `row-gap: ${soundsRowGap}px`,
+                      'data-line-id': line.id,
+                      onpointerdown: lpStart,
+                      onpointermove: lpMove,
+                      onpointerup: lpEnd,
+                      onpointercancel: lpEnd,
+                      onpointerleave: lpEnd,
+                    },
+                    [
+                      groupSoundsForDisplay(line.sounds, settings.proportionalWidth, time).map(
+                        (item) => {
+                          if (item.type === 'beat-marker') {
+                            return m(
+                              'span',
+                              {
+                                key: 'bm-' + item.beat,
+                                class:
+                                  'beat-marker-divider self-stretch relative flex flex-col items-center pointer-events-none select-none',
+                                style: 'width:2px',
+                              },
+                              [
+                                m('span', {
+                                  class:
+                                    'beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100',
+                                }),
+                                m('span', { class: 'w-px h-full bg-gray-300 dark:bg-gray-600' }),
+                              ]
+                            );
                           }
-                        }}
-                        title={singleRepeat.count <= 2 ? 'Remove repeat' : 'Decrease repeat count'}
-                      >
-                        −
-                      </button>
-                      <span class="text-base font-bold text-orange-600 dark:text-orange-300 select-none">
-                        ×{singleRepeat.count}
-                      </span>
-                      <button
-                        class="text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                        onclick={(e) => {
-                          e.stopPropagation();
-                          piece.setBlockRepeatCount(singleRepeat.id, singleRepeat.count + 1);
-                        }}
-                        title="Increase repeat count"
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {(computeLineHash(line) === measuredLineHash ? instructionLayouts : []).map(
-                (layout) => (
-                  <span
-                    key={layout.id}
-                    class="absolute text-[15px] text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none"
-                    style={`left: ${layout.left}px; top: ${layout.top}px`}
-                  >
-                    {layout.text}
-                  </span>
-                )
-              )}
-            </div>
-            <div class="flex flex-col items-end gap-1 shrink-0 pt-1">
-              {isJiuchi ? (
-                <span class="text-[10px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 select-none">
-                  Jiuchi
-                </span>
-              ) : null}
-              <span class="w-8 text-center whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
-                {beatLabel}b
-              </span>
-              {selected ? (
-                <button
-                  class={`w-8 h-8 flex items-center justify-center rounded text-sm leading-none ${player.isScope('line', line.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}`}
-                  onclick={(e) => {
+                          if (item.sounds) {
+                            return m(LigatureTile, {
+                              key: item.sounds[0].id,
+                              sounds: item.sounds,
+                              lineId: line.id,
+                              startPos: item.startPos,
+                              selectionIds,
+                            });
+                          }
+                          const s = item.sound;
+                          return m(SoundTile, {
+                            key: s.id,
+                            sound: s,
+                            lineId: line.id,
+                            startPos: item.startPos,
+                            isSelected: selectionIds ? selectionIds.has(s.id) : false,
+                          });
+                        }
+                      ),
+                      singleRepeat &&
+                        m(
+                          'div',
+                          {
+                            class:
+                              'repeat-counter self-center flex items-center gap-1 ml-4 pointer-events-auto',
+                            onpointerdown: (e) => e.stopPropagation(),
+                          },
+                          [
+                            m(
+                              'button',
+                              {
+                                class:
+                                  'text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30',
+                                onclick: (e) => {
+                                  e.stopPropagation();
+                                  if (singleRepeat.count <= 2) {
+                                    piece.removeBlockRepeat(singleRepeat.id);
+                                  } else {
+                                    piece.setBlockRepeatCount(
+                                      singleRepeat.id,
+                                      singleRepeat.count - 1
+                                    );
+                                  }
+                                },
+                                title:
+                                  singleRepeat.count <= 2
+                                    ? 'Remove repeat'
+                                    : 'Decrease repeat count',
+                              },
+                              '−'
+                            ),
+                            m(
+                              'span',
+                              {
+                                class:
+                                  'text-base font-bold text-orange-600 dark:text-orange-300 select-none',
+                              },
+                              `×${singleRepeat.count}`
+                            ),
+                            m(
+                              'button',
+                              {
+                                class:
+                                  'text-sm font-bold w-6 h-6 flex items-center justify-center text-orange-600 dark:text-orange-300 border border-orange-400 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30',
+                                onclick: (e) => {
+                                  e.stopPropagation();
+                                  piece.setBlockRepeatCount(
+                                    singleRepeat.id,
+                                    singleRepeat.count + 1
+                                  );
+                                },
+                                title: 'Increase repeat count',
+                              },
+                              '+'
+                            ),
+                          ]
+                        ),
+                    ]
+                  ),
+                ]),
+                (computeLineHash(line) === measuredLineHash ? instructionLayouts : []).map(
+                  (layout) =>
+                    m(
+                      'span',
+                      {
+                        key: layout.id,
+                        class:
+                          'absolute text-[15px] text-gray-600 dark:text-gray-400 whitespace-nowrap pointer-events-none',
+                        style: `left: ${layout.left}px; top: ${layout.top}px`,
+                      },
+                      layout.text
+                    )
+                ),
+              ]
+            ),
+            m('div', { class: 'flex flex-col items-end gap-1 shrink-0 pt-1' }, [
+              isJiuchi
+                ? m(
+                    'span',
+                    {
+                      class:
+                        'text-[10px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 select-none',
+                    },
+                    'Jiuchi'
+                  )
+                : null,
+              m(
+                'span',
+                {
+                  class:
+                    'w-8 text-center whitespace-nowrap text-xs text-gray-400 dark:text-gray-500',
+                },
+                `${beatLabel}b`
+              ),
+              selected
+                ? m(
+                    'button',
+                    {
+                      class: `w-8 h-8 flex items-center justify-center rounded text-sm leading-none ${player.isScope('line', line.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}`,
+                      onclick: (e) => {
+                        e.stopPropagation();
+                        player.toggleScope(piece, [line], { type: 'line', id: line.id });
+                      },
+                      title: player.isScope('line', line.id) ? 'Stop' : 'Play this line',
+                    },
+                    player.isScope('line', line.id) ? '⏹' : '▶'
+                  )
+                : null,
+              // Extra top margin when the play button is shown keeps Remove well clear
+              // of Play so a mistap can't delete the line.
+              m(
+                'button',
+                {
+                  class: `w-8 h-8 flex items-center justify-center rounded text-xs text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 ${selected ? 'mt-3' : ''}`,
+                  onclick: (e) => {
                     e.stopPropagation();
-                    player.toggleScope(piece, [line], { type: 'line', id: line.id });
-                  }}
-                  title={player.isScope('line', line.id) ? 'Stop' : 'Play this line'}
-                >
-                  {player.isScope('line', line.id) ? '⏹' : '▶'}
-                </button>
-              ) : null}
-              {/* Extra top margin when the play button is shown keeps Remove well clear
-                of Play so a mistap can't delete the line. */}
-              <button
-                class={`w-8 h-8 flex items-center justify-center rounded text-xs text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 ${selected ? 'mt-3' : ''}`}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  piece.removeLine(line.id);
-                }}
-                title="Remove line"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          {showActions ? <AddRowActions /> : null}
-        </div>
-      );
+                    piece.removeLine(line.id);
+                  },
+                  title: 'Remove line',
+                },
+                '✕'
+              ),
+            ]),
+          ]
+        ),
+        showActions ? m(AddRowActions) : null,
+      ]);
     },
   };
 }

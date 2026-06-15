@@ -15,7 +15,7 @@ npm test         # Run unit tests (Vitest)
 
 A mobile-first single-page Mithril.js app for creating taiko drum sheet music and exporting it as PDF. No routing.
 
-**Framework quirk:** JSX is configured to use Mithril's `m` as the factory (not React). See `vite.config.js`. Components use `m(Component, attrs)` syntax or JSX that compiles to `m(...)`. Lifecycle hooks are `oncreate`, `onupdate`, `onremove` — not React equivalents.
+**Framework quirk:** Views are written in Mithril hyperscript (`m('div', attrs, children)` / `m(Component, attrs)`) — no JSX, no build-time JSX transform. Lifecycle hooks are `oncreate`, `onupdate`, `onremove` — not React equivalents. Component files keep the `.jsx` extension but contain no JSX.
 
 ### App navigation
 
