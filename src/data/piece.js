@@ -237,6 +237,34 @@ function updateBlockRepeatMembership(moved) {
   );
 }
 
+/**
+ * Finds the sound line that differs between two `lines` arrays — used to follow a
+ * change with the selection after undo/redo. Prefers a line whose content changed,
+ * then a line newly present in `newLines` (e.g. redo of an add), then the line
+ * nearest a removal. Only sound lines are considered (selectedLineId tracks a
+ * sound line); returns null when no sound line changed.
+ * @param {Array<object>} oldLines
+ * @param {Array<object>} newLines
+ * @returns {string|null} id of the changed sound line, or null.
+ */
+function changedSoundLineId(oldLines, newLines) {
+  const oldSound = oldLines.filter(isSoundLine);
+  const newSound = newLines.filter(isSoundLine);
+  const oldById = new Map(oldSound.map((l) => [l.id, l]));
+  const newById = new Map(newSound.map((l) => [l.id, l]));
+  for (const l of newSound) {
+    const o = oldById.get(l.id);
+    if (o && JSON.stringify(o) !== JSON.stringify(l)) return l.id;
+  }
+  for (const l of newSound) if (!oldById.has(l.id)) return l.id;
+  for (let i = 0; i < oldSound.length; i++) {
+    if (!newById.has(oldSound[i].id)) {
+      return newSound[Math.min(i, newSound.length - 1)]?.id ?? null;
+    }
+  }
+  return null;
+}
+
 const _firstLine = makeLine();
 const _defaultSet = SYMBOL_SETS[0];
 const _defaultTaiko = _defaultSet.taiko[0].name;
@@ -397,9 +425,13 @@ export const piece = {
    * @param {object} state - A snapshot produced by _snapshot().
    */
   _restore(state) {
+    const prevLines = piece.lines;
     applyPersistedFields(state);
     piece.lines = state.lines;
     piece._resetTransientState();
+    // Follow the change: select the sound line the undo/redo altered.
+    const changed = changedSoundLineId(prevLines, state.lines);
+    if (changed) piece.selectedLineId = changed;
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId = piece.lines.find(isSoundLine)?.id ?? null;
     }
@@ -874,7 +906,7 @@ export const piece = {
     const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
     if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
-    if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+    piece.selectedLineId = target.id;
     piece._commit();
   },
 
@@ -906,6 +938,7 @@ export const piece = {
     }
     fromLine.sounds.splice(idx, 1);
     toLine.sounds.splice(toIndex, 0, sound);
+    piece.selectedLineId = toLineId;
     piece._commit();
   },
 
@@ -934,6 +967,7 @@ export const piece = {
     }
     fromLine.sounds = fromLine.sounds.filter((s) => !idSet.has(s.id));
     toLine.sounds.splice(toIndex, 0, ...sounds);
+    piece.selectedLineId = toLineId;
     piece._commit();
   },
 
@@ -941,6 +975,7 @@ export const piece = {
     const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
     line.sounds = line.sounds.filter((s) => s.id !== soundId);
+    piece.selectedLineId = lineId;
     piece._commit();
   },
 

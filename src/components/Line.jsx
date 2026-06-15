@@ -356,9 +356,9 @@ export function Line() {
       const isJiuchi = jiuchiLineMap(piece.lines).has(line.id);
       const sideClass =
         piece.lineSelectMode && isLineSelected
-          ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
+          ? 'border-l-4 border-l-teal-400 bg-teal-100 dark:bg-teal-800/40'
           : !piece.lineSelectMode && selected
-            ? 'border-l-4 border-l-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
+            ? 'border-l-4 border-l-indigo-400 bg-indigo-100 dark:bg-indigo-800/40'
             : isJiuchi
               ? 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/20'
               : showRepeatBars
