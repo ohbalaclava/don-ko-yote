@@ -28,70 +28,83 @@ export function NoteRow() {
           : 'border-l-4 border-l-transparent';
       const decoration = inRepeat ? repeatDecoration(repeatDepth) : null;
 
-      return (
-        <div
-          class={`flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 group ${sideClass}`}
-          style={decoration ?? { paddingLeft: '12px' }}
-        >
-          <div
-            class="line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none mt-0.5"
-            title="Drag to reorder"
-          >
-            ⠿
-          </div>
-          {editing ? (
-            <textarea
-              class="flex-1 text-sm bg-transparent border-b border-indigo-400 outline-none text-gray-700 dark:text-gray-200 min-w-0 resize-none overflow-hidden leading-snug"
-              value={note.text}
-              placeholder="Notes…"
-              rows="1"
-              oncreate={({ dom }) => {
-                dom.focus();
-                autoResize(dom);
-              }}
-              oninput={(e) => {
-                note.text = e.target.value;
-                autoResize(e.target);
-              }}
-              onblur={(e) => commit(e.target.value)}
-              onkeydown={(e) => {
-                if (e.key === 'Escape') {
-                  e.target.blur();
-                }
+      return m(
+        'div',
+        {
+          class: `flex items-start gap-2 py-2 pr-3 border-b border-gray-200 dark:border-gray-700 group ${sideClass}`,
+          style: decoration ?? { paddingLeft: '12px' },
+        },
+        [
+          m(
+            'div',
+            {
+              class:
+                'line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none mt-0.5',
+              title: 'Drag to reorder',
+            },
+            '⠿'
+          ),
+          editing
+            ? m('textarea', {
+                class:
+                  'flex-1 text-sm bg-transparent border-b border-indigo-400 outline-none text-gray-700 dark:text-gray-200 min-w-0 resize-none overflow-hidden leading-snug',
+                value: note.text,
+                placeholder: 'Notes…',
+                rows: '1',
+                oncreate: ({ dom }) => {
+                  dom.focus();
+                  autoResize(dom);
+                },
+                oninput: (e) => {
+                  note.text = e.target.value;
+                  autoResize(e.target);
+                },
+                onblur: (e) => commit(e.target.value),
+                onkeydown: (e) => {
+                  if (e.key === 'Escape') {
+                    e.target.blur();
+                  }
+                  e.stopPropagation();
+                },
+                onclick: (e) => e.stopPropagation(),
+              })
+            : m(
+                'span',
+                {
+                  class:
+                    'flex-1 text-sm text-gray-600 dark:text-gray-300 cursor-text min-w-0 whitespace-pre-wrap',
+                  onclick: (e) => {
+                    e.stopPropagation();
+                    if (piece.lineSelectMode) {
+                      piece.toggleLineSelection(note.id);
+                    } else {
+                      editing = true;
+                      m.redraw();
+                    }
+                  },
+                  title: piece.lineSelectMode ? 'Click to select' : 'Click to edit',
+                },
+                note.text ||
+                  m(
+                    'span',
+                    { class: 'text-gray-300 dark:text-gray-600 italic font-normal' },
+                    'Notes…'
+                  )
+              ),
+          m(
+            'button',
+            {
+              class:
+                'shrink-0 text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5',
+              onclick: (e) => {
                 e.stopPropagation();
-              }}
-              onclick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span
-              class="flex-1 text-sm text-gray-600 dark:text-gray-300 cursor-text min-w-0 whitespace-pre-wrap"
-              onclick={(e) => {
-                e.stopPropagation();
-                if (piece.lineSelectMode) {
-                  piece.toggleLineSelection(note.id);
-                } else {
-                  editing = true;
-                  m.redraw();
-                }
-              }}
-              title={piece.lineSelectMode ? 'Click to select' : 'Click to edit'}
-            >
-              {note.text || (
-                <span class="text-gray-300 dark:text-gray-600 italic font-normal">Notes…</span>
-              )}
-            </span>
-          )}
-          <button
-            class="shrink-0 text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
-            onclick={(e) => {
-              e.stopPropagation();
-              piece.removeNote(note.id);
-            }}
-            title="Remove note"
-          >
-            ✕
-          </button>
-        </div>
+                piece.removeNote(note.id);
+              },
+              title: 'Remove note',
+            },
+            '✕'
+          ),
+        ]
       );
     },
   };

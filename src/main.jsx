@@ -91,273 +91,302 @@ function App() {
   return {
     view() {
       if (!scoreActive) {
-        return (
-          <div class="flex flex-col h-dvh items-center justify-center p-8">
-            <Watermark />
-            <button
-              class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onclick={() => {
+        return m('div', { class: 'flex flex-col h-dvh items-center justify-center p-8' }, [
+          m(Watermark),
+          m(
+            'button',
+            {
+              class:
+                'absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+              onclick: () => {
                 settingsOpen = true;
                 m.redraw();
-              }}
-              title="App settings"
-            >
-              <img
-                src="/assets/image/app-settings.png"
-                alt=""
-                class="w-[1.25rem] h-[1.25rem] dark:invert"
-                aria-hidden="true"
-              />
-            </button>
-            <div class="flex flex-col items-center gap-2 mb-10">
-              <img src="/mitsudomoe-badge.svg" class="w-20 h-20 mb-2" aria-hidden="true" />
-              <h1 class="text-3xl font-bold dark:text-white">kuchi·shoga</h1>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Taiko composition</p>
-            </div>
-            <div class="flex flex-col w-full max-w-xs gap-3">
-              <button
-                class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-base font-semibold"
-                onclick={() => {
+              },
+              title: 'App settings',
+            },
+            m('img', {
+              src: '/assets/image/app-settings.png',
+              alt: '',
+              class: 'w-[1.25rem] h-[1.25rem] dark:invert',
+              'aria-hidden': 'true',
+            })
+          ),
+          m('div', { class: 'flex flex-col items-center gap-2 mb-10' }, [
+            m('img', {
+              src: '/mitsudomoe-badge.svg',
+              class: 'w-20 h-20 mb-2',
+              'aria-hidden': 'true',
+            }),
+            m('h1', { class: 'text-3xl font-bold dark:text-white' }, 'kuchi·shoga'),
+            m('p', { class: 'text-sm text-gray-500 dark:text-gray-400' }, 'Taiko composition'),
+          ]),
+          m('div', { class: 'flex flex-col w-full max-w-xs gap-3' }, [
+            m(
+              'button',
+              {
+                class:
+                  'w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-base font-semibold',
+                onclick: () => {
                   newScoreOpen = true;
                   m.redraw();
-                }}
-              >
-                New score
-              </button>
-              <button
-                class="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold"
-                onclick={() => {
+                },
+              },
+              'New score'
+            ),
+            m(
+              'button',
+              {
+                class:
+                  'w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold',
+                onclick: () => {
                   loadScoreOpen = true;
                   m.redraw();
-                }}
-              >
-                Load score
-              </button>
-              <button
-                class="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold"
-                onclick={() =>
+                },
+              },
+              'Load score'
+            ),
+            m(
+              'button',
+              {
+                class:
+                  'w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-base font-semibold',
+                onclick: () =>
                   openImportJson(() => {
                     scoreActive = true;
-                  })
-                }
-              >
-                Import score
-              </button>
-              {scoreStore.autosaveData ? (
-                <div class="mt-2 rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950 p-3">
-                  <p class="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
-                    Unsaved work found
-                  </p>
-                  <p class="text-xs text-amber-600 dark:text-amber-500 mb-2 truncate">
-                    {scoreStore.autosaveData.title || 'Untitled'}
-                    {' — '}
-                    {new Date(scoreStore.autosaveData.savedAt).toLocaleString(undefined, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  </p>
-                  <div class="flex gap-2">
-                    <button
-                      class="flex-1 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold"
-                      onclick={() => {
-                        scoreStore.loadAutosave();
-                        scoreActive = true;
-                        m.redraw();
-                      }}
-                    >
-                      Continue
-                    </button>
-                    <button
-                      class="py-2 px-3 rounded-lg border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900"
-                      onclick={() => {
-                        if (window.confirm('Discard unsaved work?')) {
-                          scoreStore.clearAutosave();
-                          m.redraw();
-                        }
-                      }}
-                    >
-                      Discard
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            {newScoreOpen ? (
-              <NewScoreSheet
-                onClose={() => {
+                  }),
+              },
+              'Import score'
+            ),
+            scoreStore.autosaveData
+              ? m(
+                  'div',
+                  {
+                    class:
+                      'mt-2 rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950 p-3',
+                  },
+                  [
+                    m(
+                      'p',
+                      { class: 'text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1' },
+                      'Unsaved work found'
+                    ),
+                    m('p', { class: 'text-xs text-amber-600 dark:text-amber-500 mb-2 truncate' }, [
+                      scoreStore.autosaveData.title || 'Untitled',
+                      ' — ',
+                      new Date(scoreStore.autosaveData.savedAt).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      }),
+                    ]),
+                    m('div', { class: 'flex gap-2' }, [
+                      m(
+                        'button',
+                        {
+                          class:
+                            'flex-1 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold',
+                          onclick: () => {
+                            scoreStore.loadAutosave();
+                            scoreActive = true;
+                            m.redraw();
+                          },
+                        },
+                        'Continue'
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'py-2 px-3 rounded-lg border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900',
+                          onclick: () => {
+                            if (window.confirm('Discard unsaved work?')) {
+                              scoreStore.clearAutosave();
+                              m.redraw();
+                            }
+                          },
+                        },
+                        'Discard'
+                      ),
+                    ]),
+                  ]
+                )
+              : null,
+          ]),
+          newScoreOpen
+            ? m(NewScoreSheet, {
+                onClose: () => {
                   newScoreOpen = false;
                   m.redraw();
-                }}
-                onCreated={() => {
+                },
+                onCreated: () => {
                   scoreStore.clearAutosave();
                   scoreActive = true;
-                }}
-              />
-            ) : null}
-            {loadScoreOpen ? (
-              <LoadScoreSheet
-                onClose={() => {
+                },
+              })
+            : null,
+          loadScoreOpen
+            ? m(LoadScoreSheet, {
+                onClose: () => {
                   loadScoreOpen = false;
                   m.redraw();
-                }}
-                onLoaded={() => {
+                },
+                onLoaded: () => {
                   scoreActive = true;
-                }}
-              />
-            ) : null}
-            {settingsOpen ? (
-              <SettingsModal
-                onClose={() => {
+                },
+              })
+            : null,
+          settingsOpen
+            ? m(SettingsModal, {
+                onClose: () => {
                   settingsOpen = false;
                   m.redraw();
-                }}
-              />
-            ) : null}
-            <p class="absolute bottom-3 text-xs text-gray-400 dark:text-gray-500">v{VERSION}</p>
-          </div>
-        );
+                },
+              })
+            : null,
+          m('p', { class: 'absolute bottom-3 text-xs text-gray-400 dark:text-gray-500' }, [
+            'v',
+            VERSION,
+          ]),
+        ]);
       }
 
-      return (
-        <div class={`flex flex-col h-dvh ${piece.selectMode ? 'select-mode' : ''}`}>
-          <Watermark />
-          <Header
-            onSave={() => scoreStore.save()}
-            onOpenSettings={() => {
-              settingsOpen = true;
-            }}
-            onOpenScoreSettings={() => {
-              scoreSettingsOpen = true;
-            }}
-            onOpenMetronomeSettings={() => {
-              metronomeSettingsOpen = true;
-            }}
-            onOpenMenu={() => {
-              menuOpen = true;
-            }}
-          />
-          <Score />
-          <Palette
-            onOpenJiuchiPatterns={() => {
-              jiuchiPatternsOpen = true;
-              m.redraw();
-            }}
-          />
-          {settingsOpen ? (
-            <SettingsModal
-              onClose={() => {
+      return m('div', { class: `flex flex-col h-dvh ${piece.selectMode ? 'select-mode' : ''}` }, [
+        m(Watermark),
+        m(Header, {
+          onSave: () => scoreStore.save(),
+          onOpenSettings: () => {
+            settingsOpen = true;
+          },
+          onOpenScoreSettings: () => {
+            scoreSettingsOpen = true;
+          },
+          onOpenMetronomeSettings: () => {
+            metronomeSettingsOpen = true;
+          },
+          onOpenMenu: () => {
+            menuOpen = true;
+          },
+        }),
+        m(Score),
+        m(Palette, {
+          onOpenJiuchiPatterns: () => {
+            jiuchiPatternsOpen = true;
+            m.redraw();
+          },
+        }),
+        settingsOpen
+          ? m(SettingsModal, {
+              onClose: () => {
                 settingsOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-          {scoreSettingsOpen ? (
-            <ScoreSettingsModal
-              onClose={() => {
+              },
+            })
+          : null,
+        scoreSettingsOpen
+          ? m(ScoreSettingsModal, {
+              onClose: () => {
                 scoreSettingsOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-          {metronomeSettingsOpen ? (
-            <MetronomeSettingsModal
-              onClose={() => {
+              },
+            })
+          : null,
+        metronomeSettingsOpen
+          ? m(MetronomeSettingsModal, {
+              onClose: () => {
                 metronomeSettingsOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-          {menuOpen ? (
-            <MenuSheet
-              onClose={() => {
+              },
+            })
+          : null,
+        menuOpen
+          ? m(MenuSheet, {
+              onClose: () => {
                 menuOpen = false;
                 m.redraw();
-              }}
-              onNew={() => {
+              },
+              onNew: () => {
                 newScoreOpen = true;
-              }}
-              onSave={() => {
+              },
+              onSave: () => {
                 scoreStore.save();
-              }}
-              onLoad={() => {
+              },
+              onLoad: () => {
                 loadScoreOpen = true;
-              }}
-              onExport={() => {
+              },
+              onExport: () => {
                 exportSheetOpen = true;
                 m.redraw();
-              }}
-              onImport={() => {
+              },
+              onImport: () => {
                 importSheetOpen = true;
                 m.redraw();
-              }}
-              onClear={() => {
+              },
+              onClear: () => {
                 if (window.confirm('Clear all lines?')) {
                   player.stop();
                   piece.clearLines();
                 }
-              }}
-              onHelp={() => {
+              },
+              onHelp: () => {
                 helpOpen = true;
-              }}
-            />
-          ) : null}
-          {exportSheetOpen ? (
-            <ExportSheet
-              onClose={() => {
+              },
+            })
+          : null,
+        exportSheetOpen
+          ? m(ExportSheet, {
+              onClose: () => {
                 exportSheetOpen = false;
                 m.redraw();
-              }}
-              onExportJson={() => scoreStore.exportJson()}
-              onExportPatterns={() => patternStore.exportJson()}
-            />
-          ) : null}
-          {importSheetOpen ? (
-            <ImportSheet
-              onClose={() => {
+              },
+              onExportJson: () => scoreStore.exportJson(),
+              onExportPatterns: () => patternStore.exportJson(),
+            })
+          : null,
+        importSheetOpen
+          ? m(ImportSheet, {
+              onClose: () => {
                 importSheetOpen = false;
                 m.redraw();
-              }}
-              onImportScore={() => openImportJson()}
-              onImportPatterns={() => openImportPatterns()}
-            />
-          ) : null}
-          {newScoreOpen ? (
-            <NewScoreSheet
-              onClose={() => {
+              },
+              onImportScore: () => openImportJson(),
+              onImportPatterns: () => openImportPatterns(),
+            })
+          : null,
+        newScoreOpen
+          ? m(NewScoreSheet, {
+              onClose: () => {
                 newScoreOpen = false;
                 m.redraw();
-              }}
-              onCreated={() => {
+              },
+              onCreated: () => {
                 scoreStore.clearAutosave();
-              }}
-            />
-          ) : null}
-          {loadScoreOpen ? (
-            <LoadScoreSheet
-              onClose={() => {
+              },
+            })
+          : null,
+        loadScoreOpen
+          ? m(LoadScoreSheet, {
+              onClose: () => {
                 loadScoreOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-          {helpOpen ? (
-            <HelpSheet
-              onClose={() => {
+              },
+            })
+          : null,
+        helpOpen
+          ? m(HelpSheet, {
+              onClose: () => {
                 helpOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-          {jiuchiPatternsOpen ? (
-            <JiuchiPatternsSheet
-              onClose={() => {
+              },
+            })
+          : null,
+        jiuchiPatternsOpen
+          ? m(JiuchiPatternsSheet, {
+              onClose: () => {
                 jiuchiPatternsOpen = false;
                 m.redraw();
-              }}
-            />
-          ) : null}
-        </div>
-      );
+              },
+            })
+          : null,
+      ]);
     },
   };
 }

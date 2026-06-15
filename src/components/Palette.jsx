@@ -39,83 +39,99 @@ export function Palette() {
       patternSortable?.destroy();
     },
     view({ attrs: { onOpenJiuchiPatterns } }) {
-      return (
-        <aside class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide">
-                Sounds — tap to add · drag to any line
-              </p>
-              {(() => {
+      return m(
+        'aside',
+        {
+          class:
+            'bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2',
+        },
+        [
+          m('div', [
+            m('div', { class: 'flex items-center justify-between mb-1' }, [
+              m(
+                'p',
+                {
+                  class:
+                    'text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide',
+                },
+                'Sounds — tap to add · drag to any line'
+              ),
+              (() => {
                 const selectedLine = piece.lines.find((l) => l.id === piece.selectedLineId);
                 const lastSound = selectedLine?.sounds.at(-1);
-                return (
-                  <button
-                    class={`text-sm px-1 ${lastSound ? 'text-red-400 hover:text-red-600' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                    onclick={() =>
-                      lastSound && piece.removeSound(piece.selectedLineId, lastSound.id)
-                    }
-                    disabled={!lastSound}
-                    title="Delete last sound"
-                  >
-                    ⌫
-                  </button>
+                return m(
+                  'button',
+                  {
+                    class: `text-sm px-1 ${lastSound ? 'text-red-400 hover:text-red-600' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`,
+                    onclick: () =>
+                      lastSound && piece.removeSound(piece.selectedLineId, lastSound.id),
+                    disabled: !lastSound,
+                    title: 'Delete last sound',
+                  },
+                  '⌫'
                 );
-              })()}
-            </div>
-            <div
-              class="flex flex-wrap gap-1"
-              oncreate={({ dom }) => {
-                soundSortable = makeCloneSource(dom);
-              }}
-              onremove={() => {
-                soundSortable?.destroy();
-                soundSortable = null;
-              }}
-            >
-              {piece.activeSymbolSet.symbols.map((sym) => (
-                <SoundPaletteTile key={sym.name} sym={sym} />
-              ))}
-              <ImplicitPaletteTile />
-              <SilentPaletteTile />
-            </div>
-          </div>
+              })(),
+            ]),
+            m(
+              'div',
+              {
+                class: 'flex flex-wrap gap-1',
+                oncreate: ({ dom }) => {
+                  soundSortable = makeCloneSource(dom);
+                },
+                onremove: () => {
+                  soundSortable?.destroy();
+                  soundSortable = null;
+                },
+              },
+              [
+                piece.activeSymbolSet.symbols.map((sym) =>
+                  m(SoundPaletteTile, { key: sym.name, sym })
+                ),
+                m(ImplicitPaletteTile),
+                m(SilentPaletteTile),
+              ]
+            ),
+          ]),
 
-          <div class="flex gap-2">
-            {(() => {
+          m('div', { class: 'flex gap-2' }, [
+            (() => {
               const visiblePatterns = patternStore.items.filter(
                 (p) => !p.symbolSetId || p.symbolSetId === piece.activeSymbolSet.id
               );
-              return visiblePatterns.length > 0 ? (
-                <div class="flex-1">
-                  <div
-                    class="flex flex-wrap gap-1"
-                    oncreate={({ dom }) => {
-                      patternSortable = makeCloneSource(dom, { filter: '.pattern-delete' });
-                    }}
-                    onremove={() => {
-                      patternSortable?.destroy();
-                      patternSortable = null;
-                    }}
-                  >
-                    {visiblePatterns.map((p) => (
-                      <PatternPaletteTile key={p.id} pattern={p} />
-                    ))}
-                  </div>
-                </div>
-              ) : null;
-            })()}
-            {piece.activeSymbolSet.patterns?.length ? (
-              <button
-                class="self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold"
-                onclick={onOpenJiuchiPatterns}
-                title="Jiuchi patterns"
-              >
-                Patterns
-              </button>
-            ) : null}
-          </div>
-        </aside>
+              return visiblePatterns.length > 0
+                ? m('div', { class: 'flex-1' }, [
+                    m(
+                      'div',
+                      {
+                        class: 'flex flex-wrap gap-1',
+                        oncreate: ({ dom }) => {
+                          patternSortable = makeCloneSource(dom, { filter: '.pattern-delete' });
+                        },
+                        onremove: () => {
+                          patternSortable?.destroy();
+                          patternSortable = null;
+                        },
+                      },
+                      visiblePatterns.map((p) => m(PatternPaletteTile, { key: p.id, pattern: p }))
+                    ),
+                  ])
+                : null;
+            })(),
+            piece.activeSymbolSet.patterns?.length
+              ? m(
+                  'button',
+                  {
+                    class:
+                      'self-end bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-sm font-semibold',
+                    onclick: onOpenJiuchiPatterns,
+                    title: 'Jiuchi patterns',
+                  },
+                  'Patterns'
+                )
+              : null,
+          ]),
+        ]
       );
     },
   };
@@ -138,22 +154,25 @@ function SoundPaletteTile() {
     view({ attrs: { sym } }) {
       const hand = paletteHand(sym);
       const dur = sym.duration ?? sym.alternatives?.[0]?.duration ?? 1;
-      return (
-        <div
-          data-palette-tile
-          data-palette-sound={sym.name}
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
-          style={`width:${dur * SUBDIV_WIDTH_REM}rem`}
-          onclick={() => {
+      return m(
+        'div',
+        {
+          'data-palette-tile': true,
+          'data-palette-sound': sym.name,
+          class:
+            'flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400',
+          style: `width:${dur * SUBDIV_WIDTH_REM}rem`,
+          onclick: () => {
             if (canTapAdd()) {
               piece.addSound(piece.selectedLineId, sym);
               ensureEditTargetVisible();
             }
-          }}
-        >
-          <span class={`font-bold text-base leading-tight font-${settings.font}`}>{sym.name}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{hand}</span>
-        </div>
+          },
+        },
+        [
+          m('span', { class: `font-bold text-base leading-tight font-${settings.font}` }, sym.name),
+          m('span', { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' }, hand),
+        ]
       );
     },
   };
@@ -167,22 +186,25 @@ function implicitSym() {
 function ImplicitPaletteTile() {
   return {
     view() {
-      return (
-        <div
-          data-palette-tile
-          data-palette-implicit="1"
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
-          style={`width:${piece.time * SUBDIV_WIDTH_REM}rem`}
-          onclick={() => {
+      return m(
+        'div',
+        {
+          'data-palette-tile': true,
+          'data-palette-implicit': '1',
+          class:
+            'flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400',
+          style: `width:${piece.time * SUBDIV_WIDTH_REM}rem`,
+          onclick: () => {
             if (canTapAdd()) {
               piece.addSound(piece.selectedLineId, implicitSym());
               ensureEditTargetVisible();
             }
-          }}
-        >
-          <span class={`font-bold text-base leading-tight font-${settings.font}`}>—</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">1–8</span>
-        </div>
+          },
+        },
+        [
+          m('span', { class: `font-bold text-base leading-tight font-${settings.font}` }, '—'),
+          m('span', { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' }, '1–8'),
+        ]
       );
     },
   };
@@ -196,22 +218,25 @@ function silentSym() {
 function SilentPaletteTile() {
   return {
     view() {
-      return (
-        <div
-          data-palette-tile
-          data-palette-silent="1"
-          class="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400"
-          style={`width:${piece.time * SUBDIV_WIDTH_REM}rem`}
-          onclick={() => {
+      return m(
+        'div',
+        {
+          'data-palette-tile': true,
+          'data-palette-silent': '1',
+          class:
+            'flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded shadow-sm px-1 py-1 select-none min-w-[1.75rem] cursor-grab active:border-indigo-400',
+          style: `width:${piece.time * SUBDIV_WIDTH_REM}rem`,
+          onclick: () => {
             if (canTapAdd()) {
               piece.addSound(piece.selectedLineId, silentSym());
               ensureEditTargetVisible();
             }
-          }}
-        >
-          <span class={`font-bold text-base leading-tight font-${settings.font}`}>T</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">txt</span>
-        </div>
+          },
+        },
+        [
+          m('span', { class: `font-bold text-base leading-tight font-${settings.font}` }, 'T'),
+          m('span', { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' }, 'txt'),
+        ]
       );
     },
   };
@@ -224,39 +249,50 @@ function PatternPaletteTile() {
         pattern.sounds.reduce((s, x) => s + x.duration, 0),
         piece.time
       );
-      return (
-        <div
-          data-palette-tile
-          data-palette-pattern={pattern.id}
-          class="flex items-center gap-1 cursor-grab"
-        >
-          <div
-            class="flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] active:border-purple-500"
-            onclick={() => {
-              if (canTapAdd()) {
-                piece.addGroup(piece.selectedLineId, pattern);
-                ensureEditTargetVisible();
-              }
-            }}
-          >
-            <span
-              class={`font-bold text-sm leading-tight text-purple-800 dark:text-purple-300 font-${settings.font}`}
-            >
-              {pattern.name}
-            </span>
-            <span class="text-xs text-purple-400 dark:text-purple-500">{beats}b</span>
-          </div>
-          <button
-            class="pattern-delete text-xs text-red-400 hover:text-red-600"
-            onclick={(e) => {
-              e.stopPropagation();
-              patternStore.delete(pattern.id);
-            }}
-            title="Delete pattern"
-          >
-            ✕
-          </button>
-        </div>
+      return m(
+        'div',
+        {
+          'data-palette-tile': true,
+          'data-palette-pattern': pattern.id,
+          class: 'flex items-center gap-1 cursor-grab',
+        },
+        [
+          m(
+            'div',
+            {
+              class:
+                'flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] active:border-purple-500',
+              onclick: () => {
+                if (canTapAdd()) {
+                  piece.addGroup(piece.selectedLineId, pattern);
+                  ensureEditTargetVisible();
+                }
+              },
+            },
+            [
+              m(
+                'span',
+                {
+                  class: `font-bold text-sm leading-tight text-purple-800 dark:text-purple-300 font-${settings.font}`,
+                },
+                pattern.name
+              ),
+              m('span', { class: 'text-xs text-purple-400 dark:text-purple-500' }, `${beats}b`),
+            ]
+          ),
+          m(
+            'button',
+            {
+              class: 'pattern-delete text-xs text-red-400 hover:text-red-600',
+              onclick: (e) => {
+                e.stopPropagation();
+                patternStore.delete(pattern.id);
+              },
+              title: 'Delete pattern',
+            },
+            '✕'
+          ),
+        ]
       );
     },
   };

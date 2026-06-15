@@ -75,182 +75,221 @@ export function Score() {
       const showFallbackActions =
         !selecting && !piece.lines.some((l) => l.id === piece.selectedLineId && isSoundLine(l));
 
-      return (
-        <div class="flex-1 overflow-y-auto flex flex-col scroll-pt-10">
-          <div class="sticky top-0 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0">
-            {selecting ? (
-              <button
-                class="text-sm font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 leading-none"
-                onclick={() =>
-                  piece.selectMode ? piece.toggleSelectMode() : piece.toggleLineSelectMode()
-                }
-                title="Cancel selection"
-              >
-                ✕
-              </button>
-            ) : (
-              [
-                <span class="text-xs text-gray-400 dark:text-gray-500 select-none">Select:</span>,
-                <button
-                  class="text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400"
-                  onclick={() => piece.toggleSelectMode()}
-                >
-                  Tiles
-                </button>,
-                <button
-                  class="text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400"
-                  onclick={() => piece.toggleLineSelectMode()}
-                >
-                  Lines
-                </button>,
-              ]
-            )}
+      return m('div', { class: 'flex-1 overflow-y-auto flex flex-col scroll-pt-10' }, [
+        m(
+          'div',
+          {
+            class:
+              'sticky top-0 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0',
+          },
+          [
+            selecting
+              ? m(
+                  'button',
+                  {
+                    class:
+                      'text-sm font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 leading-none',
+                    onclick: () =>
+                      piece.selectMode ? piece.toggleSelectMode() : piece.toggleLineSelectMode(),
+                    title: 'Cancel selection',
+                  },
+                  '✕'
+                )
+              : [
+                  m(
+                    'span',
+                    { class: 'text-xs text-gray-400 dark:text-gray-500 select-none' },
+                    'Select:'
+                  ),
+                  m(
+                    'button',
+                    {
+                      class:
+                        'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
+                      onclick: () => piece.toggleSelectMode(),
+                    },
+                    'Tiles'
+                  ),
+                  m(
+                    'button',
+                    {
+                      class:
+                        'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
+                      onclick: () => piece.toggleLineSelectMode(),
+                    },
+                    'Lines'
+                  ),
+                ],
 
-            {piece.selectMode &&
-              (hasSelection ? (
-                [
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{selCount} selected</span>,
-                  <button
-                    class="text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1"
-                    onclick={savePattern}
-                  >
-                    Save pattern
-                  </button>,
-                ]
-              ) : (
-                <span class="text-xs text-gray-400 dark:text-gray-500">Tap tiles to select</span>
-              ))}
+            piece.selectMode &&
+              (hasSelection
+                ? [
+                    m(
+                      'span',
+                      { class: 'text-xs text-gray-500 dark:text-gray-400' },
+                      `${selCount} selected`
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1',
+                        onclick: savePattern,
+                      },
+                      'Save pattern'
+                    ),
+                  ]
+                : m(
+                    'span',
+                    { class: 'text-xs text-gray-400 dark:text-gray-500' },
+                    'Tap tiles to select'
+                  )),
 
-            {piece.lineSelectMode &&
-              (hasLineSelection ? (
-                [
-                  <span class="text-xs text-gray-500 dark:text-gray-400">
-                    {lineSelCount} lines
-                  </span>,
-                  <button
-                    class="text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1"
-                    onclick={() => piece.duplicateSelectedLines()}
-                  >
-                    Duplicate
-                  </button>,
-                  <button
-                    class="text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1"
-                    onclick={() => piece.addBlockRepeat(2)}
-                  >
-                    Repeat
-                  </button>,
-                  <button
-                    class="text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1"
-                    onclick={() => piece.deleteSelectedLines()}
-                  >
-                    Delete
-                  </button>,
-                ]
-              ) : (
-                <span class="text-xs text-gray-400 dark:text-gray-500">Tap lines to select</span>
-              ))}
+            piece.lineSelectMode &&
+              (hasLineSelection
+                ? [
+                    m(
+                      'span',
+                      { class: 'text-xs text-gray-500 dark:text-gray-400' },
+                      `${lineSelCount} lines`
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1',
+                        onclick: () => piece.duplicateSelectedLines(),
+                      },
+                      'Duplicate'
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1',
+                        onclick: () => piece.addBlockRepeat(2),
+                      },
+                      'Repeat'
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
+                        onclick: () => piece.deleteSelectedLines(),
+                      },
+                      'Delete'
+                    ),
+                  ]
+                : m(
+                    'span',
+                    { class: 'text-xs text-gray-400 dark:text-gray-500' },
+                    'Tap lines to select'
+                  )),
 
-            {selecting ? null : (
-              <div class="ml-auto flex items-center gap-1">
-                {(() => {
-                  // "Playing" visual reflects whole-piece playback only; a scoped
-                  // line/section preview leaves this button showing ▶ (Play all).
-                  const allActive = player.isScope('all');
-                  return (
-                    <button
-                      class={`text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                      onclick={() => player.toggleAll(piece)}
-                      title={allActive ? 'Stop' : 'Play whole piece'}
-                    >
-                      {allActive ? '⏹' : '▶'}
-                    </button>
-                  );
-                })()}
-                <button
-                  class={`text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                  onclick={() => piece.undo()}
-                  disabled={!history.canUndo()}
-                  title="Undo (Ctrl+Z)"
-                >
-                  ↺
-                </button>
-                <button
-                  class={`text-sm rounded px-2 py-0.5 border ${history.canRedo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                  onclick={() => piece.redo()}
-                  disabled={!history.canRedo()}
-                  title="Redo (Ctrl+Y)"
-                >
-                  ↻
-                </button>
-              </div>
-            )}
-          </div>
+            selecting
+              ? null
+              : m('div', { class: 'ml-auto flex items-center gap-1' }, [
+                  (() => {
+                    // "Playing" visual reflects whole-piece playback only; a scoped
+                    // line/section preview leaves this button showing ▶ (Play all).
+                    const allActive = player.isScope('all');
+                    return m(
+                      'button',
+                      {
+                        class: `text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`,
+                        onclick: () => player.toggleAll(piece),
+                        title: allActive ? 'Stop' : 'Play whole piece',
+                      },
+                      allActive ? '⏹' : '▶'
+                    );
+                  })(),
+                  m(
+                    'button',
+                    {
+                      class: `text-sm rounded px-2 py-0.5 border ${history.canUndo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`,
+                      onclick: () => piece.undo(),
+                      disabled: !history.canUndo(),
+                      title: 'Undo (Ctrl+Z)',
+                    },
+                    '↺'
+                  ),
+                  m(
+                    'button',
+                    {
+                      class: `text-sm rounded px-2 py-0.5 border ${history.canRedo() ? 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700' : 'border-gray-300 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`,
+                      onclick: () => piece.redo(),
+                      disabled: !history.canRedo(),
+                      title: 'Redo (Ctrl+Y)',
+                    },
+                    '↻'
+                  ),
+                ]),
+          ]
+        ),
 
-          <div class="lines-container">
-            {(() => {
-              const markers = piece.lines.filter((item) => item.type === 'block-repeat');
-              // Single-line repeats render inline on the line, not as a separate row.
-              const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
-              let lineOrdinal = 0;
-              return piece.lines.map((item) => {
-                if (item.type === 'block-repeat') {
-                  if (item.lineIds.length === 1) return m.fragment({ key: item.id });
-                  return (
-                    <BlockRepeatRow key={item.id} item={item} depth={markerDepth(item, markers)} />
-                  );
-                }
-                if (item.type === 'heading') {
-                  return (
-                    <SectionHeading
-                      key={item.id}
-                      heading={item}
-                      repeatDepth={lineDepth(item.id, markers)}
-                    />
-                  );
-                }
-                if (item.type === 'note') {
-                  return (
-                    <NoteRow key={item.id} note={item} repeatDepth={lineDepth(item.id, markers)} />
-                  );
-                }
-                if (item.type === 'divider') {
-                  return (
-                    <DividerRow
-                      key={item.id}
-                      divider={item}
-                      repeatDepth={lineDepth(item.id, markers)}
-                    />
-                  );
-                }
-                if (item.type === 'jiuchi-section') {
-                  return (
-                    <JiuchiSectionRow
-                      key={item.id}
-                      section={item}
-                      repeatDepth={lineDepth(item.id, markers)}
-                    />
-                  );
-                }
-                lineOrdinal++;
-                const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
-                // Exclude the single-line marker from the bar depth (it's shown inline).
-                const repeatDepth = lineDepth(item.id, markers) - (singleRepeat ? 1 : 0);
-                return (
-                  <Line
-                    key={item.id}
-                    line={item}
-                    index={lineOrdinal - 1}
-                    repeatDepth={repeatDepth}
-                    singleRepeat={singleRepeat}
-                  />
-                );
+        m(
+          'div',
+          { class: 'lines-container' },
+          (() => {
+            const markers = piece.lines.filter((item) => item.type === 'block-repeat');
+            // Single-line repeats render inline on the line, not as a separate row.
+            const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
+            let lineOrdinal = 0;
+            return piece.lines.map((item) => {
+              if (item.type === 'block-repeat') {
+                if (item.lineIds.length === 1) return m.fragment({ key: item.id });
+                return m(BlockRepeatRow, {
+                  key: item.id,
+                  item,
+                  depth: markerDepth(item, markers),
+                });
+              }
+              if (item.type === 'heading') {
+                return m(SectionHeading, {
+                  key: item.id,
+                  heading: item,
+                  repeatDepth: lineDepth(item.id, markers),
+                });
+              }
+              if (item.type === 'note') {
+                return m(NoteRow, {
+                  key: item.id,
+                  note: item,
+                  repeatDepth: lineDepth(item.id, markers),
+                });
+              }
+              if (item.type === 'divider') {
+                return m(DividerRow, {
+                  key: item.id,
+                  divider: item,
+                  repeatDepth: lineDepth(item.id, markers),
+                });
+              }
+              if (item.type === 'jiuchi-section') {
+                return m(JiuchiSectionRow, {
+                  key: item.id,
+                  section: item,
+                  repeatDepth: lineDepth(item.id, markers),
+                });
+              }
+              lineOrdinal++;
+              const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
+              // Exclude the single-line marker from the bar depth (it's shown inline).
+              const repeatDepth = lineDepth(item.id, markers) - (singleRepeat ? 1 : 0);
+              return m(Line, {
+                key: item.id,
+                line: item,
+                index: lineOrdinal - 1,
+                repeatDepth,
+                singleRepeat,
               });
-            })()}
-          </div>
+            });
+          })()
+        ),
 
-          {showFallbackActions ? <AddRowActions /> : null}
-        </div>
-      );
+        showFallbackActions ? m(AddRowActions) : null,
+      ]);
     },
   };
 }

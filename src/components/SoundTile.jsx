@@ -18,17 +18,11 @@ const STEP_BTN =
 function Stepper() {
   return {
     view({ attrs: { value, valueClass, onDec, onInc } }) {
-      return (
-        <div class="flex items-center justify-center gap-2">
-          <button class={STEP_BTN} onclick={onDec}>
-            −
-          </button>
-          <span class={valueClass}>{value}</span>
-          <button class={STEP_BTN} onclick={onInc}>
-            +
-          </button>
-        </div>
-      );
+      return m('div', { class: 'flex items-center justify-center gap-2' }, [
+        m('button', { class: STEP_BTN, onclick: onDec }, '−'),
+        m('span', { class: valueClass }, value),
+        m('button', { class: STEP_BTN, onclick: onInc }, '+'),
+      ]);
     },
   };
 }
@@ -55,67 +49,82 @@ export function SoundTile() {
       const prop = settings.proportionalWidth;
       const propPad = prop && sound.duration > 1 ? PROP_PAD_REM : 0;
 
-      return (
-        <div
-          class={`sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`}
-          style={widthStyle}
-          data-sound-id={sound.id}
-          onpointerup={(e) => {
+      return m(
+        'div',
+        {
+          class: `sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`,
+          style: widthStyle,
+          'data-sound-id': sound.id,
+          onpointerup: (e) => {
             if (!piece.selectMode) return;
             e.stopPropagation();
             piece.toggleSoundSelection(lineId, sound.id);
-          }}
-          onclick={(e) => {
+          },
+          onclick: (e) => {
             e.stopPropagation();
             if (piece.selectMode) return;
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
-          }}
-        >
-          <div class="contents">
-            {prop ? (
-              Array.from({ length: sound.duration }, (_, i) => {
-                const absPos = (startPos ?? 0) + i;
-                const isHB = isIntegerBeat(absPos, time);
-                return (
-                  <span
-                    class={`absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`}
-                    style={`left:${propPad + SUBDIV_WIDTH_REM * (i + 0.5)}rem`}
-                  />
-                );
-              })
-            ) : startPos != null && isIntegerBeat(startPos, time) ? (
-              <span class="beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100" />
-            ) : null}
-          </div>
-          {/* Silent text tiles carry free-form text, so in proportional mode the label
-              spans the whole tile (w-full) instead of the fixed one-subdivision column
-              used to centre a sound's syllable over its onset. */}
-          <div
-            class={
-              prop ? `flex flex-col items-center py-0${sound.silent ? ' w-full' : ''}` : 'contents'
-            }
-            style={prop && !sound.silent ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined}
-          >
-            <span
-              class={`font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}${sound.skin === 'back' ? ' italic' : ''}`}
-            >
-              {sound.silent && !sound.name ? (
-                <span class="text-gray-300 dark:text-gray-600">…</span>
-              ) : (
-                sound.name
-              )}
-            </span>
-            {piece.showVolume && effectiveVolume(sound) != null ? (
-              <div class="w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1">
-                <span>{sound.hand}</span>
-                <span>{effectiveVolume(sound)}</span>
-              </div>
-            ) : (
-              <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{sound.hand}</span>
-            )}
-          </div>
-          {isEditing ? <SoundEditor lineId={lineId} sound={sound} /> : null}
-        </div>
+          },
+        },
+        [
+          m(
+            'div',
+            { class: 'contents' },
+            prop
+              ? Array.from({ length: sound.duration }, (_, i) => {
+                  const absPos = (startPos ?? 0) + i;
+                  const isHB = isIntegerBeat(absPos, time);
+                  return m('span', {
+                    class: `absolute -top-3 -translate-x-1/2 rounded-full ${isHB ? 'beat-dot w-2 h-2 bg-gray-900 dark:bg-gray-100' : 'w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500'}`,
+                    style: `left:${propPad + SUBDIV_WIDTH_REM * (i + 0.5)}rem`,
+                  });
+                })
+              : startPos != null && isIntegerBeat(startPos, time)
+                ? m('span', {
+                    class:
+                      'beat-dot absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-900 dark:bg-gray-100',
+                  })
+                : null
+          ),
+          // Silent text tiles carry free-form text, so in proportional mode the label
+          // spans the whole tile (w-full) instead of the fixed one-subdivision column
+          // used to centre a sound's syllable over its onset.
+          m(
+            'div',
+            {
+              class: prop
+                ? `flex flex-col items-center py-0${sound.silent ? ' w-full' : ''}`
+                : 'contents',
+              style: prop && !sound.silent ? `width: ${SUBDIV_WIDTH_REM}rem` : undefined,
+            },
+            [
+              m(
+                'span',
+                {
+                  class: `font-bold text-base leading-tight text-gray-900 dark:text-gray-200 font-${settings.font}${sound.emphasis ? ' underline' : ''}${sound.skin === 'back' ? ' italic' : ''}`,
+                },
+                sound.silent && !sound.name
+                  ? m('span', { class: 'text-gray-300 dark:text-gray-600' }, '…')
+                  : sound.name
+              ),
+              piece.showVolume && effectiveVolume(sound) != null
+                ? m(
+                    'div',
+                    {
+                      class:
+                        'w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1',
+                    },
+                    [m('span', sound.hand), m('span', effectiveVolume(sound))]
+                  )
+                : m(
+                    'span',
+                    { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' },
+                    sound.hand
+                  ),
+            ]
+          ),
+          isEditing ? m(SoundEditor, { lineId, sound }) : null,
+        ]
       );
     },
   };
@@ -211,152 +220,176 @@ export function SoundEditor() {
       const maxDuration = time;
 
       return [
-        <div key="bd" class="fixed inset-0 z-10" onclick={() => piece.setEditingTile(null)} />,
-        <div
-          key="ed"
-          class="absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]"
-          oncreate={positionEditor}
-          onupdate={positionEditor}
-          onclick={(e) => e.stopPropagation()}
-        >
-          {sound.implicit && (
-            <Stepper
-              value={sound.name}
-              valueClass="font-bold w-4 text-center text-gray-900 dark:text-gray-200"
-              onDec={() => {
-                const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
-                if (cur > 0)
-                  piece.updateSound(lineId, sound.id, { name: cur === 1 ? '—' : String(cur - 1) });
-              }}
-              onInc={() => {
-                const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
-                if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
-              }}
-            />
-          )}
-          {sound.silent && (
-            <input
-              class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-1 py-0.5 text-sm font-bold text-center"
-              value={sound.name}
-              oninput={(e) => piece.updateSound(lineId, sound.id, { name: e.target.value })}
-              placeholder="text"
-            />
-          )}
-          {showHand && (
-            <div>
-              <div class="flex gap-1">
-                {['L', 'B', 'R']
-                  .filter(
-                    (h) => !sound.alternatives || sound.alternatives.some((a) => a.hand === h)
-                  )
-                  .map((h) => (
-                    <button
-                      key={h}
-                      class={`${h === 'B' ? 'w-6' : 'flex-1'} rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`}
-                      onclick={() => {
-                        if (sound.alternatives) {
-                          const alt = sound.alternatives.find((a) => a.hand === h);
-                          if (alt)
-                            piece.updateSound(lineId, sound.id, {
-                              hand: alt.hand,
-                              duration: alt.duration,
-                            });
-                        } else {
-                          piece.updateSound(lineId, sound.id, { hand: h });
-                        }
-                      }}
-                    >
-                      {h}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-          {showDuration && (
-            <Stepper
-              value={`${sound.duration}/${time}`}
-              valueClass="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400"
-              onDec={() => {
-                if (sound.duration > 1)
-                  piece.updateSound(lineId, sound.id, { duration: sound.duration - 1 });
-              }}
-              onInc={() => {
-                if (sound.duration < maxDuration)
-                  piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
-              }}
-            />
-          )}
-          {piece.showVolume && effectiveVolume(sound) != null && (
-            <Stepper
-              value={`vol ${effectiveVolume(sound)}`}
-              valueClass="font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400"
-              onDec={() => {
-                const v = effectiveVolume(sound);
-                if (v > 1) piece.updateSound(lineId, sound.id, { volume: v - 1 });
-              }}
-              onInc={() => {
-                const v = effectiveVolume(sound);
-                if (v < 8) piece.updateSound(lineId, sound.id, { volume: v + 1 });
-              }}
-            />
-          )}
-          <label class="text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1">
-            Instruction
-          </label>
-          <input
-            class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-1 py-0.5 text-xs"
-            value={sound.instruction}
-            oninput={(e) => piece.updateSound(lineId, sound.id, { instruction: e.target.value })}
-            placeholder="e.g. step left"
-          />
-          {!sound.implicit && !sound.silent && (
-            <button
-              class={`mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              onclick={() => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis })}
-            >
-              Accent
-            </button>
-          )}
-          {showSkin && (
-            <button
-              class={`text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.skin === 'back' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              onclick={() =>
-                piece.updateSound(lineId, sound.id, {
-                  skin: sound.skin === 'back' ? undefined : 'back',
-                })
-              }
-            >
-              Back skin
-            </button>
-          )}
-          {showLigature && (
-            <button
-              class="mt-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onclick={() =>
-                piece.updateSound(lineId, sound.id, { ligature: isLigated ? false : true })
-              }
-            >
-              {isLigated ? 'Break join' : '← join'}
-            </button>
-          )}
-          {showLigature && sound.ligature != null && (
-            <button
-              class="text-xs rounded border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              onclick={() => piece.updateSound(lineId, sound.id, { ligature: undefined })}
-            >
-              Auto
-            </button>
-          )}
-          <button
-            class="mt-1 text-xs rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-2 py-1 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            onclick={() => {
-              piece.removeSound(lineId, sound.id);
-              piece.setEditingTile(null);
-            }}
-          >
-            Remove
-          </button>
-        </div>,
+        m('div', {
+          key: 'bd',
+          class: 'fixed inset-0 z-10',
+          onclick: () => piece.setEditingTile(null),
+        }),
+        m(
+          'div',
+          {
+            key: 'ed',
+            class:
+              'absolute top-full left-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2 flex flex-col gap-1 min-w-[8rem]',
+            oncreate: positionEditor,
+            onupdate: positionEditor,
+            onclick: (e) => e.stopPropagation(),
+          },
+          [
+            sound.implicit &&
+              m(Stepper, {
+                value: sound.name,
+                valueClass: 'font-bold w-4 text-center text-gray-900 dark:text-gray-200',
+                onDec: () => {
+                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
+                  if (cur > 0)
+                    piece.updateSound(lineId, sound.id, {
+                      name: cur === 1 ? '—' : String(cur - 1),
+                    });
+                },
+                onInc: () => {
+                  const cur = sound.name === '—' ? 0 : parseInt(sound.name, 10) || 0;
+                  if (cur < 8) piece.updateSound(lineId, sound.id, { name: String(cur + 1) });
+                },
+              }),
+            sound.silent &&
+              m('input', {
+                class:
+                  'border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-1 py-0.5 text-sm font-bold text-center',
+                value: sound.name,
+                oninput: (e) => piece.updateSound(lineId, sound.id, { name: e.target.value }),
+                placeholder: 'text',
+              }),
+            showHand &&
+              m('div', [
+                m(
+                  'div',
+                  { class: 'flex gap-1' },
+                  ['L', 'B', 'R']
+                    .filter(
+                      (h) => !sound.alternatives || sound.alternatives.some((a) => a.hand === h)
+                    )
+                    .map((h) =>
+                      m(
+                        'button',
+                        {
+                          key: h,
+                          class: `${h === 'B' ? 'w-6' : 'flex-1'} rounded py-0.5 text-sm font-bold border ${sound.hand === h ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 dark:text-gray-300'}`,
+                          onclick: () => {
+                            if (sound.alternatives) {
+                              const alt = sound.alternatives.find((a) => a.hand === h);
+                              if (alt)
+                                piece.updateSound(lineId, sound.id, {
+                                  hand: alt.hand,
+                                  duration: alt.duration,
+                                });
+                            } else {
+                              piece.updateSound(lineId, sound.id, { hand: h });
+                            }
+                          },
+                        },
+                        h
+                      )
+                    )
+                ),
+              ]),
+            showDuration &&
+              m(Stepper, {
+                value: `${sound.duration}/${time}`,
+                valueClass: 'font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400',
+                onDec: () => {
+                  if (sound.duration > 1)
+                    piece.updateSound(lineId, sound.id, { duration: sound.duration - 1 });
+                },
+                onInc: () => {
+                  if (sound.duration < maxDuration)
+                    piece.updateSound(lineId, sound.id, { duration: sound.duration + 1 });
+                },
+              }),
+            piece.showVolume &&
+              effectiveVolume(sound) != null &&
+              m(Stepper, {
+                value: `vol ${effectiveVolume(sound)}`,
+                valueClass: 'font-mono text-xs w-10 text-center text-gray-600 dark:text-gray-400',
+                onDec: () => {
+                  const v = effectiveVolume(sound);
+                  if (v > 1) piece.updateSound(lineId, sound.id, { volume: v - 1 });
+                },
+                onInc: () => {
+                  const v = effectiveVolume(sound);
+                  if (v < 8) piece.updateSound(lineId, sound.id, { volume: v + 1 });
+                },
+              }),
+            m(
+              'label',
+              { class: 'text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1' },
+              'Instruction'
+            ),
+            m('input', {
+              class:
+                'border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-1 py-0.5 text-xs',
+              value: sound.instruction,
+              oninput: (e) => piece.updateSound(lineId, sound.id, { instruction: e.target.value }),
+              placeholder: 'e.g. step left',
+            }),
+            !sound.implicit &&
+              !sound.silent &&
+              m(
+                'button',
+                {
+                  class: `mt-1 text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.emphasis ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`,
+                  onclick: () => piece.updateSound(lineId, sound.id, { emphasis: !sound.emphasis }),
+                },
+                'Accent'
+              ),
+            showSkin &&
+              m(
+                'button',
+                {
+                  class: `text-xs rounded border px-2 py-1 font-medium transition-colors ${sound.skin === 'back' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`,
+                  onclick: () =>
+                    piece.updateSound(lineId, sound.id, {
+                      skin: sound.skin === 'back' ? undefined : 'back',
+                    }),
+                },
+                'Back skin'
+              ),
+            showLigature &&
+              m(
+                'button',
+                {
+                  class:
+                    'mt-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors',
+                  onclick: () =>
+                    piece.updateSound(lineId, sound.id, { ligature: isLigated ? false : true }),
+                },
+                isLigated ? 'Break join' : '← join'
+              ),
+            showLigature &&
+              sound.ligature != null &&
+              m(
+                'button',
+                {
+                  class:
+                    'text-xs rounded border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 px-2 py-1 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors',
+                  onclick: () => piece.updateSound(lineId, sound.id, { ligature: undefined }),
+                },
+                'Auto'
+              ),
+            m(
+              'button',
+              {
+                class:
+                  'mt-1 text-xs rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-2 py-1 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors',
+                onclick: () => {
+                  piece.removeSound(lineId, sound.id);
+                  piece.setEditingTile(null);
+                },
+              },
+              'Remove'
+            ),
+          ]
+        ),
       ];
     },
   };

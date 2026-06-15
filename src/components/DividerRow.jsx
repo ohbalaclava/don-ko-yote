@@ -18,34 +18,42 @@ export function DividerRow() {
             : 'border-l-4 border-l-transparent';
       const decoration = inRepeat ? repeatDecoration(repeatDepth) : null;
 
-      return (
-        <div
-          class={`flex items-center gap-2 py-1 pr-3 border-b border-gray-200 dark:border-gray-700 group ${sideClass}`}
-          style={decoration ?? { paddingLeft: '12px' }}
-          onclick={() => {
+      return m(
+        'div',
+        {
+          class: `flex items-center gap-2 py-1 pr-3 border-b border-gray-200 dark:border-gray-700 group ${sideClass}`,
+          style: decoration ?? { paddingLeft: '12px' },
+          onclick: () => {
             if (piece.lineSelectMode) piece.toggleLineSelection(divider.id);
-          }}
-        >
-          <div
-            class="line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none"
-            title="Drag to reorder"
-          >
-            ⠿
-          </div>
-          <div class="flex-1 flex items-center">
-            <hr class="w-full border-gray-400 dark:border-gray-500" />
-          </div>
-          <button
-            class="shrink-0 text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            onclick={(e) => {
-              e.stopPropagation();
-              piece.removeDivider(divider.id);
-            }}
-            title="Remove divider"
-          >
-            ✕
-          </button>
-        </div>
+          },
+        },
+        [
+          m(
+            'div',
+            {
+              class:
+                'line-drag-handle shrink-0 cursor-grab select-none text-gray-300 dark:text-gray-600 text-sm leading-none',
+              title: 'Drag to reorder',
+            },
+            '⠿'
+          ),
+          m('div', { class: 'flex-1 flex items-center' }, [
+            m('hr', { class: 'w-full border-gray-400 dark:border-gray-500' }),
+          ]),
+          m(
+            'button',
+            {
+              class:
+                'shrink-0 text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity',
+              onclick: (e) => {
+                e.stopPropagation();
+                piece.removeDivider(divider.id);
+              },
+              title: 'Remove divider',
+            },
+            '✕'
+          ),
+        ]
       );
     },
   };
