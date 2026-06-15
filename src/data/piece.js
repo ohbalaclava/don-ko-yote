@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { history } from './history.js';
+import { anim } from '../anim.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
 import { uid } from '../uid.js';
 
@@ -424,8 +425,15 @@ export const piece = {
     return { ...readPersistedFields(), lines: piece.lines };
   },
 
-  /** Pushes the current state onto the undo history and triggers a redraw. */
-  _commit() {
+  /**
+   * Pushes the current state onto the undo history and triggers a redraw.
+   * Diffs the lines against the previous baseline so added/removed tiles and
+   * rows animate. Pass `{ animate: false }` for wholesale replacements (e.g.
+   * clear) where animating every tile would just be noise.
+   * @param {{ animate?: boolean }} [opts]
+   */
+  _commit(opts) {
+    anim.sync(piece.lines, { animate: opts?.animate ?? true });
     history.push(piece._snapshot());
     m.redraw();
   },
@@ -450,6 +458,7 @@ export const piece = {
     const prevLines = piece.lines;
     applyPersistedFields(state);
     piece.lines = state.lines;
+    anim.sync(piece.lines, { animate: true }); // animate undo/redo add/remove
     piece._resetTransientState();
     // Follow the change: select the sound line the undo/redo altered.
     const changed = changedSoundLineId(prevLines, state.lines);
@@ -500,6 +509,7 @@ export const piece = {
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
+    anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
     m.redraw();
   },
@@ -509,7 +519,7 @@ export const piece = {
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
-    piece._commit();
+    piece._commit({ animate: false }); // wholesale reset — don't flash every old tile out
   },
 
   setTitle(v) {
@@ -1073,4 +1083,5 @@ export const piece = {
   },
 };
 
+anim.sync(piece.lines, { animate: false }); // seed the baseline at boot
 history.init(piece._snapshot());

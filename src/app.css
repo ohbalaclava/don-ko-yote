@@ -36,3 +36,43 @@ body {
 .dark .watermark {
   color: white;
 }
+
+/* Add/remove feedback (see anim.js): tiles and rows pop in when added and
+   shrink/fade out just before removal so it's clear what changed. */
+@keyframes anim-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes anim-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+.anim-enter {
+  animation: anim-pop-in 160ms ease-out;
+}
+
+.anim-leave {
+  animation: anim-pop-out 160ms ease-in;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-enter,
+  .anim-leave {
+    animation-duration: 1ms;
+  }
+}

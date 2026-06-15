@@ -9,6 +9,7 @@ import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { player } from '../audio/player.js';
+import { anim } from '../anim.js';
 import { touchDragDelay } from '../drag.js';
 
 function lineDuration(line) {
@@ -318,6 +319,7 @@ export function Line() {
       lastLine = line;
       ensureSortable();
       applyLayouts(dom, line);
+      if (anim.consumeAdded(line.id)) anim.flashIn(dom);
       // Recompute instruction positions whenever the container is resized (e.g. on
       // viewport resize). Mithril's onupdate only fires on state changes, so without
       // this observer a resize can leave instructions at pre-resize coordinates.
@@ -331,6 +333,9 @@ export function Line() {
       lastLine = line;
       ensureSortable();
       applyLayouts(dom, line);
+    },
+    onbeforeremove({ dom, attrs: { line } }) {
+      if (anim.consumeRemoved(line.id)) return anim.flashOut(dom);
     },
     onremove() {
       if (sortable) sortable.destroy();

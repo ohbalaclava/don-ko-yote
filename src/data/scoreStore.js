@@ -2,6 +2,7 @@ import m from 'mithril';
 import { db } from '../db.js';
 import { piece, isSoundLine } from './piece.js';
 import { history } from './history.js';
+import { anim } from '../anim.js';
 import { patternStore } from './patterns.js';
 import { player } from '../audio/player.js';
 import { VERSION } from '../version.js';
@@ -131,6 +132,7 @@ export const scoreStore = {
     piece.lines = expandGroupsInLines(score.lines ?? []);
     piece.selectedLineId = lastSoundLineId(piece.lines);
     patternStore.setItems(score.patterns ?? []);
+    anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
     // Recovered work that was never saved to a named score — guard it.
     scoreStore.dirty = true;
@@ -160,6 +162,7 @@ export const scoreStore = {
     piece.lines = expandGroupsInLines(score.lines);
     piece.selectedLineId = lastSoundLineId(piece.lines);
     patternStore.setItems(score.patterns ?? []);
+    anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
     scoreStore.dirty = false;
     scoreStore.items = await db.scores.all();
@@ -208,6 +211,7 @@ export const scoreStore = {
       piece.selectedLineId = lastSoundLineId(piece.lines);
     }
     patternStore.setItems(data.patterns ?? []);
+    anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
     // Imported content is not yet saved to a named score — guard it.
     scoreStore.dirty = true;

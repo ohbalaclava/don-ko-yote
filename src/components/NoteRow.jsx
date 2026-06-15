@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
 
 /** Grows a textarea to fit its content. */
@@ -12,6 +13,12 @@ export function NoteRow() {
   let editing = false;
 
   return {
+    oncreate({ dom, attrs: { note } }) {
+      if (anim.consumeAdded(note.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs: { note } }) {
+      if (anim.consumeRemoved(note.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { note, repeatDepth = 0 } }) {
       function commit(value) {
         piece.setNoteText(note.id, value);
