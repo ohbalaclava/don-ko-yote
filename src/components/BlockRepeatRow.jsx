@@ -2,10 +2,17 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { player } from '../audio/player.js';
+import { anim } from '../anim.js';
 import { blockRepeatSlice } from '../data/sequence.js';
 
 export function BlockRepeatRow() {
   return {
+    oncreate({ dom, attrs: { item } }) {
+      if (anim.consumeAdded(item.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs: { item } }) {
+      if (anim.consumeRemoved(item.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { item, depth = 0 } }) {
       // Marker row shows its own bar plus one for each enclosing repeat.
       const bars = depth + 1;

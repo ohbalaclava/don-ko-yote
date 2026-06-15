@@ -17,6 +17,49 @@ import { AddRowActions } from './AddRowActions.jsx';
 export function Score() {
   let sortable;
   let keydownHandler;
+  // FLIP state: pre-reorder top positions keyed by row element. Mithril reuses the
+  // same DOM nodes across a keyed reorder, so element identity is a stable key —
+  // letting the whole moved jiuchi section (several rows) slide together.
+  let flipFirst = null;
+  let flipCleanup = null;
+
+  /**
+   * Plays the FLIP slide for rows that moved during the last reorder: each row is
+   * snapped back to its old position with a transform, then transitioned to its
+   * new (natural) position on the next frame.
+   * @param {Element} container - The `.lines-container` element.
+   */
+  function runFlip(container) {
+    const first = flipFirst;
+    flipFirst = null;
+    if (!container) return;
+    clearTimeout(flipCleanup);
+    const moved = [];
+    for (const el of container.children) {
+      const top0 = first.get(el);
+      if (top0 == null) continue;
+      const dy = top0 - el.getBoundingClientRect().top;
+      if (!dy) continue;
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${dy}px)`;
+      moved.push(el);
+    }
+    if (moved.length === 0) return;
+    requestAnimationFrame(() => {
+      for (const el of moved) {
+        el.style.transition = 'transform 150ms ease';
+        el.style.transform = '';
+      }
+    });
+    // Strip inline styles once the transition has finished.
+    flipCleanup = setTimeout(() => {
+      for (const el of moved) {
+        el.style.transition = '';
+        el.style.transform = '';
+      }
+    }, 200);
+  }
+
   async function savePattern() {
     const line = piece.lines.find((l) => l.id === piece.selection.lineId);
     if (!line) return;
@@ -38,7 +81,22 @@ export function Score() {
         ghostClass: 'opacity-30',
         ...touchDragDelay,
         onEnd(evt) {
-          piece.reorderLine(evt.oldIndex, evt.newIndex);
+          const { item, from, oldIndex, newIndex } = evt;
+          // Revert Sortable's DOM mutation so Mithril owns the DOM: the data move
+          // below plus redraw repaints the correct order. Without this, a
+          // jiuchi-section drag (which moves several rows in the data while
+          // Sortable moved only the marker node) leaves the definition/divider
+          // behind. Re-inserting before the element now at oldIndex restores the
+          // pre-drag order.
+          from.removeChild(item);
+          from.insertBefore(item, from.children[oldIndex] ?? null);
+          if (oldIndex !== newIndex) {
+            // Capture pre-move positions (post-revert, so they're the original
+            // layout) for the FLIP animation run in onupdate after the redraw.
+            flipFirst = new Map();
+            for (const el of from.children) flipFirst.set(el, el.getBoundingClientRect().top);
+          }
+          piece.reorderLine(oldIndex, newIndex);
         },
       });
 
@@ -56,9 +114,14 @@ export function Score() {
       // decodeAudioData works on the suspended context without a user gesture.
       voice.preload(piece.taiko);
     },
+    onupdate({ dom }) {
+      // Animate rows to their new positions after a reorder redraw.
+      if (flipFirst) runFlip(dom.querySelector('.lines-container'));
+    },
     onremove() {
       if (sortable) sortable.destroy();
       if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+      clearTimeout(flipCleanup);
       player.stop(); // stop audio when leaving the score view
     },
     view() {

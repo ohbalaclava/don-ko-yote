@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { history } from './history.js';
+import { anim } from '../anim.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
 import { uid } from '../uid.js';
 
@@ -174,6 +175,28 @@ export function jiuchiLineMap(lines) {
 }
 
 /**
+ * Returns the `[start, end]` index span (inclusive) of the whole jiuchi section
+ * that begins at `markerIdx`: the marker, its definition rows, and the closing
+ * divider that bounds it. Walking forward from the marker, sound/note rows extend
+ * the span; the first divider is included and ends it (the section's footer); a
+ * heading or another jiuchi-section ends it exclusively. Dragging the marker moves
+ * this whole span as one unit so the section stays intact.
+ * @param {Array<object>} lines
+ * @param {number} markerIdx - Index of a jiuchi-section marker.
+ * @returns {[number, number]}
+ */
+export function jiuchiSectionSpan(lines, markerIdx) {
+  let end = markerIdx;
+  for (let j = markerIdx + 1; j < lines.length; j++) {
+    const t = lines[j].type;
+    if (t === 'heading' || t === 'jiuchi-section') break;
+    end = j;
+    if (t === 'divider') break;
+  }
+  return [markerIdx, end];
+}
+
+/**
  * True when the given divider closes a jiuchi section's definition — i.e. the
  * nearest preceding structural row (skipping the definition's own sound/note rows)
  * is a jiuchi-section marker. Such dividers share the jiuchi green styling so the
@@ -235,6 +258,34 @@ function updateBlockRepeatMembership(moved) {
   piece.lines = piece.lines.filter(
     (item) => item.type !== 'block-repeat' || item.lineIds.length > 0
   );
+}
+
+/**
+ * Finds the sound line that differs between two `lines` arrays — used to follow a
+ * change with the selection after undo/redo. Prefers a line whose content changed,
+ * then a line newly present in `newLines` (e.g. redo of an add), then the line
+ * nearest a removal. Only sound lines are considered (selectedLineId tracks a
+ * sound line); returns null when no sound line changed.
+ * @param {Array<object>} oldLines
+ * @param {Array<object>} newLines
+ * @returns {string|null} id of the changed sound line, or null.
+ */
+function changedSoundLineId(oldLines, newLines) {
+  const oldSound = oldLines.filter(isSoundLine);
+  const newSound = newLines.filter(isSoundLine);
+  const oldById = new Map(oldSound.map((l) => [l.id, l]));
+  const newById = new Map(newSound.map((l) => [l.id, l]));
+  for (const l of newSound) {
+    const o = oldById.get(l.id);
+    if (o && JSON.stringify(o) !== JSON.stringify(l)) return l.id;
+  }
+  for (const l of newSound) if (!oldById.has(l.id)) return l.id;
+  for (let i = 0; i < oldSound.length; i++) {
+    if (!newById.has(oldSound[i].id)) {
+      return newSound[Math.min(i, newSound.length - 1)]?.id ?? null;
+    }
+  }
+  return null;
 }
 
 const _firstLine = makeLine();
@@ -374,8 +425,15 @@ export const piece = {
     return { ...readPersistedFields(), lines: piece.lines };
   },
 
-  /** Pushes the current state onto the undo history and triggers a redraw. */
-  _commit() {
+  /**
+   * Pushes the current state onto the undo history and triggers a redraw.
+   * Diffs the lines against the previous baseline so added/removed tiles and
+   * rows animate. Pass `{ animate: false }` for wholesale replacements (e.g.
+   * clear) where animating every tile would just be noise.
+   * @param {{ animate?: boolean }} [opts]
+   */
+  _commit(opts) {
+    anim.sync(piece.lines, { animate: opts?.animate ?? true });
     history.push(piece._snapshot());
     m.redraw();
   },
@@ -397,9 +455,14 @@ export const piece = {
    * @param {object} state - A snapshot produced by _snapshot().
    */
   _restore(state) {
+    const prevLines = piece.lines;
     applyPersistedFields(state);
     piece.lines = state.lines;
+    anim.sync(piece.lines, { animate: true }); // animate undo/redo add/remove
     piece._resetTransientState();
+    // Follow the change: select the sound line the undo/redo altered.
+    const changed = changedSoundLineId(prevLines, state.lines);
+    if (changed) piece.selectedLineId = changed;
     if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
       piece.selectedLineId = piece.lines.find(isSoundLine)?.id ?? null;
     }
@@ -446,6 +509,7 @@ export const piece = {
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
+    anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
     m.redraw();
   },
@@ -455,7 +519,7 @@ export const piece = {
     piece.lines = [line];
     piece.selectedLineId = line.id;
     piece._resetTransientState();
-    piece._commit();
+    piece._commit({ animate: false }); // wholesale reset — don't flash every old tile out
   },
 
   setTitle(v) {
@@ -627,11 +691,38 @@ export const piece = {
 
   reorderLine(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
+    // Dragging a jiuchi-section marker moves the whole section (marker, definition
+    // rows, and closing divider) as one block so it stays intact.
+    if (piece.lines[fromIndex]?.type === 'jiuchi-section') {
+      piece._reorderJiuchiSection(fromIndex, toIndex);
+      return;
+    }
     const lines = piece.lines.slice();
     const [moved] = lines.splice(fromIndex, 1);
     lines.splice(toIndex, 0, moved);
     piece.lines = lines;
     updateBlockRepeatMembership(moved);
+    piece._commit();
+  },
+
+  /**
+   * Moves a whole jiuchi section so its marker lands at the single-element drop
+   * index `toIndex` reported by the drag. The block spans the marker through its
+   * closing divider (see jiuchiSectionSpan).
+   * @param {number} fromIndex - Marker index.
+   * @param {number} toIndex - Drop index in single-element terms.
+   */
+  _reorderJiuchiSection(fromIndex, toIndex) {
+    const [start, end] = jiuchiSectionSpan(piece.lines, fromIndex);
+    const blockLen = end - start + 1;
+    const lines = piece.lines.slice();
+    const block = lines.splice(start, blockLen);
+    // When dropping below the block, toIndex was measured with one element removed;
+    // shift it back by the rest of the block so the marker lands where intended.
+    let insertAt = toIndex <= start ? toIndex : toIndex - (blockLen - 1);
+    insertAt = Math.max(0, Math.min(insertAt, lines.length));
+    lines.splice(insertAt, 0, ...block);
+    piece.lines = lines;
     piece._commit();
   },
 
@@ -874,7 +965,7 @@ export const piece = {
     const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
     if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
-    if (tIdx !== fromIdx) piece.selectedLineId = target.id;
+    piece.selectedLineId = target.id;
     piece._commit();
   },
 
@@ -906,6 +997,7 @@ export const piece = {
     }
     fromLine.sounds.splice(idx, 1);
     toLine.sounds.splice(toIndex, 0, sound);
+    piece.selectedLineId = toLineId;
     piece._commit();
   },
 
@@ -934,6 +1026,7 @@ export const piece = {
     }
     fromLine.sounds = fromLine.sounds.filter((s) => !idSet.has(s.id));
     toLine.sounds.splice(toIndex, 0, ...sounds);
+    piece.selectedLineId = toLineId;
     piece._commit();
   },
 
@@ -941,6 +1034,7 @@ export const piece = {
     const line = piece.lines.find((l) => l.id === lineId);
     if (!line) return;
     line.sounds = line.sounds.filter((s) => s.id !== soundId);
+    piece.selectedLineId = lineId;
     piece._commit();
   },
 
@@ -989,4 +1083,5 @@ export const piece = {
   },
 };
 
+anim.sync(piece.lines, { animate: false }); // seed the baseline at boot
 history.init(piece._snapshot());

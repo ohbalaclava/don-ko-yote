@@ -1,9 +1,16 @@
 import m from 'mithril';
 import { piece, isJiuchiCloseDivider } from '../data/piece.js';
+import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
 
 export function DividerRow() {
   return {
+    oncreate({ dom, attrs: { divider } }) {
+      if (anim.consumeAdded(divider.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs: { divider } }) {
+      if (anim.consumeRemoved(divider.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { divider, repeatDepth = 0 } }) {
       const isLineSelected = piece.lineSelectMode && piece.lineSelection.includes(divider.id);
       const inRepeat = !isLineSelected && repeatDepth > 0;

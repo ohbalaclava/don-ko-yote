@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
+import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
 import { taikoGroupsForTime } from '../data/symbolSets.js';
 
@@ -11,6 +12,12 @@ import { taikoGroupsForTime } from '../data/symbolSets.js';
  */
 export function JiuchiSectionRow() {
   return {
+    oncreate({ dom, attrs: { section } }) {
+      if (anim.consumeAdded(section.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs: { section } }) {
+      if (anim.consumeRemoved(section.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { section, repeatDepth = 0 } }) {
       const isLineSelected = piece.lineSelectMode && piece.lineSelection.includes(section.id);
       const inRepeat = !isLineSelected && repeatDepth > 0;

@@ -2,12 +2,19 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { repeatDecoration } from './repeatDecoration.js';
 import { player } from '../audio/player.js';
+import { anim } from '../anim.js';
 import { sectionSlice } from '../data/sequence.js';
 
 export function SectionHeading() {
   let editing = false;
 
   return {
+    oncreate({ dom, attrs: { heading } }) {
+      if (anim.consumeAdded(heading.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs: { heading } }) {
+      if (anim.consumeRemoved(heading.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { heading, repeatDepth = 0 } }) {
       function commit(value) {
         piece.setHeadingText(heading.id, value);

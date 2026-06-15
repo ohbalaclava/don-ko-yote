@@ -2,6 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
+import { anim } from '../anim.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
 
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
@@ -29,6 +30,12 @@ function Stepper() {
 
 export function SoundTile() {
   return {
+    oncreate({ dom, attrs }) {
+      if (anim.consumeAdded(attrs.sound.id)) anim.flashIn(dom);
+    },
+    onbeforeremove({ dom, attrs }) {
+      if (anim.consumeRemoved(attrs.sound.id)) return anim.flashOut(dom);
+    },
     view({ attrs: { sound, lineId, startPos, isSelected } }) {
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
