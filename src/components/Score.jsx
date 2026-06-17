@@ -4,6 +4,7 @@ import { piece, markerDepth, lineDepth, singleLineRepeatMap, isSoundLine } from 
 import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
 import { voice } from '../audio/engine.js';
+import { feedbackClick } from '../audio/feedback.js';
 import { patternStore } from '../data/patterns.js';
 import { touchDragDelay } from '../drag.js';
 import { Line } from './Line.jsx';
@@ -80,7 +81,9 @@ export function Score() {
         animation: 150,
         ghostClass: 'opacity-30',
         ...touchDragDelay,
+        onStart: () => feedbackClick('pickup'),
         onEnd(evt) {
+          feedbackClick('drop');
           const { item, from, oldIndex, newIndex } = evt;
           // Revert Sortable's DOM mutation so Mithril owns the DOM: the data move
           // below plus redraw repaints the correct order. Without this, a

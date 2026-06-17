@@ -9,6 +9,7 @@ import { LigatureTile } from './LigatureTile.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { player } from '../audio/player.js';
+import { feedbackClick } from '../audio/feedback.js';
 import { anim } from '../anim.js';
 import { touchDragDelay } from '../drag.js';
 
@@ -71,6 +72,7 @@ function handlePaletteDrop(evt) {
     const sym = piece.symbolSet.symbols.find((s) => s.name === ds.paletteSound);
     if (sym) piece.addSound(toLineId, sym, toIndex);
   }
+  feedbackClick('drop'); // higher click on a successful landing in a line
 }
 
 const INSTR_LINE_HEIGHT = 18;
@@ -267,9 +269,13 @@ export function Line() {
       ...touchDragDelay,
       // Once a drag is genuinely underway, the held tile must not also trigger
       // long-press selection.
-      onStart: lpEnd,
+      onStart(evt) {
+        lpEnd(evt);
+        feedbackClick('pickup');
+      },
       onAdd: handlePaletteDrop,
       onEnd(evt) {
+        feedbackClick('drop'); // in-score moves; palette clones click via onAdd
         const ligatureIds = evt.item.dataset.ligatureIds;
         const fromLineId = evt.from.dataset.lineId;
         const toLineId = evt.to.dataset.lineId;

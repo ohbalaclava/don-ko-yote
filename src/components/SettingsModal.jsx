@@ -155,6 +155,28 @@ export function SettingsModal() {
                 ]
               ),
 
+              m(
+                'div',
+                {
+                  class:
+                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
+                },
+                [
+                  m('div', [
+                    m('div', { class: 'font-medium dark:text-white' }, 'UI sounds'),
+                    m(
+                      'div',
+                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
+                      'Audible feedback when tapping and dragging tiles'
+                    ),
+                  ]),
+                  m(Toggle, {
+                    checked: settings.uiSounds,
+                    onChange: (v) => settings.set('uiSounds', v),
+                  }),
+                ]
+              ),
+
               m('div', { class: 'py-4 border-b border-gray-200 dark:border-gray-700' }, [
                 m('div', { class: 'flex items-center justify-between mb-1' }, [
                   m('div', [
