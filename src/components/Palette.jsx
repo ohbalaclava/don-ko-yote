@@ -6,6 +6,7 @@ import { settings } from '../data/settings.js';
 import { ensureEditTargetVisible } from '../scroll.js';
 import { formatBeats } from '../util.js';
 import { touchDragDelay } from '../drag.js';
+import { feedbackSound, feedbackClick } from '../audio/feedback.js';
 
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
@@ -26,6 +27,7 @@ function makeCloneSource(dom, extra = {}) {
     sort: false,
     draggable: '[data-palette-tile]',
     ...touchDragDelay,
+    onStart: () => feedbackClick('pickup'),
     ...extra,
   });
 }
@@ -164,6 +166,7 @@ function SoundPaletteTile() {
           style: `width:${dur * SUBDIV_WIDTH_REM}rem`,
           onclick: () => {
             if (canTapAdd()) {
+              feedbackSound(sym);
               piece.addSound(piece.selectedLineId, sym);
               ensureEditTargetVisible();
             }
@@ -196,6 +199,7 @@ function ImplicitPaletteTile() {
           style: `width:${piece.time * SUBDIV_WIDTH_REM}rem`,
           onclick: () => {
             if (canTapAdd()) {
+              feedbackClick('tap');
               piece.addSound(piece.selectedLineId, implicitSym());
               ensureEditTargetVisible();
             }
@@ -228,6 +232,7 @@ function SilentPaletteTile() {
           style: `width:${piece.time * SUBDIV_WIDTH_REM}rem`,
           onclick: () => {
             if (canTapAdd()) {
+              feedbackClick('tap');
               piece.addSound(piece.selectedLineId, silentSym());
               ensureEditTargetVisible();
             }
@@ -264,6 +269,7 @@ function PatternPaletteTile() {
                 'flex flex-col items-center bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded shadow-sm px-2 py-1 select-none min-w-[3.5rem] active:border-purple-500',
               onclick: () => {
                 if (canTapAdd()) {
+                  feedbackClick('tap');
                   piece.addGroup(piece.selectedLineId, pattern);
                   ensureEditTargetVisible();
                 }

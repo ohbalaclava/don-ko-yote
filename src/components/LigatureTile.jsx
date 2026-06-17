@@ -4,6 +4,7 @@ import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
 import { SoundEditor } from './SoundTile.jsx';
+import { feedbackClick } from '../audio/feedback.js';
 
 export function LigatureTile() {
   return {
@@ -50,6 +51,7 @@ export function LigatureTile() {
               onclick: (e) => {
                 e.stopPropagation();
                 if (piece.selectMode) return;
+                if (!isEditing) feedbackClick('tap'); // click on open, not on close
                 piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
               },
               onpointerup: (e) => {

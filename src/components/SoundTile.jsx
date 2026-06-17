@@ -4,6 +4,7 @@ import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { anim } from '../anim.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
+import { feedbackClick } from '../audio/feedback.js';
 
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
@@ -70,6 +71,7 @@ export function SoundTile() {
           onclick: (e) => {
             e.stopPropagation();
             if (piece.selectMode) return;
+            if (!isEditing) feedbackClick('tap'); // click on open, not on close
             piece.setEditingTile(isEditing ? null : { lineId, soundId: sound.id });
           },
         },

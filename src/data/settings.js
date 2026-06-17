@@ -14,6 +14,7 @@ export const settings = {
   defaultAuthor: '',
   defaultShowVolume: false,
   countIn: false,
+  uiSounds: true, // audible feedback on palette taps/drags and score-tile taps
   volume: 1, // master playback-volume multiplier (1 = default loudness)
   // Metronome config (on/off, head-only, emphasise, jiuchi, Shime, volume) is
   // stored per-score on `piece`, not here — see PERSISTED_FIELDS in piece.js.
@@ -28,6 +29,7 @@ export const settings = {
       if ('defaultAuthor' in saved) settings.defaultAuthor = saved.defaultAuthor;
       if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
       if ('countIn' in saved) settings.countIn = saved.countIn;
+      if ('uiSounds' in saved) settings.uiSounds = saved.uiSounds;
       if ('volume' in saved) settings.volume = saved.volume;
     }
     setMasterVolume(settings.volume);
@@ -46,6 +48,7 @@ export const settings = {
       defaultAuthor: settings.defaultAuthor,
       defaultShowVolume: settings.defaultShowVolume,
       countIn: settings.countIn,
+      uiSounds: settings.uiSounds,
       volume: settings.volume,
     });
     applyToDOM();
