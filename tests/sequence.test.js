@@ -12,6 +12,7 @@ import {
   excludeJiuchiSections,
   jiuchiRegions,
   jiuchiEventsFromLines,
+  jiuchiSectionSlice,
 } from '../src/data/sequence.js';
 import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
 
@@ -344,6 +345,43 @@ describe('sectionSlice', () => {
     ];
     const { events, totalDiv } = buildSequence(sectionSlice(lines, 'h1'), 4);
     expect(events.map((e) => e.startDiv)).toEqual([0, 4]); // 'a' played twice
+    expect(totalDiv).toBe(8);
+  });
+});
+
+// ── jiuchiSectionSlice ───────────────────────────────────────────────────────
+
+describe('jiuchiSectionSlice', () => {
+  it('returns the definition lines after the marker, excluding the marker', () => {
+    const lines = [jiuchiSection('j1'), line('a'), line('b'), heading('h2'), line('c')];
+    expect(jiuchiSectionSlice(lines, 'j1').map((l) => l.id)).toEqual(['a', 'b']);
+  });
+
+  it('stops at a divider or the next jiuchi-section marker', () => {
+    const lines = [jiuchiSection('j1'), line('a'), divider('d'), line('b')];
+    expect(jiuchiSectionSlice(lines, 'j1').map((l) => l.id)).toEqual(['a']);
+  });
+
+  it('runs to the end when nothing closes the definition', () => {
+    const lines = [jiuchiSection('j1'), line('a'), line('b')];
+    expect(jiuchiSectionSlice(lines, 'j1').map((l) => l.id)).toEqual(['a', 'b']);
+  });
+
+  it('returns [] for an unknown or non-section id', () => {
+    expect(jiuchiSectionSlice([line('a')], 'nope')).toEqual([]);
+    expect(jiuchiSectionSlice([heading('h1'), line('a')], 'h1')).toEqual([]);
+  });
+
+  it('plays once through with no looping via buildSequence', () => {
+    const lines = [
+      jiuchiSection('j1'),
+      line('a', [sound('TEN', 'R', 4)]),
+      line('b', [sound('KEN', 'L', 4)]),
+      heading('h2'),
+      line('c', [sound('DON', 'R', 4)]),
+    ];
+    const { events, totalDiv } = buildSequence(jiuchiSectionSlice(lines, 'j1'), 4);
+    expect(events.map((e) => e.name)).toEqual(['TEN', 'KEN']);
     expect(totalDiv).toBe(8);
   });
 });

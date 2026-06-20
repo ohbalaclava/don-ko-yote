@@ -94,8 +94,14 @@ export const player = {
     const sourceLines = opts.lines ?? piece.lines;
     const lines = scope.type !== 'line' ? excludeJiuchiSections(sourceLines) : sourceLines;
     const { bpm, time } = piece;
-    // A per-line preview of a jiuchi-section line sounds with that section's taiko.
-    const taiko = scope.type === 'line' && scope.id ? piece.taikoForLine(scope.id) : piece.taiko;
+    // A per-line preview of a jiuchi-section line sounds with that section's taiko;
+    // a whole-section jiuchi preview uses the marker's own taiko.
+    const taiko =
+      scope.type === 'jiuchi' && scope.id
+        ? (piece.lines.find((l) => l.id === scope.id)?.taiko ?? piece.taiko)
+        : scope.type === 'line' && scope.id
+          ? piece.taikoForLine(scope.id)
+          : piece.taiko;
     if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
     const { events, totalDiv } = buildSequence(lines, time);
     if (!events.length) return;
