@@ -263,6 +263,29 @@ export function sectionSlice(lines, headingId) {
 }
 
 /**
+ * Returns a jiuchi section's definition lines: the rows after the marker up to
+ * (but excluding) the next heading, divider, or jiuchi-section marker. The marker
+ * itself is omitted so the slice is plain melody — passing it to
+ * {@link buildSequence} plays the base rhythm once through with no looping.
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {string} sectionId - The id of the jiuchi-section marker row.
+ * @returns {Array<object>} The definition lines (empty if the marker is missing/invalid).
+ */
+export function jiuchiSectionSlice(lines, sectionId) {
+  const start = lines.findIndex((l) => l.id === sectionId);
+  if (start < 0 || lines[start].type !== 'jiuchi-section') return [];
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (endsJiuchiDefinition(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start + 1, end);
+}
+
+/**
  * Returns the lines covered by a block-repeat, from its first member line through
  * the marker row inclusive. Including the marker means {@link expandRepeats} applies
  * the block's repeat count when the slice is played.

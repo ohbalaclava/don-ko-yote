@@ -3,6 +3,8 @@ import { piece } from '../data/piece.js';
 import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
 import { taikoGroupsForTime } from '../data/symbolSets.js';
+import { player } from '../audio/player.js';
+import { jiuchiSectionSlice } from '../data/sequence.js';
 
 /**
  * A jiuchi-section marker row. Begins a base-rhythm region: the sound lines below
@@ -79,6 +81,21 @@ export function JiuchiSectionRow() {
                 )
               )
             )
+          ),
+          m(
+            'button',
+            {
+              class: `shrink-0 text-base leading-none ${player.isScope('jiuchi', section.id) ? 'text-green-600 dark:text-green-400' : 'text-green-500 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'}`,
+              onclick: (e) => {
+                e.stopPropagation();
+                player.toggleScope(piece, jiuchiSectionSlice(piece.lines, section.id), {
+                  type: 'jiuchi',
+                  id: section.id,
+                });
+              },
+              title: player.isScope('jiuchi', section.id) ? 'Stop' : 'Play this jiuchi once',
+            },
+            player.isScope('jiuchi', section.id) ? '⏹' : '▶'
           ),
           m(
             'button',
