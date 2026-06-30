@@ -4,6 +4,10 @@ import {
   metronomeTicks,
   loopEvents,
   jiuchiPositions,
+  resolveJiuchi,
+  shiberokuOffset,
+  shiberokuTicks,
+  jiuchiTicks,
 } from '../src/data/metronome.js';
 
 const divs = (ticks) => ticks.map((t) => t.div);
@@ -23,6 +27,109 @@ describe('jiuchiPositions', () => {
 
   it('falls back to the beat head for an unknown name', () => {
     expect(jiuchiPositions('Nonsense', { jiuchi: 'Nonsense' })).toEqual([1]);
+  });
+});
+
+describe('resolveJiuchi', () => {
+  it("'auto' resolves to the piece's jiuchi", () => {
+    expect(resolveJiuchi('auto', { jiuchi: 'Shiberoku' })).toBe('Shiberoku');
+  });
+  it('a named value resolves to itself', () => {
+    expect(resolveJiuchi('Gobu Gobu', { jiuchi: 'Shiberoku' })).toBe('Gobu Gobu');
+  });
+});
+
+describe('shiberokuOffset', () => {
+  it('averages the 7:5 split and stays within the straight..swing band', () => {
+    for (let b = 0; b < 32; b++) {
+      const o = shiberokuOffset(b);
+      // 6/12 (straight 6:6) .. 8/12 (swung 8:4), centred on 7/12.
+      expect(o).toBeGreaterThanOrEqual(6 / 12 - 1e-9);
+      expect(o).toBeLessThanOrEqual(8 / 12 + 1e-9);
+    }
+    expect(shiberokuOffset(0)).toBeCloseTo(7 / 12, 10);
+  });
+
+  it('moves in a wave — neighbouring beats drift by only a little', () => {
+    let maxStep = 0;
+    for (let b = 0; b < 64; b++) {
+      maxStep = Math.max(maxStep, Math.abs(shiberokuOffset(b + 1) - shiberokuOffset(b)));
+    }
+    // No jumps: a single beat never shifts the off-beat by more than half of
+    // the full straight↔swing band.
+    expect(maxStep).toBeLessThan(2 / 12 / 2);
+  });
+
+  it('is deterministic and periodic', () => {
+    expect(shiberokuOffset(8)).toBeCloseTo(shiberokuOffset(0), 10);
+    expect(shiberokuOffset(13)).toBe(shiberokuOffset(13));
+  });
+});
+
+describe('shiberokuTicks', () => {
+  it('emits a perfect-time head and one drifting off-beat per beat', () => {
+    const ticks = shiberokuTicks(8, 4, { headOnly: false, emphasise: false });
+    // beat 0: head at 0, off at 4*offset(0); beat 1: head at 4, off at 4+4*offset(1)
+    expect(ticks.map((t) => t.div)).toEqual([
+      0,
+      4 * shiberokuOffset(0),
+      4,
+      4 + 4 * shiberokuOffset(1),
+    ]);
+  });
+
+  it('heads land exactly on the beat (perfect time)', () => {
+    const ticks = shiberokuTicks(12, 4, { headOnly: false, emphasise: false });
+    expect(
+      ticks.filter((t) => Number.isInteger(t.div / 4) && t.div % 4 === 0).map((t) => t.div)
+    ).toEqual([0, 4, 8]);
+  });
+
+  it('off-beat splits the beat ~7:5 (lands past the half-beat)', () => {
+    const ticks = shiberokuTicks(4, 4, { headOnly: false, emphasise: false });
+    const off = ticks[1].div;
+    expect(off).toBeGreaterThan(2); // past 6:6
+    expect(off).toBeLessThan(4); // before the next head
+  });
+
+  it('headOnly drops the off-beats', () => {
+    const ticks = shiberokuTicks(8, 4, { headOnly: true, emphasise: false });
+    expect(ticks.map((t) => t.div)).toEqual([0, 4]);
+  });
+
+  it('emphasise accents the head only', () => {
+    const ticks = shiberokuTicks(4, 4, { headOnly: false, emphasise: true });
+    expect(ticks[0].accent).toBe(true);
+    expect(ticks[1].accent).toBe(false);
+  });
+
+  it('returns [] for non-positive totalDiv or time', () => {
+    expect(shiberokuTicks(0, 4, { headOnly: false, emphasise: false })).toEqual([]);
+    expect(shiberokuTicks(8, 0, { headOnly: false, emphasise: false })).toEqual([]);
+  });
+});
+
+describe('jiuchiTicks', () => {
+  it('dispatches Shiberoku to the wave builder', () => {
+    expect(jiuchiTicks(8, 4, 'Shiberoku', { headOnly: false, emphasise: false })).toEqual(
+      shiberokuTicks(8, 4, { headOnly: false, emphasise: false })
+    );
+  });
+
+  it('dispatches standard jiuchis to the integer grid', () => {
+    expect(jiuchiTicks(8, 4, 'Mitsu-uchi', { headOnly: false, emphasise: false })).toEqual(
+      metronomeTicks(8, 4, {
+        positions: JIUCHI_PATTERNS['Mitsu-uchi'],
+        headOnly: false,
+        emphasise: false,
+      })
+    );
+  });
+
+  it('falls back to the beat head for an unknown name', () => {
+    expect(jiuchiTicks(8, 4, 'Nonsense', { headOnly: false, emphasise: false })).toEqual(
+      metronomeTicks(8, 4, { positions: [1], headOnly: false, emphasise: false })
+    );
   });
 });
 
