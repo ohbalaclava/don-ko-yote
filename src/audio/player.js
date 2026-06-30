@@ -5,7 +5,7 @@ import {
   excludeJiuchiSections,
   jiuchiRegions,
 } from '../data/sequence.js';
-import { metronomeTicks, loopEvents, jiuchiPositions } from '../data/metronome.js';
+import { jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -207,8 +207,7 @@ export const player = {
    * @returns {Array<{ atSec: number, accent: boolean }>}
    */
   _buildMetroTicks(piece, totalDiv) {
-    const ticks = metronomeTicks(totalDiv, piece.time, {
-      positions: jiuchiPositions(piece.metronomeJiuchi, piece),
+    const ticks = jiuchiTicks(totalDiv, piece.time, resolveJiuchi(piece.metronomeJiuchi, piece), {
       headOnly: piece.metronomeHeadOnly,
       emphasise: piece.metronomeEmphasiseHead,
     });
