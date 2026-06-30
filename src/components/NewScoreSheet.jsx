@@ -2,7 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { scoreStore } from '../data/scoreStore.js';
-import { TAIKO_GROUPS, ALL_JIUCHIS, getSymbolSet } from '../data/symbolSets.js';
+import { TAIKO_GROUPS, ALL_JIUCHIS, getSymbolSet, visibleJiuchis } from '../data/symbolSets.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 
@@ -86,7 +86,7 @@ export function NewScoreSheet() {
                 m(
                   'div',
                   { class: 'flex flex-wrap gap-1' },
-                  ALL_JIUCHIS.map((j) =>
+                  visibleJiuchis(ALL_JIUCHIS).map((j) =>
                     m(
                       'button',
                       {

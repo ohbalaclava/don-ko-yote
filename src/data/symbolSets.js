@@ -2,6 +2,7 @@ import { HIGH_STRAIGHT } from './symbols-high-straight.js';
 import { HIGH_SWING } from './symbols-high-swing.js';
 import { LOW_STRAIGHT } from './symbols-low-straight.js';
 import { LOW_SWING } from './symbols-low-swing.js';
+import { hasVariant } from './variant.js';
 
 export const SYMBOL_SETS = [HIGH_STRAIGHT, HIGH_SWING, LOW_STRAIGHT, LOW_SWING];
 
@@ -86,6 +87,23 @@ export function resolvePattern(pattern, symbolSet) {
     })
     .filter(Boolean);
   return { name: pattern.name, sounds };
+}
+
+/** Maps a variant-gated jiuchi name to the hash variant that reveals it. */
+const VARIANT_JIUCHIS = {
+  Shiberoku: 'shiberoku',
+};
+
+/**
+ * Filters jiuchi names down to those visible under the active hash variant.
+ * Ungated jiuchis always pass; a gated one passes only when its variant is on.
+ * The jiuchi stays a valid combo in the data layer either way, so a saved score
+ * using a gated jiuchi still loads and plays without the variant.
+ * @param {string[]} jiuchis
+ * @returns {string[]}
+ */
+export function visibleJiuchis(jiuchis) {
+  return jiuchis.filter((j) => !VARIANT_JIUCHIS[j] || hasVariant(VARIANT_JIUCHIS[j]));
 }
 
 /** All distinct jiuchi names across every set, in first-seen order. */

@@ -6,10 +6,12 @@
  * Subdivision positions a jiuchi ticks on, 1-indexed within a beat of `time`
  * divisions. Gobu Gobu / Mitsu-uchi are straight (time 4); Shichisan is swing
  * (time 3), where 1 & 3 of a 3-division beat give the long-short feel.
+ * Shiberoku currently mirrors Mitsu-uchi (placeholder, to diverge later).
  */
 export const JIUCHI_PATTERNS = {
   'Gobu Gobu': [1, 3],
   'Mitsu-uchi': [1, 3, 4],
+  Shiberoku: [1, 3, 4],
   Shichisan: [1, 3],
 };
 

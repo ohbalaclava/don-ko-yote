@@ -6,7 +6,7 @@ export const LOW_STRAIGHT = {
     { name: 'Okedo', skins: 1 },
     { name: 'Odaiko', skins: 1 },
   ],
-  jiuchis: ['Gobu Gobu', 'Mitsu-uchi'],
+  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiberoku'],
   symbols: [
     { name: 'DON', duration: 4, hand: 'R', volume: 4 },
     { name: 'KON', duration: 4, hand: 'L', volume: 4 },
