@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { ALL_JIUCHIS } from '../data/symbolSets.js';
+import { ALL_JIUCHIS, visibleJiuchis } from '../data/symbolSets.js';
 import { piece } from '../data/piece.js';
 import { Toggle } from './SettingsModal.jsx';
 
@@ -11,7 +11,7 @@ export function MetronomeSettingsModal() {
       // is only meaningful when the score actually contains a jiuchi section.
       const hasInline = piece.lines.some((l) => l.type === 'jiuchi-section');
       const options = [{ label: 'Match score', value: 'auto' }]
-        .concat(ALL_JIUCHIS.map((j) => ({ label: j, value: j })))
+        .concat(visibleJiuchis(ALL_JIUCHIS).map((j) => ({ label: j, value: j })))
         .concat([{ label: 'Inline', value: 'inline', inline: true, disabled: !hasInline }]);
       // Inline plays each section's drum pattern as authored, so the head-only and
       // emphasise tick options don't apply to it.

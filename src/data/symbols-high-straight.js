@@ -5,7 +5,7 @@ export const HIGH_STRAIGHT = {
     { name: 'Shime', skins: 1 },
     { name: 'Katsugi', skins: 2 },
   ],
-  jiuchis: ['Gobu Gobu', 'Mitsu-uchi'],
+  jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiberoku'],
   symbols: [
     { name: 'TEN', duration: 4, hand: 'R', volume: 4 },
     { name: 'KEN', duration: 4, hand: 'L', volume: 4 },
