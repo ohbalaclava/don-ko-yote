@@ -183,7 +183,16 @@ export function MetronomeSettingsModal() {
                             ? 'Add a jiuchi section to the score first'
                             : undefined,
                         class: `rounded border px-2 py-1 text-sm font-medium ${disabled ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300' : piece.metronomeJiuchi === o.value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`,
-                        onclick: () => piece.setMetronome('metronomeJiuchi', o.value),
+                        // Picking a named jiuchi (or Inline) is a request for its
+                        // pattern, so it also clears Head beat only — which would
+                        // otherwise silently flatten the choice to bare beat ticks.
+                        // 'Match score' leaves the toggle alone.
+                        onclick: () => {
+                          piece.setMetronome('metronomeJiuchi', o.value);
+                          if (o.value !== 'auto' && piece.metronomeHeadOnly) {
+                            piece.setMetronome('metronomeHeadOnly', false);
+                          }
+                        },
                       },
                       o.label
                     );

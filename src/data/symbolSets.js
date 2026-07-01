@@ -60,6 +60,18 @@ export function taikoGroupsForTime(time) {
   ].filter((g) => g.taikos.length);
 }
 
+/**
+ * A jiuchi's native beat division: the `time` of the first symbol set that lists
+ * it (Shichisan is swing-only → 3; the straight jiuchis → 4). Used by the
+ * standalone practice metronome, which has no score grid to align with and so
+ * plays each jiuchi in its own feel.
+ * @param {string} jiuchi - Jiuchi display name.
+ * @returns {number|null} Divisions per beat, or null for an unknown name.
+ */
+export function timeForJiuchi(jiuchi) {
+  return SYMBOL_SETS.find((s) => s.jiuchis.includes(jiuchi))?.time ?? null;
+}
+
 /** Taikos grouped by drum family (High vs Low), for picker UI. */
 export const TAIKO_GROUPS = [
   { label: 'High', taikos: HIGH_STRAIGHT.taiko },

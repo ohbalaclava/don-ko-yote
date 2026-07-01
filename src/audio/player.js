@@ -8,6 +8,7 @@ import {
   jiuchiSectionSlice,
 } from '../data/sequence.js';
 import { jiuchiLoop, jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
+import { timeForJiuchi } from '../data/symbolSets.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -155,6 +156,7 @@ export const player = {
     const c = getAudioContext();
 
     let lengthDiv;
+    let loopTime = time; // inline rhythms are authored in the score's own time
     if (inline) {
       this._metroTicks = [];
       this._metroStrikes = inline.events
@@ -176,18 +178,22 @@ export const player = {
         piece.metronomeJiuchi === 'inline' ? 'auto' : piece.metronomeJiuchi,
         piece
       );
-      const cycle = jiuchiLoop(time, name, {
+      // With no score grid to align with, a named jiuchi plays in its native
+      // feel — Shichisan swings (time 3) even when the score is straight. The
+      // beat length (60/bpm) is the same either way.
+      loopTime = timeForJiuchi(name) ?? time;
+      const cycle = jiuchiLoop(loopTime, name, {
         headOnly: piece.metronomeHeadOnly,
         emphasise: piece.metronomeEmphasiseHead,
       });
       this._metroTicks = cycle.ticks.map((t) => ({
-        atSec: divToSeconds(t.div, bpm, time),
+        atSec: divToSeconds(t.div, bpm, loopTime),
         accent: t.accent,
       }));
       this._metroStrikes = [];
       lengthDiv = cycle.lengthDiv;
     }
-    this._loopSec = divToSeconds(lengthDiv, bpm, time);
+    this._loopSec = divToSeconds(lengthDiv, bpm, loopTime);
     if (!(this._loopSec > 0) || !(this._metroTicks.length + this._metroStrikes.length)) {
       this.stop();
       return;

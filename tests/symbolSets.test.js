@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { symbolSetForTaiko, taikoGroupsForTime } from '../src/data/symbolSets.js';
+import { symbolSetForTaiko, taikoGroupsForTime, timeForJiuchi } from '../src/data/symbolSets.js';
+
+describe('timeForJiuchi', () => {
+  it('resolves swing-native Shichisan to time 3', () => {
+    expect(timeForJiuchi('Shichisan')).toBe(3);
+  });
+
+  it('resolves the straight jiuchis to time 4', () => {
+    expect(timeForJiuchi('Gobu Gobu')).toBe(4);
+    expect(timeForJiuchi('Mitsu-uchi')).toBe(4);
+    expect(timeForJiuchi('Shiberoku')).toBe(4);
+  });
+
+  it('returns null for an unknown name', () => {
+    expect(timeForJiuchi('Nonsense')).toBeNull();
+  });
+});
 
 describe('symbolSetForTaiko', () => {
   it('finds a set by taiko at the given (straight) time', () => {
