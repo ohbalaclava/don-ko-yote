@@ -40,29 +40,32 @@ export function jiuchiPositions(value, piece) {
 }
 
 // --- Shiberoku ---------------------------------------------------------------
-// A double-time straight-time jiuchi: each beat is a head strike on the beat
-// (perfect time) plus one off-beat strike that splits the beat ~7:5. The off-beat
-// isn't fixed — it drifts in a slow sine wave between straighter (6:6) and more
-// swung (8:4), giving the groove a human breathing feel. The head never moves.
-const SHIBEROKU_CENTRE = 7 / 12; // mean off-beat position: 7:5 into the beat
-const SHIBEROKU_AMP = 1 / 48; // drift: 6/12 (straight) .. 8/12 (more swing)
+// A double-time straight-time jiuchi: four strikes per beat. The first and third
+// (the beat head and the half-beat) are in perfect time; the second and fourth
+// split their half-beat ~7:5. The swung strikes aren't fixed — they drift in a
+// slow sine wave between straighter (6:6) and more swung (8:4), giving the
+// groove a human breathing feel. The perfect-time strikes never move.
+const SHIBEROKU_CENTRE = 7 / 12; // mean swung position: 7:5 into the half-beat
+const SHIBEROKU_AMP = 1 / 100; // drift: 6/12 (straight) .. 8/12 (more swing)
 const SHIBEROKU_PERIOD = 16; // beats per full in-and-out wave cycle
 
 /**
- * Off-beat position within a beat for Shiberoku at beat index `b`, as a fraction
- * of the beat in (0, 1). Waves smoothly around 7/12 so the swing breathes in and
+ * Swung-strike position within a half-beat for Shiberoku at beat position `b`
+ * (half-integer values sample the second half of a beat), as a fraction of the
+ * half-beat in (0, 1). Waves smoothly around 7/12 so the swing breathes in and
  * out across the piece rather than jumping.
- * @param {number} b - Beat index from the start of the sequence.
- * @returns {number} Off-beat position as a fraction of the beat.
+ * @param {number} b - Beat position from the start of the sequence (may be x.5).
+ * @returns {number} Swung-strike position as a fraction of the half-beat.
  */
 export function shiberokuOffset(b) {
   return SHIBEROKU_CENTRE + SHIBEROKU_AMP * Math.sin((2 * Math.PI * b) / SHIBEROKU_PERIOD);
 }
 
 /**
- * Builds Shiberoku metronome ticks over `totalDiv` divisions. Each beat gets a
- * head tick at the beat boundary (perfect time) and, unless `headOnly`, an
- * off-beat tick at a wave-modulated fractional position (see `shiberokuOffset`).
+ * Builds Shiberoku metronome ticks over `totalDiv` divisions. Each beat gets four
+ * ticks: the beat head and the half-beat in perfect time, plus (unless `headOnly`)
+ * one wave-modulated swung tick inside each half (see `shiberokuOffset`).
+ * `headOnly` reduces the beat to its head tick alone, like the other jiuchis.
  * @param {number} totalDiv - Total divisions to cover; ticks fall in [0, totalDiv).
  * @param {number} time - Divisions per beat (4 straight).
  * @param {object} opts
@@ -74,12 +77,18 @@ export function shiberokuTicks(totalDiv, time, { headOnly, emphasise }) {
   if (!(totalDiv > 0) || !(time > 0)) return [];
   const ticks = [];
   const beats = Math.ceil(totalDiv / time);
+  const half = time / 2;
   for (let b = 0; b < beats; b++) {
     const head = b * time;
     if (head < totalDiv) ticks.push({ div: head, accent: !!emphasise });
     if (headOnly) continue;
-    const off = b * time + time * shiberokuOffset(b);
-    if (off < totalDiv) ticks.push({ div: off, accent: false });
+    for (let h = 0; h < 2; h++) {
+      const start = head + h * half;
+      // The half-beat strike (perfect time); the head itself is already pushed.
+      if (h === 1 && start < totalDiv) ticks.push({ div: start, accent: false });
+      const off = start + half * shiberokuOffset(b + h / 2);
+      if (off < totalDiv) ticks.push({ div: off, accent: false });
+    }
   }
   return ticks;
 }
