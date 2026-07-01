@@ -3,9 +3,11 @@ import {
   buildSequence,
   divToSeconds,
   excludeJiuchiSections,
+  jiuchiEventsFromLines,
   jiuchiRegions,
+  jiuchiSectionSlice,
 } from '../data/sequence.js';
-import { jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
+import { jiuchiLoop, jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -24,10 +26,17 @@ export const player = {
   playing: false,
   currentSoundId: null,
   // What is currently playing, so scoped play buttons can show the right state:
-  // { type: 'all' | 'line' | 'section' | 'block', id?: string }. Null when stopped.
+  // { type: 'all' | 'line' | 'section' | 'block' | 'metronome', id?: string }.
+  // Null when stopped.
   scope: null,
+  // Session-only BPM for the standalone practice metronome. Null means "follow
+  // piece.bpm". Not persisted; survives modal close/reopen within the session.
+  metroBpm: null,
 
   _events: [],
+  // Loop period in seconds for the standalone metronome; 0 = normal finite
+  // playback (the metro arrays are drained once instead of cycled).
+  _loopSec: 0,
   _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
   _metroStrikes: [], // { atSec, sound, taiko } looped drum strikes for inline jiuchi regions
   _metroShime: false, // per-score Shime-tick flag, captured at play time for _schedule
@@ -73,6 +82,129 @@ export const player = {
     if (this.scope?.type === 'all') return this.stop();
     this.stop();
     return this.play(piece, { scope: { type: 'all' } });
+  },
+
+  /**
+   * Play/stop toggle for the standalone practice metronome: loops the selected
+   * jiuchi indefinitely with no score. Must be called from a user-gesture handler.
+   * @param {object} piece
+   */
+  toggleMetronomeLoop(piece) {
+    const active = this.isScope('metronome');
+    this.stop();
+    if (!active) this.playMetronome(piece);
+  },
+
+  /**
+   * Sets the session-only practice-metronome BPM. A running loop restarts at the
+   * new tempo; an invalid value (0 / blank / negative) just stops it until a
+   * valid one is committed.
+   * @param {object} piece
+   * @param {number} v
+   */
+  setMetroBpm(piece, v) {
+    this.metroBpm = v;
+    if (this.isScope('metronome')) {
+      this.stop();
+      if (v > 0) this.playMetronome(piece);
+    }
+  },
+
+  /**
+   * Starts the standalone practice metronome: one cycle of the configured jiuchi
+   * (a standard tick pattern, or the score's first inline jiuchi section played
+   * with its own taiko) looped indefinitely at `metroBpm` (defaulting to the
+   * score's bpm). Independent of the `piece.metronome` toggle, which only
+   * governs the metronome during score playback. Stopped by `stop()` like any
+   * other playback.
+   * @param {object} piece
+   */
+  async playMetronome(piece) {
+    if (this.playing) return;
+    const bpm = this.metroBpm ?? piece.bpm;
+    const { time } = piece;
+    if (!(bpm > 0)) return;
+
+    // Inline: capture one cycle of the first jiuchi section's rhythm. Falls back
+    // to the standard 'auto' ticks when there is no section or it has no sounds,
+    // so the loop is never silent.
+    let inline = null;
+    if (piece.metronomeJiuchi === 'inline') {
+      const marker = piece.lines.find((l) => l.type === 'jiuchi-section');
+      if (marker) {
+        const { events, lengthDiv } = jiuchiEventsFromLines(
+          jiuchiSectionSlice(piece.lines, marker.id),
+          time
+        );
+        if (events.length && lengthDiv > 0) inline = { events, lengthDiv, taiko: marker.taiko };
+      }
+    }
+
+    this.playing = true;
+    this.scope = { type: 'metronome' };
+    this.currentSoundId = null;
+    const epoch = ++this._epoch;
+    await resumeAudio();
+    if (this._epoch !== epoch) return;
+    if (inline) {
+      await voice.preload(inline.taiko);
+    } else if (piece.metronomeShime) {
+      await voice.preload('Shime');
+    }
+    if (this._epoch !== epoch) return;
+    const c = getAudioContext();
+
+    let lengthDiv;
+    if (inline) {
+      this._metroTicks = [];
+      this._metroStrikes = inline.events
+        .map((e) => ({
+          atSec: divToSeconds(e.startDiv, bpm, time),
+          sound: {
+            name: e.name,
+            hand: e.hand,
+            skin: e.skin,
+            volume: e.volume * piece.metronomeVolume,
+            duration: e.durationDiv,
+          },
+          taiko: inline.taiko,
+        }))
+        .sort((a, b) => a.atSec - b.atSec);
+      lengthDiv = inline.lengthDiv;
+    } else {
+      const name = resolveJiuchi(
+        piece.metronomeJiuchi === 'inline' ? 'auto' : piece.metronomeJiuchi,
+        piece
+      );
+      const cycle = jiuchiLoop(time, name, {
+        headOnly: piece.metronomeHeadOnly,
+        emphasise: piece.metronomeEmphasiseHead,
+      });
+      this._metroTicks = cycle.ticks.map((t) => ({
+        atSec: divToSeconds(t.div, bpm, time),
+        accent: t.accent,
+      }));
+      this._metroStrikes = [];
+      lengthDiv = cycle.lengthDiv;
+    }
+    this._loopSec = divToSeconds(lengthDiv, bpm, time);
+    if (!(this._loopSec > 0) || !(this._metroTicks.length + this._metroStrikes.length)) {
+      this.stop();
+      return;
+    }
+
+    this._events = [];
+    this._metroShime = piece.metronomeShime;
+    this._metroVolume = piece.metronomeVolume;
+    this._startTime = c.currentTime + LEAD_IN;
+    this._nextIdx = 0;
+    this._nextMetroIdx = 0;
+    this._nextMetroStrikeIdx = 0;
+
+    // No rAF: there is no playhead to follow and no end to stop at.
+    this._timer = setInterval(() => this._schedule(), TICK);
+    this._schedule();
+    m.redraw();
   },
 
   /**
@@ -189,6 +321,7 @@ export const player = {
     this._events = [];
     this._metroTicks = [];
     this._metroStrikes = [];
+    this._loopSec = 0;
     this._nextIdx = 0;
     this._nextMetroIdx = 0;
     this._nextMetroStrikeIdx = 0;
@@ -277,9 +410,15 @@ export const player = {
       if (e.audible) voice.strike(e.sound, when, this._taiko);
       this._nextIdx++;
     }
-    while (this._nextMetroIdx < this._metroTicks.length) {
-      const t = this._metroTicks[this._nextMetroIdx];
-      const when = this._startTime + t.atSec;
+    // When _loopSec > 0 the metro arrays hold one cycle and the indices keep
+    // climbing past the array length: entry i sounds at cycle-repeat
+    // floor(i / n) * _loopSec plus its offset within the cycle. With _loopSec
+    // of 0 (score playback) this reduces to draining each array once.
+    const ticks = this._metroTicks;
+    while (ticks.length && (this._loopSec > 0 || this._nextMetroIdx < ticks.length)) {
+      const i = this._nextMetroIdx;
+      const t = ticks[i % ticks.length];
+      const when = this._startTime + Math.floor(i / ticks.length) * this._loopSec + t.atSec;
       if (when >= horizon) break;
       voice.tick(when, {
         accent: t.accent,
@@ -288,9 +427,11 @@ export const player = {
       });
       this._nextMetroIdx++;
     }
-    while (this._nextMetroStrikeIdx < this._metroStrikes.length) {
-      const s = this._metroStrikes[this._nextMetroStrikeIdx];
-      const when = this._startTime + s.atSec;
+    const strikes = this._metroStrikes;
+    while (strikes.length && (this._loopSec > 0 || this._nextMetroStrikeIdx < strikes.length)) {
+      const i = this._nextMetroStrikeIdx;
+      const s = strikes[i % strikes.length];
+      const when = this._startTime + Math.floor(i / strikes.length) * this._loopSec + s.atSec;
       if (when >= horizon) break;
       voice.strike(s.sound, when, s.taiko);
       this._nextMetroStrikeIdx++;

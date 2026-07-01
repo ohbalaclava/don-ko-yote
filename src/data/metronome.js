@@ -100,6 +100,22 @@ export function jiuchiTicks(totalDiv, time, name, opts) {
 }
 
 /**
+ * One seamless loop cycle of jiuchi ticks, for standalone metronome looping:
+ * 1 beat for grid patterns (accents are per-beat, so nothing is lost), and
+ * SHIBEROKU_PERIOD beats for Shiberoku — its swing wave is periodic there, so
+ * the cycle joins without a jump.
+ * @param {number} time - Divisions per beat (4 straight, 3 swing).
+ * @param {string} name - Resolved jiuchi name.
+ * @param {{ headOnly: boolean, emphasise: boolean }} opts
+ * @returns {{ ticks: Array<{ div: number, accent: boolean }>, lengthDiv: number }}
+ */
+export function jiuchiLoop(time, name, { headOnly, emphasise }) {
+  const beats = name === 'Shiberoku' ? SHIBEROKU_PERIOD : 1;
+  const lengthDiv = beats * time;
+  return { ticks: jiuchiTicks(lengthDiv, time, name, { headOnly, emphasise }), lengthDiv };
+}
+
+/**
  * Builds the metronome ticks over a sequence of `totalDiv` divisions.
  * @param {number} totalDiv - Total divisions to cover; ticks fall in [0, totalDiv).
  * @param {number} time - Divisions per beat (4 straight, 3 swing).

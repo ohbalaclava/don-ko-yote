@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { ALL_JIUCHIS, visibleJiuchis } from '../data/symbolSets.js';
 import { piece } from '../data/piece.js';
+import { player } from '../audio/player.js';
 import { Toggle } from './SettingsModal.jsx';
 
 export function MetronomeSettingsModal() {
@@ -43,6 +44,52 @@ export function MetronomeSettingsModal() {
                   '×'
                 ),
               ]),
+
+              m(
+                'div',
+                {
+                  class:
+                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
+                },
+                [
+                  m('div', [
+                    m('div', { class: 'font-medium dark:text-white' }, 'Practice loop'),
+                    m(
+                      'div',
+                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
+                      'Loop the jiuchi on its own — no score'
+                    ),
+                  ]),
+                  m('div', { class: 'flex items-center gap-2' }, [
+                    m('input', {
+                      type: 'number',
+                      min: '1',
+                      max: '300',
+                      class:
+                        'w-16 text-right bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600',
+                      value: player.metroBpm ?? piece.bpm,
+                      // Store on input so the value survives redraws mid-edit; only
+                      // restart a running loop on commit (blur/enter/spinner).
+                      oninput: (e) => {
+                        player.metroBpm = Number(e.target.value);
+                      },
+                      onchange: (e) => player.setMetroBpm(piece, Number(e.target.value)),
+                    }),
+                    (() => {
+                      const active = player.isScope('metronome');
+                      return m(
+                        'button',
+                        {
+                          class: `rounded border px-3 py-1 text-sm font-medium ${active ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`,
+                          title: active ? 'Stop' : 'Start practice metronome',
+                          onclick: () => player.toggleMetronomeLoop(piece),
+                        },
+                        active ? '⏹' : '▶'
+                      );
+                    })(),
+                  ]),
+                ]
+              ),
 
               m(
                 'div',
