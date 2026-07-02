@@ -127,8 +127,11 @@ const DEFAULT_VOICE = { freq: 160, decay: 0.35 };
  */
 export function voiceParams(sound, taiko) {
   const base = TAIKO_VOICE[taiko] ?? DEFAULT_VOICE;
-  const first = (sound.name || '').charAt(0).toLowerCase();
-  const rim = first === 'k' || first === 'r'; // ka/ki/ko/ra/re/ro — rim-ish
+  // Rim hits are k/r + a/i syllables (ka/KA, ki/KI, ra/RA). Other k/r-initial
+  // syllables — kon/ko/ken/ke/ku, ron/ro/re — are the left-hand (or roll)
+  // counterparts of centre hits and must keep the centre timbre, matching how
+  // the sample resolver families them (see samples.js sampleKey).
+  const rim = /^[kr][ai]/i.test(sound.name || '');
   // Volume 1–8 maps to gain exponentially (~1.6× / +4 dB per step) so accents
   // read clearly against soft notes. Anchored at the typical accent (vol 4 → 0.5)
   // rather than the rarely-used vol 8, so real scores (mostly vol 2–4) play at a
