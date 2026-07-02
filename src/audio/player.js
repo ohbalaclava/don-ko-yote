@@ -168,8 +168,6 @@ export const player = {
       await voice.preload(inline.taiko);
     } else if (this.metroTaiko) {
       await voice.preload(this.metroTaiko);
-    } else if (piece.metronomeShime) {
-      await voice.preload('Shime');
     }
     if (this._epoch !== epoch) return;
     const c = getAudioContext();
@@ -238,7 +236,10 @@ export const player = {
     }
 
     this._events = [];
-    this._metroShime = piece.metronomeShime;
+    // The Tick voice is always the synth click here; 'Use Shime sound' applies
+    // to the score-playback metronome only. A Shime drum voice is available
+    // explicitly through the loop's taiko selector instead.
+    this._metroShime = false;
     this._metroVolume = piece.metronomeVolume;
     this._startTime = c.currentTime + LEAD_IN;
     this._nextIdx = 0;
