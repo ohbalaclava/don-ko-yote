@@ -8,6 +8,7 @@ import {
   shiberokuOffset,
   shiberokuTicks,
   jiuchiTicks,
+  jiuchiLoop,
 } from '../src/data/metronome.js';
 
 const divs = (ticks) => ticks.map((t) => t.div);
@@ -67,40 +68,46 @@ describe('shiberokuOffset', () => {
 });
 
 describe('shiberokuTicks', () => {
-  it('emits a perfect-time head and one drifting off-beat per beat', () => {
+  it('emits four strikes per beat: perfect head & half plus two drifting swings', () => {
     const ticks = shiberokuTicks(8, 4, { headOnly: false, emphasise: false });
-    // beat 0: head at 0, off at 4*offset(0); beat 1: head at 4, off at 4+4*offset(1)
+    // beat 0: head 0, swing in first half, half-beat 2, swing in second half;
+    // beat 1: same shifted by 4, wave sampled at half-beat resolution.
     expect(ticks.map((t) => t.div)).toEqual([
       0,
-      4 * shiberokuOffset(0),
+      2 * shiberokuOffset(0),
+      2,
+      2 + 2 * shiberokuOffset(0.5),
       4,
-      4 + 4 * shiberokuOffset(1),
+      4 + 2 * shiberokuOffset(1),
+      6,
+      6 + 2 * shiberokuOffset(1.5),
     ]);
   });
 
-  it('heads land exactly on the beat (perfect time)', () => {
+  it('first and third strikes land in perfect time', () => {
     const ticks = shiberokuTicks(12, 4, { headOnly: false, emphasise: false });
-    expect(
-      ticks.filter((t) => Number.isInteger(t.div / 4) && t.div % 4 === 0).map((t) => t.div)
-    ).toEqual([0, 4, 8]);
+    expect(ticks.filter((t) => Number.isInteger(t.div)).map((t) => t.div)).toEqual([
+      0, 2, 4, 6, 8, 10,
+    ]);
   });
 
-  it('off-beat splits the beat ~7:5 (lands past the half-beat)', () => {
+  it('swung strikes split their half-beat ~7:5 (past the straight quarter)', () => {
     const ticks = shiberokuTicks(4, 4, { headOnly: false, emphasise: false });
-    const off = ticks[1].div;
-    expect(off).toBeGreaterThan(2); // past 6:6
-    expect(off).toBeLessThan(4); // before the next head
+    const [, off1, , off2] = ticks.map((t) => t.div);
+    expect(off1).toBeGreaterThan(1); // past 6:6 of the first half
+    expect(off1).toBeLessThan(2); // before the half-beat strike
+    expect(off2).toBeGreaterThan(3); // past 6:6 of the second half
+    expect(off2).toBeLessThan(4); // before the next head
   });
 
-  it('headOnly drops the off-beats', () => {
+  it('headOnly drops everything but the beat heads', () => {
     const ticks = shiberokuTicks(8, 4, { headOnly: true, emphasise: false });
     expect(ticks.map((t) => t.div)).toEqual([0, 4]);
   });
 
-  it('emphasise accents the head only', () => {
+  it('emphasise accents the beat head only', () => {
     const ticks = shiberokuTicks(4, 4, { headOnly: false, emphasise: true });
-    expect(ticks[0].accent).toBe(true);
-    expect(ticks[1].accent).toBe(false);
+    expect(ticks.map((t) => t.accent)).toEqual([true, false, false, false]);
   });
 
   it('returns [] for non-positive totalDiv or time', () => {
@@ -130,6 +137,69 @@ describe('jiuchiTicks', () => {
     expect(jiuchiTicks(8, 4, 'Nonsense', { headOnly: false, emphasise: false })).toEqual(
       metronomeTicks(8, 4, { positions: [1], headOnly: false, emphasise: false })
     );
+  });
+});
+
+describe('jiuchiLoop', () => {
+  const opts = { headOnly: false, emphasise: false };
+
+  it('loops one beat for grid jiuchis', () => {
+    expect(jiuchiLoop(4, 'Gobu Gobu', opts)).toEqual({
+      ticks: [
+        { div: 0, accent: false },
+        { div: 2, accent: false },
+      ],
+      lengthDiv: 4,
+    });
+    expect(divs(jiuchiLoop(4, 'Mitsu-uchi', opts).ticks)).toEqual([0, 2, 3]);
+    const shichisan = jiuchiLoop(3, 'Shichisan', opts);
+    expect(divs(shichisan.ticks)).toEqual([0, 2]);
+    expect(shichisan.lengthDiv).toBe(3);
+  });
+
+  it('headOnly reduces the cycle to a single head tick', () => {
+    expect(jiuchiLoop(4, 'Mitsu-uchi', { headOnly: true, emphasise: false }).ticks).toEqual([
+      { div: 0, accent: false },
+    ]);
+  });
+
+  it('emphasise accents the head tick only', () => {
+    const { ticks } = jiuchiLoop(4, 'Gobu Gobu', { headOnly: false, emphasise: true });
+    expect(ticks.map((t) => t.accent)).toEqual([true, false]);
+  });
+
+  it('falls back to the beat head for an unknown name', () => {
+    expect(jiuchiLoop(4, 'Nonsense', opts)).toEqual({
+      ticks: [{ div: 0, accent: false }],
+      lengthDiv: 4,
+    });
+  });
+
+  it('loops Shiberoku over its full 16-beat wave period', () => {
+    const { ticks, lengthDiv } = jiuchiLoop(4, 'Shiberoku', opts);
+    expect(lengthDiv).toBe(16 * 4);
+    expect(ticks).toHaveLength(64); // 4 strikes per beat
+    // Perfect-time strikes exactly on the beat and half-beat boundaries.
+    expect(ticks.filter((t) => t.div % 2 === 0)).toHaveLength(32);
+  });
+
+  it('Shiberoku cycle joins seamlessly (wave is periodic at the loop length)', () => {
+    const cycle = jiuchiLoop(4, 'Shiberoku', opts);
+    // Ticks of beats 16..17 in a longer run equal beats 0..1 of the cycle,
+    // shifted by one loop — so tiling the cycle reproduces the wave exactly.
+    const long = jiuchiTicks(2 * cycle.lengthDiv, 4, 'Shiberoku', opts);
+    const secondPass = long.slice(cycle.ticks.length);
+    expect(secondPass).toHaveLength(cycle.ticks.length);
+    secondPass.forEach((t, i) => {
+      expect(t.div).toBeCloseTo(cycle.ticks[i].div + cycle.lengthDiv, 10);
+      expect(t.accent).toBe(cycle.ticks[i].accent);
+    });
+  });
+
+  it('headOnly Shiberoku still spans the full period', () => {
+    const { ticks, lengthDiv } = jiuchiLoop(4, 'Shiberoku', { headOnly: true, emphasise: false });
+    expect(lengthDiv).toBe(64);
+    expect(divs(ticks)).toEqual(Array.from({ length: 16 }, (_, b) => b * 4));
   });
 });
 

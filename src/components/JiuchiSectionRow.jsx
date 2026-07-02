@@ -2,7 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
-import { taikoGroupsForTime } from '../data/symbolSets.js';
+import { familyForSounds, taikoGroupsForTime } from '../data/symbolSets.js';
 import { player } from '../audio/player.js';
 import { jiuchiSectionSlice } from '../data/sequence.js';
 
@@ -27,7 +27,20 @@ export function JiuchiSectionRow() {
         ? 'border-l-4 border-l-teal-400 bg-teal-50 dark:bg-teal-900/20'
         : 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/20';
       const decoration = inRepeat ? repeatDecoration(repeatDepth) : null;
-      const groups = taikoGroupsForTime(piece.time);
+      // Once the section has sounds, its syllables are family-specific (ten/ken
+      // for high drums vs don/kon for low) with no mapping between families, so
+      // only that family's taikos remain offered. The family comes from the
+      // authored sound names — not the current taiko, so a section stranded on
+      // the wrong family (older scores) still offers the way back. An empty or
+      // indecisive section picks freely.
+      const names = jiuchiSectionSlice(piece.lines, section.id)
+        .flatMap((l) => l.sounds ?? [])
+        .flatMap((s) => (s.type === 'group' ? s.sounds : [s]))
+        .map((s) => s.name);
+      const family = familyForSounds(names);
+      const groups = taikoGroupsForTime(piece.time).filter(
+        (g) => !family || g.label.toLowerCase() === family
+      );
 
       return m(
         'div',

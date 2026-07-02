@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { player } from '../audio/player.js';
 
 export function Header() {
   let saved = false;
@@ -95,7 +96,9 @@ export function Header() {
           m(
             'button',
             {
-              class: 'bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none',
+              // Green while the standalone practice metronome loops, so it stays
+              // visible (and findable to stop) after the sheet is closed.
+              class: `rounded px-2 py-1 text-lg leading-none ${player.isScope('metronome') ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`,
               onclick: onOpenMetronomeSettings,
               title: 'Metronome',
             },
