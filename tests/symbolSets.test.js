@@ -1,10 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import {
+  familyForSounds,
   primaryStrike,
   symbolSetForTaiko,
   taikoGroupsForTime,
   timeForJiuchi,
 } from '../src/data/symbolSets.js';
+
+describe('familyForSounds', () => {
+  it('infers high from ten-family names and low from don-family names', () => {
+    expect(familyForSounds(['TEN', 'ken'])).toBe('high');
+    expect(familyForSounds(['don', 'KON'])).toBe('low');
+    expect(familyForSounds(['te'])).toBe('high');
+    expect(familyForSounds(['KA'])).toBe('low');
+  });
+
+  it('skips names shared by both families until one is decisive', () => {
+    expect(familyForSounds(['SU', 'HUP', 'DON'])).toBe('low');
+  });
+
+  it('is null for empty or indecisive name lists', () => {
+    expect(familyForSounds([])).toBeNull();
+    expect(familyForSounds(['SU', 'HUP'])).toBeNull();
+    expect(familyForSounds(['Nonsense'])).toBeNull();
+  });
+});
 
 describe('primaryStrike', () => {
   it('is the big hit of the set: TEN for high drums, DON for low', () => {

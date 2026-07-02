@@ -72,6 +72,44 @@ export function timeForJiuchi(jiuchi) {
   return SYMBOL_SETS.find((s) => s.jiuchis.includes(jiuchi))?.time ?? null;
 }
 
+/** Symbol names unique to one family, computed lazily: names that appear in a
+ *  family's sets and not the other's. Shared names (SU, kakegoe calls) decide
+ *  nothing about family. */
+let uniqueFamilyNames = null;
+function getUniqueFamilyNames() {
+  if (!uniqueFamilyNames) {
+    const names = (family) =>
+      new Set(
+        SYMBOL_SETS.filter((s) => s.id.startsWith(family)).flatMap((s) =>
+          s.symbols.map((sym) => sym.name)
+        )
+      );
+    const high = names('high');
+    const low = names('low');
+    uniqueFamilyNames = {
+      high: new Set([...high].filter((n) => !low.has(n))),
+      low: new Set([...low].filter((n) => !high.has(n))),
+    };
+  }
+  return uniqueFamilyNames;
+}
+
+/**
+ * Infers the drum family of a set of authored sounds from their names: the first
+ * name unique to one family's vocabulary decides ('TEN' → high, 'don' → low).
+ * Names shared by both families (rests, kakegoe calls) are skipped.
+ * @param {string[]} names - Sound names, in any order.
+ * @returns {string|null} 'high' | 'low', or null when nothing is decisive.
+ */
+export function familyForSounds(names) {
+  const unique = getUniqueFamilyNames();
+  for (const n of names) {
+    if (unique.high.has(n)) return 'high';
+    if (unique.low.has(n)) return 'low';
+  }
+  return null;
+}
+
 /**
  * A taiko's primary strike: the first symbol of its set at the given beat
  * division — the big hit by convention (TEN for high drums, DON for low).
