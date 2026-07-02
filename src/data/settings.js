@@ -7,7 +7,7 @@ function applyToDOM() {
 }
 
 export const settings = {
-  proportionalWidth: false,
+  proportionalWidth: true,
   font: 'sans',
   darkMode: false,
   defaultBackground: null,
