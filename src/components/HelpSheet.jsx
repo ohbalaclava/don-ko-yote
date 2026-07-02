@@ -91,7 +91,7 @@ export function HelpSheet() {
                 m(Row, { label: 'Drag a sound', desc: 'Drop it onto any line to add it there.' }),
                 m(Row, {
                   label: 'Tap a pattern',
-                  desc: 'Adds the pattern expanded into individual tiles on the selected line.',
+                  desc: "Adds the pattern's tiles to the selected line.",
                 }),
               ]),
 
@@ -100,11 +100,6 @@ export function HelpSheet() {
                   label: 'Tap a line',
                   desc: 'Selects it — new sounds are added here and a ▶ play button appears.',
                 }),
-                m(Row, {
-                  label: '▶ (line)',
-                  desc: 'Preview the selected line once, ignoring its repeat count.',
-                }),
-                m(Row, { label: 'Drag ⠿', desc: 'Reorder lines by dragging the grip handle.' }),
                 m(Row, { label: '✕', desc: 'Remove the line and all its sounds.' }),
               ]),
 
@@ -120,6 +115,14 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Drag a tile',
                   desc: 'Reorder within a line or move to another line.',
+                }),
+              ]),
+
+              m(Section, { title: 'Editor' }, [
+                m(Row, { label: '⌫', desc: 'Delete the last tile on the selected line.' }),
+                m(Row, {
+                  label: '↺ / ↻',
+                  desc: 'Undo and redo. Backspace also undoes when focus is not in a text field.',
                 }),
               ]),
 
@@ -142,7 +145,7 @@ export function HelpSheet() {
                 m(Row, { label: 'Duplicate', desc: 'Insert copies of the selected rows below.' }),
                 m(Row, {
                   label: 'Repeat',
-                  desc: 'Wrap the selected rows in a repeat block. The block plays that many times during playback and PDF export.',
+                  desc: 'Wrap the selected rows in a repeat block. Set a count; the block plays that many times during playback and in the PDF.',
                 }),
                 m(Row, { label: 'Delete', desc: 'Remove the selected rows.' }),
               ]),
@@ -150,7 +153,7 @@ export function HelpSheet() {
               m(Section, { title: 'Repeats' }, [
                 m(Row, {
                   label: 'Single-line',
-                  desc: 'A ×N badge appears inline on a line inside a single-row repeat block. Use − and + to change the count. Tapping − when count is 2 removes the repeat.',
+                  desc: 'A single-line repeat shows a ×N badge on the line. Use − and + to change the count; tapping − at 2 removes the repeat.',
                 }),
                 m(Row, {
                   label: 'Block repeat row',
@@ -185,7 +188,7 @@ export function HelpSheet() {
                 }),
                 m(Row, {
                   label: 'During playback',
-                  desc: 'The definition lines are skipped in the main melody and instead loop underneath the following score, until the next jiuchi section.',
+                  desc: 'The definition lines are skipped in the main melody and instead loop under the rest of the score until the next jiuchi section.',
                 }),
                 m(Row, {
                   label: 'Taiko picker',
@@ -205,7 +208,7 @@ export function HelpSheet() {
                 }),
                 m(Row, {
                   label: '▶ (line)',
-                  desc: 'Preview the selected line. Shown on the right when a line is selected.',
+                  desc: 'Preview the selected line once, ignoring its repeat count.',
                 }),
                 m(Row, {
                   label: '▶ (heading)',
@@ -215,20 +218,16 @@ export function HelpSheet() {
                   label: '▶ (repeat block)',
                   desc: 'Preview the repeated block with its repeats applied.',
                 }),
-                m(Row, {
-                  label: '▶ (jiuchi)',
-                  desc: 'Preview one loop of a jiuchi section.',
-                }),
               ]),
 
               m(Section, { title: 'Metronome ▲' }, [
                 m(Row, {
                   label: 'Practice loop',
-                  desc: 'Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM last for the session only.',
+                  desc: "Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM aren't saved with the score.",
                 }),
                 m(Row, {
                   label: 'Metronome',
-                  desc: 'Play a beat track alongside the score during playback. Opened from the ▲ button in the header. These settings are saved with the score.',
+                  desc: 'Play a beat track alongside the score during playback. These settings are saved with the score.',
                 }),
                 m(Row, {
                   label: 'Head beat only',
@@ -237,32 +236,13 @@ export function HelpSheet() {
                 m(Row, { label: 'Emphasise head', desc: 'Accent the start of each beat.' }),
                 m(Row, {
                   label: 'Jiuchi',
-                  desc: "Which base rhythm to play. 'Match score' follows the piece's jiuchi; a named jiuchi ticks its subdivisions; 'Inline' plays the score's jiuchi sections as authored drum rhythms (needs at least one jiuchi section).",
+                  desc: "Which base rhythm to play. 'Match score' follows the piece's jiuchi; a named jiuchi ticks its subdivisions; 'Inline' plays the score's jiuchi sections as drum rhythms — head-only, emphasise, and Shime grey out since nothing ticks.",
                 }),
                 m(Row, {
                   label: 'Use Shime sound',
                   desc: 'Tick with the Shime TEN sample instead of a synth click.',
                 }),
                 m(Row, { label: 'Volume', desc: 'Level of the metronome track.' }),
-                m(Row, {
-                  label: 'Inline note',
-                  desc: 'While Inline is selected, head-only, emphasise, and Shime are greyed out — Inline plays your drum rhythm, not ticks.',
-                }),
-              ]),
-
-              m(Section, { title: 'Editor' }, [
-                m(Row, { label: '⌫', desc: 'Delete the last tile on the selected line.' }),
-                m(Row, {
-                  label: '↺ / ↻',
-                  desc: 'Undo and redo. Backspace also undoes when focus is not in a text field.',
-                }),
-              ]),
-
-              m(Section, { title: 'Beats per line' }, [
-                m(Row, {
-                  label: 'Limit',
-                  desc: 'Set in ♩ Score settings. Sounds that would overflow are automatically wrapped to the next line.',
-                }),
               ]),
 
               m(Section, { title: 'Score settings ♩' }, [
@@ -272,7 +252,7 @@ export function HelpSheet() {
                 }),
                 m(Row, {
                   label: 'Beats per line',
-                  desc: 'Maximum beats before wrapping to a new line.',
+                  desc: 'Maximum beats per line — overflowing sounds wrap to the next line automatically.',
                 }),
                 m(Row, { label: 'BPM', desc: 'Tempo used for playback.' }),
                 m(Row, {
