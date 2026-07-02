@@ -169,8 +169,32 @@ export function HelpSheet() {
                 }),
                 m(Row, { label: '+ Add divider', desc: 'Visual separator between sections.' }),
                 m(Row, {
+                  label: '+ Add jiuchi',
+                  desc: 'Insert a jiuchi section — an inline base rhythm (see below).',
+                }),
+                m(Row, {
                   label: 'Drag ⠿',
                   desc: 'All row types can be reordered by dragging their grip handle.',
+                }),
+              ]),
+
+              m(Section, { title: 'Jiuchi sections' }, [
+                m(Row, {
+                  label: 'What it is',
+                  desc: 'A green marker row that starts a base-rhythm region. The sound lines below it, up to the next heading or divider, define one loop of the jiuchi.',
+                }),
+                m(Row, {
+                  label: 'During playback',
+                  desc: 'The definition lines are skipped in the main melody and instead loop underneath the following score, until the next jiuchi section.',
+                }),
+                m(Row, {
+                  label: 'Taiko picker',
+                  desc: "Choose which drum the section is written for. Its symbols become the palette while authoring the section's lines.",
+                }),
+                m(Row, { label: '▶ (jiuchi)', desc: 'Preview one loop of the jiuchi on its own.' }),
+                m(Row, {
+                  label: 'Metronome',
+                  desc: "Adding a jiuchi section selects the metronome's 'Inline' jiuchi so it plays your authored rhythm — change it back anytime in ▲.",
                 }),
               ]),
 
@@ -191,12 +215,20 @@ export function HelpSheet() {
                   label: '▶ (repeat block)',
                   desc: 'Preview the repeated block with its repeats applied.',
                 }),
+                m(Row, {
+                  label: '▶ (jiuchi)',
+                  desc: 'Preview one loop of a jiuchi section.',
+                }),
               ]),
 
               m(Section, { title: 'Metronome ▲' }, [
                 m(Row, {
+                  label: 'Practice loop',
+                  desc: 'Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM last for the session only.',
+                }),
+                m(Row, {
                   label: 'Metronome',
-                  desc: 'Play a beat track alongside the score during playback. Opened from the ▲ button in the header.',
+                  desc: 'Play a beat track alongside the score during playback. Opened from the ▲ button in the header. These settings are saved with the score.',
                 }),
                 m(Row, {
                   label: 'Head beat only',
@@ -205,13 +237,17 @@ export function HelpSheet() {
                 m(Row, { label: 'Emphasise head', desc: 'Accent the start of each beat.' }),
                 m(Row, {
                   label: 'Jiuchi',
-                  desc: "Which subdivisions to tick when not head-only. 'Match score' follows the piece's jiuchi.",
+                  desc: "Which base rhythm to play. 'Match score' follows the piece's jiuchi; a named jiuchi ticks its subdivisions; 'Inline' plays the score's jiuchi sections as authored drum rhythms (needs at least one jiuchi section).",
                 }),
                 m(Row, {
                   label: 'Use Shime sound',
                   desc: 'Tick with the Shime TEN sample instead of a synth click.',
                 }),
                 m(Row, { label: 'Volume', desc: 'Level of the metronome track.' }),
+                m(Row, {
+                  label: 'Inline note',
+                  desc: 'While Inline is selected, head-only, emphasise, and Shime are greyed out — Inline plays your drum rhythm, not ticks.',
+                }),
               ]),
 
               m(Section, { title: 'Editor' }, [
@@ -230,6 +266,10 @@ export function HelpSheet() {
               ]),
 
               m(Section, { title: 'Score settings ♩' }, [
+                m(Row, {
+                  label: 'Taiko / Jiuchi',
+                  desc: 'The drum and base rhythm chosen when the score was created (shown for reference).',
+                }),
                 m(Row, {
                   label: 'Beats per line',
                   desc: 'Maximum beats before wrapping to a new line.',
@@ -257,6 +297,14 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Count-in',
                   desc: 'Play one bar of click sounds before playback begins.',
+                }),
+                m(Row, {
+                  label: 'UI sounds',
+                  desc: 'Audible feedback when tapping and dragging tiles.',
+                }),
+                m(Row, {
+                  label: 'Playback volume',
+                  desc: 'Master output level — compensate for quiet or loud devices.',
                 }),
                 m(Row, {
                   label: 'Use volume (default)',
