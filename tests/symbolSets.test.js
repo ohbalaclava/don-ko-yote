@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { symbolSetForTaiko, taikoGroupsForTime, timeForJiuchi } from '../src/data/symbolSets.js';
+import {
+  primaryStrike,
+  symbolSetForTaiko,
+  taikoGroupsForTime,
+  timeForJiuchi,
+} from '../src/data/symbolSets.js';
+
+describe('primaryStrike', () => {
+  it('is the big hit of the set: TEN for high drums, DON for low', () => {
+    expect(primaryStrike('Shime', 4)?.name).toBe('TEN');
+    expect(primaryStrike('Nagado', 4)?.name).toBe('DON');
+  });
+
+  it('resolves against the set for the given time (swing durations differ)', () => {
+    expect(primaryStrike('Shime', 3)).toMatchObject({ name: 'TEN', duration: 3 });
+    expect(primaryStrike('Shime', 4)).toMatchObject({ name: 'TEN', duration: 4 });
+  });
+
+  it('returns null when the taiko has no set at that time', () => {
+    expect(primaryStrike('Nope', 4)).toBeNull();
+  });
+});
 
 describe('timeForJiuchi', () => {
   it('resolves swing-native Shichisan to time 3', () => {

@@ -72,6 +72,19 @@ export function timeForJiuchi(jiuchi) {
   return SYMBOL_SETS.find((s) => s.jiuchis.includes(jiuchi))?.time ?? null;
 }
 
+/**
+ * A taiko's primary strike: the first symbol of its set at the given beat
+ * division — the big hit by convention (TEN for high drums, DON for low).
+ * Used by the practice metronome to voice tick patterns as drum strikes.
+ * @param {string} taiko - Taiko display name.
+ * @param {number} time - Divisions per beat.
+ * @returns {object|null} The symbol ({ name, hand, duration, volume }), or null
+ *   when the taiko has no set at that time.
+ */
+export function primaryStrike(taiko, time) {
+  return symbolSetForTaiko(taiko, time)?.symbols[0] ?? null;
+}
+
 /** Taikos grouped by drum family (High vs Low), for picker UI. */
 export const TAIKO_GROUPS = [
   { label: 'High', taikos: HIGH_STRAIGHT.taiko },

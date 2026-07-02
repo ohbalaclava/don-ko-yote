@@ -8,7 +8,7 @@ import {
   jiuchiSectionSlice,
 } from '../data/sequence.js';
 import { jiuchiLoop, jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
-import { timeForJiuchi } from '../data/symbolSets.js';
+import { primaryStrike, timeForJiuchi } from '../data/symbolSets.js';
 import { getAudioContext, resumeAudio, voice } from './engine.js';
 import { settings } from '../data/settings.js';
 
@@ -33,6 +33,9 @@ export const player = {
   // Session-only BPM for the standalone practice metronome. Null means "follow
   // piece.bpm". Not persisted; survives modal close/reopen within the session.
   metroBpm: null,
+  // Session-only taiko voice for the practice loop. Null means tick (synth
+  // click / Shime sample); a taiko name plays the pattern as drum strikes.
+  metroTaiko: null,
 
   _events: [],
   // Loop period in seconds for the standalone metronome; 0 = normal finite
@@ -112,6 +115,20 @@ export const player = {
   },
 
   /**
+   * Sets the session-only practice-loop voice: null for ticks, or a taiko name
+   * to play the pattern as drum strikes. A running loop restarts with the new voice.
+   * @param {object} piece
+   * @param {string|null} taiko
+   */
+  setMetroTaiko(piece, taiko) {
+    this.metroTaiko = taiko;
+    if (this.isScope('metronome')) {
+      this.stop();
+      this.playMetronome(piece);
+    }
+  },
+
+  /**
    * Starts the standalone practice metronome: one cycle of the configured jiuchi
    * (a standard tick pattern, or the score's first inline jiuchi section played
    * with its own taiko) looped indefinitely at `metroBpm` (defaulting to the
@@ -149,6 +166,8 @@ export const player = {
     if (this._epoch !== epoch) return;
     if (inline) {
       await voice.preload(inline.taiko);
+    } else if (this.metroTaiko) {
+      await voice.preload(this.metroTaiko);
     } else if (piece.metronomeShime) {
       await voice.preload('Shime');
     }
@@ -186,11 +205,30 @@ export const player = {
         headOnly: piece.metronomeHeadOnly,
         emphasise: piece.metronomeEmphasiseHead,
       });
-      this._metroTicks = cycle.ticks.map((t) => ({
-        atSec: divToSeconds(t.div, bpm, loopTime),
-        accent: t.accent,
-      }));
-      this._metroStrikes = [];
+      // Session taiko voice: the same cycle as drum strikes on the chosen taiko
+      // (its big hit, louder when accented) instead of ticks. Falls back to
+      // ticks when the taiko has no symbol set at this jiuchi's time (e.g. a
+      // straight-only taiko under swing Shichisan).
+      const sym = this.metroTaiko ? primaryStrike(this.metroTaiko, loopTime) : null;
+      if (sym) {
+        this._metroTicks = [];
+        this._metroStrikes = cycle.ticks.map((t) => ({
+          atSec: divToSeconds(t.div, bpm, loopTime),
+          sound: {
+            name: sym.name,
+            hand: sym.hand,
+            volume: sym.volume * (t.accent ? 1.5 : 1) * piece.metronomeVolume,
+            duration: sym.duration,
+          },
+          taiko: this.metroTaiko,
+        }));
+      } else {
+        this._metroTicks = cycle.ticks.map((t) => ({
+          atSec: divToSeconds(t.div, bpm, loopTime),
+          accent: t.accent,
+        }));
+        this._metroStrikes = [];
+      }
       lengthDiv = cycle.lengthDiv;
     }
     this._loopSec = divToSeconds(lengthDiv, bpm, loopTime);

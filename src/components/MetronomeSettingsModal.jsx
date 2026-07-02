@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { ALL_JIUCHIS, visibleJiuchis } from '../data/symbolSets.js';
+import { ALL_JIUCHIS, TAIKO_GROUPS, visibleJiuchis } from '../data/symbolSets.js';
 import { piece } from '../data/piece.js';
 import { player } from '../audio/player.js';
 import { Toggle } from './SettingsModal.jsx';
@@ -61,6 +61,26 @@ export function MetronomeSettingsModal() {
                     ),
                   ]),
                   m('div', { class: 'flex items-center gap-2' }, [
+                    m(
+                      'select',
+                      {
+                        class:
+                          'bg-gray-100 dark:bg-gray-800 dark:text-white rounded px-2 py-1 border border-gray-300 dark:border-gray-600 text-sm',
+                        title: 'Loop voice: tick, or drum strikes on a taiko',
+                        // Session-only, like the BPM: lives on the player.
+                        onchange: (e) => player.setMetroTaiko(piece, e.target.value || null),
+                      },
+                      [
+                        m('option', { value: '', selected: !player.metroTaiko }, 'Tick'),
+                        TAIKO_GROUPS.flatMap((g) => g.taikos).map((t) =>
+                          m(
+                            'option',
+                            { value: t.name, selected: player.metroTaiko === t.name },
+                            t.name
+                          )
+                        ),
+                      ]
+                    ),
                     m('input', {
                       type: 'number',
                       min: '1',
