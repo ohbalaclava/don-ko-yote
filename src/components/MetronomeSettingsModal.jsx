@@ -54,11 +54,7 @@ export function MetronomeSettingsModal() {
                 [
                   m('div', [
                     m('div', { class: 'font-medium dark:text-white' }, 'Practice loop'),
-                    m(
-                      'div',
-                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
-                      'Loop the jiuchi on its own — no score'
-                    ),
+                    m('div', { class: 'text-sm text-gray-500 dark:text-gray-400' }, 'Jiuchi only'),
                   ]),
                   m('div', { class: 'flex items-center gap-2' }, [
                     m(
