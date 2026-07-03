@@ -5,6 +5,7 @@ import {
   symbolSetForTaiko,
   taikoGroupsForTime,
   timeForJiuchi,
+  TAIKO_GROUPS,
 } from '../src/data/symbolSets.js';
 
 describe('familyForSounds', () => {
@@ -99,5 +100,15 @@ describe('taikoGroupsForTime', () => {
 
   it('drops empty family groups', () => {
     for (const g of taikoGroupsForTime(4)) expect(g.taikos.length).toBeGreaterThan(0);
+  });
+
+  it('omits hidden taikos (Okedo) while the data layer still resolves them', () => {
+    for (const time of [3, 4]) {
+      const names = taikoGroupsForTime(time).flatMap((g) => g.taikos.map((t) => t.name));
+      expect(names).not.toContain('Okedo');
+      expect(symbolSetForTaiko('Okedo', time)).toBeTruthy();
+    }
+    const pickerNames = TAIKO_GROUPS.flatMap((g) => g.taikos.map((t) => t.name));
+    expect(pickerNames).not.toContain('Okedo');
   });
 });

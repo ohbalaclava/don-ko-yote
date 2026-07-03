@@ -3,7 +3,9 @@ export const LOW_STRAIGHT = {
   time: 4,
   taiko: [
     { name: 'Nagado', skins: 1 },
-    { name: 'Okedo', skins: 1 },
+    // Hidden from pickers for now, but still valid in the data layer so
+    // existing Okedo scores keep loading and playing.
+    { name: 'Okedo', skins: 1, hidden: true },
     { name: 'Odaiko', skins: 1 },
   ],
   jiuchis: ['Gobu Gobu', 'Mitsu-uchi', 'Shiberoku'],

@@ -35,7 +35,8 @@ export function symbolSetForTaiko(taiko, time) {
  * Returns the distinct taikos usable at the given beat division, grouped by drum
  * family (High vs Low) for picker UI. A taiko qualifies when some symbol set with
  * that `time` lists it, so a jiuchi section's taiko choices are constrained to the
- * score's straight/swing feel.
+ * score's straight/swing feel. Taikos flagged `hidden` are omitted (they stay
+ * valid in the data layer via `symbolSetForTaiko` / `getSymbolSet`).
  * @param {number} time - Divisions per beat.
  * @returns {Array<{ label: string, taikos: Array<{ name: string, skins: number }> }>}
  */
@@ -47,7 +48,7 @@ export function taikoGroupsForTime(time) {
     for (const s of sets) {
       if (s.id.split('-')[0] !== family) continue;
       for (const t of s.taiko) {
-        if (seen.has(t.name)) continue;
+        if (t.hidden || seen.has(t.name)) continue;
         seen.add(t.name);
         out.push(t);
       }
@@ -123,10 +124,10 @@ export function primaryStrike(taiko, time) {
   return symbolSetForTaiko(taiko, time)?.symbols[0] ?? null;
 }
 
-/** Taikos grouped by drum family (High vs Low), for picker UI. */
+/** Taikos grouped by drum family (High vs Low), for picker UI. Omits `hidden` taikos. */
 export const TAIKO_GROUPS = [
-  { label: 'High', taikos: HIGH_STRAIGHT.taiko },
-  { label: 'Low', taikos: LOW_STRAIGHT.taiko },
+  { label: 'High', taikos: HIGH_STRAIGHT.taiko.filter((t) => !t.hidden) },
+  { label: 'Low', taikos: LOW_STRAIGHT.taiko.filter((t) => !t.hidden) },
 ];
 
 /**
