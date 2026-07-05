@@ -458,6 +458,13 @@ describe('per-score metronome config', () => {
     expect(piece.metronomeHeadOnly).toBe(true);
   });
 
+  it('loadFromData normalises legacy named-jiuchi metronome values to auto', () => {
+    piece.loadFromData({ metronomeJiuchi: 'Gobu Gobu' });
+    expect(piece.metronomeJiuchi).toBe('auto');
+    piece.loadFromData({ metronomeJiuchi: 'inline' });
+    expect(piece.metronomeJiuchi).toBe('inline');
+  });
+
   it('reset clears metronome config back to defaults', () => {
     piece.setMetronome('metronome', true);
     piece.setMetronome('metronomeJiuchi', 'inline');

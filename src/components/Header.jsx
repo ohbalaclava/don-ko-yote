@@ -100,7 +100,7 @@ export function Header() {
               // visible (and findable to stop) after the sheet is closed.
               class: `rounded px-2 py-1 text-lg leading-none ${player.isScope('metronome') ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`,
               onclick: onOpenMetronomeSettings,
-              title: 'Metronome',
+              title: 'Metronome/Jiuchi',
             },
             '▲'
           ),

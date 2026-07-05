@@ -220,14 +220,14 @@ export function HelpSheet() {
                 }),
               ]),
 
-              m(Section, { title: 'Metronome ▲' }, [
+              m(Section, { title: 'Metronome/Jiuchi ▲' }, [
                 m(Row, {
-                  label: 'Practice loop',
-                  desc: "Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM aren't saved with the score.",
+                  label: 'Enable',
+                  desc: 'Play a beat track alongside the score during playback. These settings are saved with the score.',
                 }),
                 m(Row, {
-                  label: 'Metronome',
-                  desc: 'Play a beat track alongside the score during playback. These settings are saved with the score.',
+                  label: 'Play jiuchi',
+                  desc: "Off: tick the score's own jiuchi. On: loop the score's jiuchi sections as drum rhythms instead — head-only, emphasise, and Shime grey out since nothing ticks. Needs a jiuchi section in the score.",
                 }),
                 m(Row, {
                   label: 'Head beat only',
@@ -235,14 +235,14 @@ export function HelpSheet() {
                 }),
                 m(Row, { label: 'Emphasise head', desc: 'Accent the start of each beat.' }),
                 m(Row, {
-                  label: 'Jiuchi',
-                  desc: "Which base rhythm to play. 'Match score' follows the piece's jiuchi; a named jiuchi ticks its subdivisions; 'Inline' plays the score's jiuchi sections as drum rhythms — head-only, emphasise, and Shime grey out since nothing ticks.",
-                }),
-                m(Row, {
                   label: 'Use Shime sound',
                   desc: 'Tick with the Shime TEN sample instead of a synth click.',
                 }),
                 m(Row, { label: 'Volume', desc: 'Level of the metronome track.' }),
+                m(Row, {
+                  label: 'Practice loop',
+                  desc: "Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM aren't saved with the score.",
+                }),
               ]),
 
               m(Section, { title: 'Score settings ♩' }, [

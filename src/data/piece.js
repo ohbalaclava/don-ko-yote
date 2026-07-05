@@ -446,6 +446,11 @@ export const piece = {
    */
   loadFromData(source) {
     applyPersistedFields(source);
+    // Named-jiuchi metronome values predate the auto/inline toggle; play them
+    // as 'auto' so the UI reflects what actually sounds.
+    if (piece.metronomeJiuchi !== 'auto' && piece.metronomeJiuchi !== 'inline') {
+      piece.metronomeJiuchi = 'auto';
+    }
     piece._resetTransientState();
   },
 
