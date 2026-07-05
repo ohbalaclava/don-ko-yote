@@ -861,6 +861,23 @@ export const piece = {
   },
 
   /**
+   * Duplicates a single row (sound line, heading, note, or divider) and inserts
+   * the clone immediately after it. A sound-line clone becomes the selected line.
+   * Marker rows (block-repeat, jiuchi-section) are not duplicable.
+   * @param {string} id
+   */
+  duplicateLine(id) {
+    const idx = piece.lines.findIndex((l) => l.id === id);
+    if (idx === -1) return;
+    const item = piece.lines[idx];
+    if (item.type === 'block-repeat' || item.type === 'jiuchi-section') return;
+    const clone = piece._cloneItem(item);
+    piece.lines.splice(idx + 1, 0, clone);
+    if (isSoundLine(clone)) piece.selectedLineId = clone.id;
+    piece._commit();
+  },
+
+  /**
    * Deletes all selected items. Ensures at least one real (non-heading) line remains.
    */
   deleteSelectedLines() {

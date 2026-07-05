@@ -17,28 +17,12 @@ import { Toast, showToast } from './components/Toast.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
-import { piece } from './data/piece.js';
+import { piece, isSoundLine } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { player } from './audio/player.js';
+import { feedbackSound, feedbackClick } from './audio/feedback.js';
+import { ensureEditTargetVisible } from './scroll.js';
 import { VERSION } from './version.js';
-
-document.addEventListener('keydown', (e) => {
-  const tag = document.activeElement?.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-  if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    scoreStore.save();
-  } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-    e.preventDefault();
-    piece.undo();
-  } else if (
-    (e.key === 'y' && (e.ctrlKey || e.metaKey)) ||
-    (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)
-  ) {
-    e.preventDefault();
-    piece.redo();
-  }
-});
 
 scoreStore.init();
 scoreStore.load();
@@ -88,6 +72,197 @@ function App() {
     };
     input.click();
   }
+
+  // ── Keyboard shortcuts (desktop) ───────────────────────────────────────────
+  // All shortcuts live here so they can see which sheets are open: single-key
+  // shortcuts (Space, letters, arrows…) must go dead while a sheet is up, and
+  // Escape must close the topmost sheet before touching score state.
+
+  function anySheetOpen() {
+    return (
+      settingsOpen ||
+      scoreSettingsOpen ||
+      metronomeSettingsOpen ||
+      menuOpen ||
+      exportSheetOpen ||
+      importSheetOpen ||
+      newScoreOpen ||
+      loadScoreOpen ||
+      helpOpen ||
+      jiuchiPatternsOpen
+    );
+  }
+
+  /** Closes the topmost open sheet. Returns true when one was closed. */
+  function closeTopSheet() {
+    if (jiuchiPatternsOpen) jiuchiPatternsOpen = false;
+    else if (helpOpen) helpOpen = false;
+    else if (loadScoreOpen) loadScoreOpen = false;
+    else if (newScoreOpen) newScoreOpen = false;
+    else if (importSheetOpen) importSheetOpen = false;
+    else if (exportSheetOpen) exportSheetOpen = false;
+    else if (menuOpen) menuOpen = false;
+    else if (metronomeSettingsOpen) metronomeSettingsOpen = false;
+    else if (scoreSettingsOpen) scoreSettingsOpen = false;
+    else if (settingsOpen) settingsOpen = false;
+    else return false;
+    return true;
+  }
+
+  /** Nudges the tempo by `delta` BPM, clamped to the stepper's 20–400 range. */
+  function nudgeBpm(delta) {
+    piece.setBpm(Math.min(400, Math.max(20, (piece.bpm || 120) + delta)));
+  }
+
+  function handleKeydown(e) {
+    const tag = document.activeElement?.tagName;
+    const inField = tag === 'INPUT' || tag === 'TEXTAREA';
+
+    if (e.key === 'Escape') {
+      if (inField) {
+        document.activeElement.blur();
+        return;
+      }
+      if (closeTopSheet()) {
+        e.preventDefault();
+        m.redraw();
+        return;
+      }
+      if (scoreActive) {
+        if (piece.editingTile) {
+          e.preventDefault();
+          piece.setEditingTile(null);
+        } else if (piece.selectMode) {
+          e.preventDefault();
+          piece.toggleSelectMode();
+        } else if (piece.lineSelectMode) {
+          e.preventDefault();
+          piece.toggleLineSelectMode();
+        }
+      }
+      return;
+    }
+
+    if (inField) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 's') {
+        e.preventDefault();
+        scoreStore.save();
+      } else if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        piece.undo();
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        piece.redo();
+      } else if (e.key === 'd' && scoreActive && !anySheetOpen()) {
+        e.preventDefault();
+        if (piece.lineSelectMode && piece.lineSelection.length > 0) {
+          piece.duplicateSelectedLines();
+        } else if (!piece.selectMode && piece.selectedLineId) {
+          piece.duplicateLine(piece.selectedLineId);
+        }
+      }
+      return;
+    }
+
+    // Single-key shortcuts only apply in the score view with no sheet open.
+    if (!scoreActive || anySheetOpen() || e.altKey) return;
+
+    if (e.key === '?') {
+      e.preventDefault();
+      helpOpen = true;
+      m.redraw();
+      return;
+    }
+
+    if (e.key === ' ') {
+      e.preventDefault(); // stop the page scrolling
+      if (e.shiftKey) {
+        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
+        if (line && isSoundLine(line)) {
+          player.toggleScope(piece, [line], { type: 'line', id: line.id });
+        }
+      } else if (player.playing) {
+        player.stop(); // Space stops whatever is playing, scoped previews included
+      } else {
+        player.toggleAll(piece);
+      }
+      m.redraw();
+      return;
+    }
+
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      // Delete the tile selection when there is one, else the last sound of
+      // the selected line (typewriter-style). Undo stays on Ctrl+Z.
+      if (piece.selectMode && piece.selection.soundIds.length > 0) {
+        piece.deleteSelectedSounds();
+      } else if (!piece.selectMode && !piece.lineSelectMode) {
+        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
+        const last = line?.sounds.at(-1);
+        if (last) piece.removeSound(line.id, last.id);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault(); // stop the page scrolling
+      const soundLines = piece.lines.filter(isSoundLine);
+      if (soundLines.length === 0) return;
+      const idx = soundLines.findIndex((l) => l.id === piece.selectedLineId);
+      const next =
+        e.key === 'ArrowUp'
+          ? Math.max(0, idx - 1)
+          : idx === -1
+            ? 0
+            : Math.min(soundLines.length - 1, idx + 1);
+      piece.selectLine(soundLines[next].id);
+      document
+        .querySelector(`[data-line-id="${soundLines[next].id}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      if (piece.selectMode || piece.lineSelectMode) return;
+      e.preventDefault();
+      piece.addLine();
+      return;
+    }
+
+    if (e.key === '+' || e.key === '=') {
+      nudgeBpm(5);
+      return;
+    }
+    if (e.key === '-') {
+      nudgeBpm(-5);
+      return;
+    }
+
+    // Sound entry: type the kuchi shoga. A letter adds the first symbol in the
+    // active set whose name starts with it; '.' adds a rest, like palette taps.
+    if (piece.selectMode || piece.lineSelectMode || !piece.selectedLineId) return;
+    if (e.key === '.') {
+      e.preventDefault();
+      feedbackClick('tap');
+      piece.addSound(piece.selectedLineId, { name: '—', duration: piece.time, implicit: true });
+      ensureEditTargetVisible();
+      return;
+    }
+    if (/^[a-z]$/i.test(e.key)) {
+      const k = e.key.toLowerCase();
+      const sym = piece.activeSymbolSet.symbols.find((s) => s.name[0].toLowerCase() === k);
+      if (sym) {
+        e.preventDefault();
+        feedbackSound(sym);
+        piece.addSound(piece.selectedLineId, sym);
+        ensureEditTargetVisible();
+      }
+    }
+  }
+
+  document.addEventListener('keydown', handleKeydown);
 
   return {
     view() {

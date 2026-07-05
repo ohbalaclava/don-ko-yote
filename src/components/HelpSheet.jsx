@@ -127,6 +127,33 @@ export function HelpSheet() {
                 m(Row, { label: '− / +', desc: 'Nudge the tempo by 5 BPM for practice.' }),
               ]),
 
+              m(Section, { title: 'Keyboard (desktop)' }, [
+                m(Row, {
+                  label: 'Type letters',
+                  desc: 'Add the first sound in the palette starting with that letter (d → Don). Full stop (.) adds a rest.',
+                }),
+                m(Row, {
+                  label: 'Space',
+                  desc: 'Play or stop the piece. Shift+Space plays the selected line.',
+                }),
+                m(Row, {
+                  label: '↑ / ↓ / Enter',
+                  desc: 'Move the line selection; Enter adds a new line below it.',
+                }),
+                m(Row, {
+                  label: 'Esc',
+                  desc: 'Close the open sheet or tile editor, or cancel selection.',
+                }),
+                m(Row, {
+                  label: 'Ctrl+D',
+                  desc: 'Duplicate the selected line (or the line selection).',
+                }),
+                m(Row, {
+                  label: 'Ctrl+S · + / − · ?',
+                  desc: 'Save · nudge BPM · open this help.',
+                }),
+              ]),
+
               m(Section, { title: 'Select — tiles' }, [
                 m(Row, {
                   label: 'Tiles button',

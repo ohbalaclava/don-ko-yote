@@ -210,6 +210,44 @@ describe('deleteSelectedSounds', () => {
   });
 });
 
+// ── duplicateLine ─────────────────────────────────────────────────────────────
+
+describe('duplicateLine', () => {
+  it('inserts a clone with fresh ids right after the line and selects it', () => {
+    piece.addSound(line().id, sym('A'));
+    piece.addSound(line().id, sym('B'));
+    const originalId = line().id;
+    piece.duplicateLine(originalId);
+    expect(piece.lines).toHaveLength(2);
+    expect(piece.lines[1].id).not.toBe(originalId);
+    expect(piece.lines[1].sounds.map((s) => s.name)).toEqual(['A', 'B']);
+    expect(piece.lines[1].sounds[0].id).not.toBe(piece.lines[0].sounds[0].id);
+    expect(piece.selectedLineId).toBe(piece.lines[1].id);
+  });
+
+  it('duplicates a heading without changing the selected line', () => {
+    piece.addHeading();
+    const heading = piece.lines.find((l) => l.type === 'heading');
+    const selected = piece.selectedLineId;
+    piece.duplicateLine(heading.id);
+    expect(piece.lines.filter((l) => l.type === 'heading')).toHaveLength(2);
+    expect(piece.selectedLineId).toBe(selected);
+  });
+
+  it('is a no-op for an unknown id', () => {
+    piece.duplicateLine('nope');
+    expect(piece.lines).toHaveLength(1);
+  });
+
+  it('is a no-op for a block-repeat marker', () => {
+    piece.lineSelection = [line().id];
+    piece.addBlockRepeat(2);
+    const marker = piece.lines.find((l) => l.type === 'block-repeat');
+    piece.duplicateLine(marker.id);
+    expect(piece.lines.filter((l) => l.type === 'block-repeat')).toHaveLength(1);
+  });
+});
+
 // ── updateSound ───────────────────────────────────────────────────────────────
 
 describe('updateSound', () => {

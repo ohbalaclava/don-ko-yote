@@ -17,7 +17,6 @@ import { AddRowActions } from './AddRowActions.jsx';
 
 export function Score() {
   let sortable;
-  let keydownHandler;
   // FLIP state: pre-reorder top positions keyed by row element. Mithril reuses the
   // same DOM nodes across a keyed reorder, so element identity is a stable key —
   // letting the whole moved jiuchi section (several rows) slide together.
@@ -103,24 +102,8 @@ export function Score() {
         },
       });
 
-      keydownHandler = (e) => {
-        if (
-          (e.key === 'Backspace' || e.key === 'Delete') &&
-          !['INPUT', 'TEXTAREA'].includes(e.target.tagName)
-        ) {
-          e.preventDefault();
-          // Delete the tile selection when there is one, else the last sound of
-          // the selected line (typewriter-style). Undo stays on Ctrl+Z.
-          if (piece.selectMode && piece.selection.soundIds.length > 0) {
-            piece.deleteSelectedSounds();
-          } else if (!piece.selectMode && !piece.lineSelectMode) {
-            const line = piece.lines.find((l) => l.id === piece.selectedLineId);
-            const last = line?.sounds.at(-1);
-            if (last) piece.removeSound(line.id, last.id);
-          }
-        }
-      };
-      document.addEventListener('keydown', keydownHandler);
+      // Keyboard shortcuts (incl. Backspace delete) are centralised in main.jsx,
+      // which knows whether a sheet is open and must swallow them.
 
       // Decode this taiko's samples now (score open) so the first Play isn't
       // delayed by the fetch + decode. Fire-and-forget: loadSamples is memoised,
@@ -134,7 +117,6 @@ export function Score() {
     },
     onremove() {
       if (sortable) sortable.destroy();
-      if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
       clearTimeout(flipCleanup);
       player.stop(); // stop audio when leaving the score view
     },
