@@ -41,6 +41,12 @@ export function Palette() {
       patternSortable?.destroy();
     },
     view({ attrs: { onOpenJiuchiPatterns } }) {
+      // Retire the onboarding hint once ~20 sounds have been placed. settings.set
+      // flips the in-memory flag synchronously, so this fires at most once.
+      if (!settings.paletteHintSeen) {
+        const total = piece.lines.reduce((n, l) => n + (l.sounds?.length ?? 0), 0);
+        if (total >= 20) settings.set('paletteHintSeen', true);
+      }
       return m(
         'aside',
         {
@@ -56,7 +62,9 @@ export function Palette() {
                   class:
                     'text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide',
                 },
-                'Sounds — tap to add · drag to any line'
+                // Onboarding hint retires once the user has clearly learnt the
+                // palette (~20 sounds placed in a piece).
+                settings.paletteHintSeen ? 'Sounds' : 'Sounds — tap to add · drag to any line'
               ),
               (() => {
                 const selectedLine = piece.lines.find((l) => l.id === piece.selectedLineId);
@@ -64,11 +72,12 @@ export function Palette() {
                 return m(
                   'button',
                   {
-                    class: `text-sm px-1 ${lastSound ? 'text-red-400 hover:text-red-600' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`,
+                    class: `text-base px-2 py-0.5 rounded ${lastSound ? 'text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`,
                     onclick: () =>
                       lastSound && piece.removeSound(piece.selectedLineId, lastSound.id),
                     disabled: !lastSound,
-                    title: 'Delete last sound',
+                    title: 'Delete last sound (Backspace)',
+                    'aria-label': 'Delete last sound',
                   },
                   '⌫'
                 );
@@ -295,6 +304,7 @@ function PatternPaletteTile() {
                 patternStore.delete(pattern.id);
               },
               title: 'Delete pattern',
+              'aria-label': `Delete pattern ${pattern.name}`,
             },
             '✕'
           ),

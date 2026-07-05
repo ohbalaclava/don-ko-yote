@@ -13,6 +13,7 @@ import { ImportSheet } from './components/ImportSheet.jsx';
 import { NewScoreSheet } from './components/NewScoreSheet.jsx';
 import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
+import { Toast, showToast } from './components/Toast.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
@@ -198,10 +199,13 @@ function App() {
                           class:
                             'py-2 px-3 rounded-lg border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900',
                           onclick: () => {
-                            if (window.confirm('Discard unsaved work?')) {
-                              scoreStore.clearAutosave();
-                              m.redraw();
-                            }
+                            // Reversible via the toast, so no blocking confirm.
+                            const data = scoreStore.autosaveData;
+                            scoreStore.clearAutosave();
+                            showToast('Unsaved work discarded', {
+                              actionLabel: 'Undo',
+                              onAction: () => scoreStore.restoreAutosave(data),
+                            });
                           },
                         },
                         'Discard'
@@ -246,6 +250,7 @@ function App() {
             'v',
             VERSION,
           ]),
+          m(Toast),
         ]);
       }
 
@@ -321,10 +326,13 @@ function App() {
                 m.redraw();
               },
               onClear: () => {
-                if (window.confirm('Clear all lines?')) {
-                  player.stop();
-                  piece.clearLines();
-                }
+                // Undoable via history, so no blocking confirm.
+                player.stop();
+                piece.clearLines();
+                showToast('Score cleared', {
+                  actionLabel: 'Undo',
+                  onAction: () => piece.undo(),
+                });
               },
               onHelp: () => {
                 helpOpen = true;
@@ -386,6 +394,7 @@ function App() {
               },
             })
           : null,
+        m(Toast),
       ]);
     },
   };

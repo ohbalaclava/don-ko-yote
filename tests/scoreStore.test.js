@@ -378,3 +378,42 @@ describe('delete', () => {
     expect(piece.id).toBe('score-2');
   });
 });
+
+// ── restoreScore ──────────────────────────────────────────────────────────────
+
+describe('restoreScore', () => {
+  it('re-saves the record with its original id', async () => {
+    const record = makeScoreRecord();
+    await scoreStore.restoreScore(record);
+    expect(fakeDb.scores.save).toHaveBeenCalledWith(record);
+  });
+
+  it('re-links piece.id when the deletion had unlinked the current piece', async () => {
+    piece.id = 'score-1';
+    await scoreStore.delete('score-1');
+    expect(piece.id).toBeNull();
+    await scoreStore.restoreScore(makeScoreRecord({ id: 'score-1' }));
+    expect(piece.id).toBe('score-1');
+  });
+
+  it('does not touch piece.id when a different score is restored', async () => {
+    piece.id = 'score-2';
+    await scoreStore.delete('score-1');
+    await scoreStore.restoreScore(makeScoreRecord({ id: 'score-1' }));
+    expect(piece.id).toBe('score-2');
+  });
+
+  it('does not re-link when another score was loaded after the delete', async () => {
+    piece.id = 'score-1';
+    await scoreStore.delete('score-1');
+    piece.id = 'score-2'; // user loaded a different score meanwhile
+    await scoreStore.restoreScore(makeScoreRecord({ id: 'score-1' }));
+    expect(piece.id).toBe('score-2');
+  });
+
+  it('refreshes scoreStore.items from the database', async () => {
+    fakeDb.scores.all.mockResolvedValue([makeScoreRecord()]);
+    await scoreStore.restoreScore(makeScoreRecord());
+    expect(scoreStore.items).toHaveLength(1);
+  });
+});

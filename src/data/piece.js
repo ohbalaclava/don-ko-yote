@@ -655,6 +655,22 @@ export const piece = {
     m.redraw();
   },
 
+  /**
+   * Deletes all sounds in the current tile selection from their line, then
+   * clears the selection (select mode stays active for further edits).
+   */
+  deleteSelectedSounds() {
+    const { lineId, soundIds } = piece.selection;
+    if (!lineId || soundIds.length === 0) return;
+    const line = piece.lines.find((l) => l.id === lineId);
+    if (!line) return;
+    const selSet = new Set(soundIds);
+    line.sounds = line.sounds.filter((s) => !selSet.has(s.id));
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    piece.selectedLineId = lineId;
+    piece._commit();
+  },
+
   toggleLineSelectMode() {
     piece.lineSelectMode = !piece.lineSelectMode;
     piece.lineSelection = [];

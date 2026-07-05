@@ -16,6 +16,7 @@ export const settings = {
   countIn: false,
   uiSounds: true, // audible feedback on palette taps/drags and score-tile taps
   volume: 1, // master playback-volume multiplier (1 = default loudness)
+  paletteHintSeen: false, // set once the user has placed enough sounds to know the palette
   // Metronome config (on/off, head-only, emphasise, jiuchi, Shime, volume) is
   // stored per-score on `piece`, not here — see PERSISTED_FIELDS in piece.js.
 
@@ -31,6 +32,7 @@ export const settings = {
       if ('countIn' in saved) settings.countIn = saved.countIn;
       if ('uiSounds' in saved) settings.uiSounds = saved.uiSounds;
       if ('volume' in saved) settings.volume = saved.volume;
+      if ('paletteHintSeen' in saved) settings.paletteHintSeen = saved.paletteHintSeen;
     }
     setMasterVolume(settings.volume);
     applyToDOM();
@@ -50,6 +52,7 @@ export const settings = {
       countIn: settings.countIn,
       uiSounds: settings.uiSounds,
       volume: settings.volume,
+      paletteHintSeen: settings.paletteHintSeen,
     });
     applyToDOM();
     m.redraw();

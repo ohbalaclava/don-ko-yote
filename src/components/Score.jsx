@@ -104,9 +104,20 @@ export function Score() {
       });
 
       keydownHandler = (e) => {
-        if (e.key === 'Backspace' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        if (
+          (e.key === 'Backspace' || e.key === 'Delete') &&
+          !['INPUT', 'TEXTAREA'].includes(e.target.tagName)
+        ) {
           e.preventDefault();
-          piece.undo();
+          // Delete the tile selection when there is one, else the last sound of
+          // the selected line (typewriter-style). Undo stays on Ctrl+Z.
+          if (piece.selectMode && piece.selection.soundIds.length > 0) {
+            piece.deleteSelectedSounds();
+          } else if (!piece.selectMode && !piece.lineSelectMode) {
+            const line = piece.lines.find((l) => l.id === piece.selectedLineId);
+            const last = line?.sounds.at(-1);
+            if (last) piece.removeSound(line.id, last.id);
+          }
         }
       };
       document.addEventListener('keydown', keydownHandler);
@@ -158,6 +169,7 @@ export function Score() {
                     onclick: () =>
                       piece.selectMode ? piece.toggleSelectMode() : piece.toggleLineSelectMode(),
                     title: 'Cancel selection',
+                    'aria-label': 'Cancel selection',
                   },
                   '✕'
                 )
@@ -173,6 +185,7 @@ export function Score() {
                       class:
                         'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
                       onclick: () => piece.toggleSelectMode(),
+                      'aria-pressed': String(piece.selectMode),
                     },
                     'Tiles'
                   ),
@@ -182,6 +195,7 @@ export function Score() {
                       class:
                         'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
                       onclick: () => piece.toggleLineSelectMode(),
+                      'aria-pressed': String(piece.lineSelectMode),
                     },
                     'Lines'
                   ),
@@ -203,6 +217,15 @@ export function Score() {
                         onclick: savePattern,
                       },
                       'Save pattern'
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
+                        onclick: () => piece.deleteSelectedSounds(),
+                      },
+                      'Delete'
                     ),
                   ]
                 : m(
@@ -256,6 +279,41 @@ export function Score() {
             selecting
               ? null
               : m('div', { class: 'ml-auto flex items-center gap-1' }, [
+                  // Quick BPM stepper so practice-tempo tweaks don't require the
+                  // score-settings sheet. Applies from the next play.
+                  m('div', { class: 'flex items-center mr-1 select-none' }, [
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-sm rounded-l px-1.5 py-0.5 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
+                        onclick: () => piece.setBpm(Math.max(20, (piece.bpm || 120) - 5)),
+                        title: 'Slower (−5 BPM)',
+                        'aria-label': 'Decrease tempo',
+                      },
+                      '−'
+                    ),
+                    m(
+                      'span',
+                      {
+                        class:
+                          'text-xs tabular-nums text-gray-600 dark:text-gray-400 border-y border-gray-400 dark:border-gray-500 px-1 py-[0.3rem] leading-none',
+                        title: 'Tempo (BPM)',
+                      },
+                      piece.bpm || '—'
+                    ),
+                    m(
+                      'button',
+                      {
+                        class:
+                          'text-sm rounded-r px-1.5 py-0.5 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
+                        onclick: () => piece.setBpm(Math.min(400, (piece.bpm || 120) + 5)),
+                        title: 'Faster (+5 BPM)',
+                        'aria-label': 'Increase tempo',
+                      },
+                      '+'
+                    ),
+                  ]),
                   (() => {
                     // "Playing" visual reflects whole-piece playback only; a scoped
                     // line/section preview leaves this button showing ▶ (Play all).
@@ -266,6 +324,8 @@ export function Score() {
                         class: `text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`,
                         onclick: () => player.toggleAll(piece),
                         title: allActive ? 'Stop' : 'Play whole piece',
+                        'aria-label': allActive ? 'Stop playback' : 'Play whole piece',
+                        'aria-pressed': String(allActive),
                       },
                       allActive ? '⏹' : '▶'
                     );
@@ -277,6 +337,7 @@ export function Score() {
                       onclick: () => piece.undo(),
                       disabled: !history.canUndo(),
                       title: 'Undo (Ctrl+Z)',
+                      'aria-label': 'Undo',
                     },
                     '↺'
                   ),
@@ -287,6 +348,7 @@ export function Score() {
                       onclick: () => piece.redo(),
                       disabled: !history.canRedo(),
                       title: 'Redo (Ctrl+Y)',
+                      'aria-label': 'Redo',
                     },
                     '↻'
                   ),

@@ -119,11 +119,12 @@ export function HelpSheet() {
               ]),
 
               m(Section, { title: 'Editor' }, [
-                m(Row, { label: '⌫', desc: 'Delete the last tile on the selected line.' }),
                 m(Row, {
-                  label: '↺ / ↻',
-                  desc: 'Undo and redo. Backspace also undoes when focus is not in a text field.',
+                  label: '⌫',
+                  desc: 'Delete the last tile on the selected line. Backspace does the same (or deletes the tile selection) when focus is not in a text field.',
                 }),
+                m(Row, { label: '↺ / ↻', desc: 'Undo and redo (Ctrl+Z / Ctrl+Y).' }),
+                m(Row, { label: '− / +', desc: 'Nudge the tempo by 5 BPM for practice.' }),
               ]),
 
               m(Section, { title: 'Select — tiles' }, [
@@ -134,6 +135,10 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Save pattern',
                   desc: 'Save the selected tiles as a named pattern in the palette.',
+                }),
+                m(Row, {
+                  label: 'Delete',
+                  desc: 'Remove all selected tiles at once.',
                 }),
               ]),
 

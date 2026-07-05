@@ -48,6 +48,11 @@ function expandGroupsInLines(lines) {
 
 let autosaveTimer = null;
 
+// Id of the score whose deletion unlinked the current piece (piece.id cleared in
+// delete()); lets restoreScore re-link the piece on undo instead of leaving the
+// next save to create a duplicate record.
+let unlinkedId = null;
+
 function snapshot() {
   return {
     ...piece._snapshot(), // all persisted scalar fields + lines
@@ -109,6 +114,18 @@ export const scoreStore = {
   confirmDiscard() {
     if (!scoreStore.dirty) return true;
     return window.confirm('You have unsaved changes that will be lost. Continue?');
+  },
+
+  /**
+   * Re-instates a previously discarded autosave snapshot (undo for the home-screen
+   * "Discard" action): restores the in-memory cache and rewrites the kv row.
+   * @param {object} data - The snapshot captured before clearAutosave().
+   */
+  restoreAutosave(data) {
+    if (!data) return;
+    scoreStore.autosaveData = data;
+    db.kv.set('autosave', data);
+    m.redraw();
   },
 
   /** Cancels any pending debounce, clears the in-memory cache, and deletes the kv row. */
@@ -176,8 +193,28 @@ export const scoreStore = {
    */
   async delete(id) {
     await db.scores.delete(id);
-    if (piece.id === id) piece.id = null;
+    if (piece.id === id) {
+      piece.id = null;
+      unlinkedId = id;
+    }
     scoreStore.items = scoreStore.items.filter((s) => s.id !== id);
+    m.redraw();
+  },
+
+  /**
+   * Re-saves a deleted score record (undo for the delete action). The record
+   * keeps its original id, so db.scores.save upserts it back in place. If the
+   * deletion had unlinked the current piece, re-links it so the next save
+   * updates the restored record rather than creating a duplicate.
+   * @param {object} record - The full score record captured before delete().
+   */
+  async restoreScore(record) {
+    await db.scores.save(record);
+    if (piece.id === null && record.id === unlinkedId) {
+      piece.id = record.id;
+      unlinkedId = null;
+    }
+    scoreStore.items = await db.scores.all();
     m.redraw();
   },
 

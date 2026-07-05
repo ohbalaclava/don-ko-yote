@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
+import { scoreStore } from '../data/scoreStore.js';
 import { player } from '../audio/player.js';
 
 export function Header() {
@@ -44,10 +45,18 @@ export function Header() {
           m(
             'button',
             {
-              class: `rounded px-2 py-1 leading-none transition-colors ${saved ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`,
+              class: `relative rounded px-2 py-1 leading-none transition-colors ${saved ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`,
               onclick: () => handleSave(onSave),
               title: 'Save score (Ctrl+S)',
+              'aria-label': scoreStore.dirty ? 'Save score (unsaved changes)' : 'Save score',
             },
+            // Amber dot: the piece has edits not yet saved to a named score.
+            scoreStore.dirty && !saved
+              ? m('span', {
+                  class:
+                    'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 pointer-events-none',
+                })
+              : null,
             saved
               ? m(
                   'svg',
@@ -90,6 +99,7 @@ export function Header() {
               class: 'bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none',
               onclick: onOpenScoreSettings,
               title: 'Score settings',
+              'aria-label': 'Score settings',
             },
             '♩'
           ),
@@ -98,11 +108,31 @@ export function Header() {
             {
               // Green while the standalone practice metronome loops, so it stays
               // visible (and findable to stop) after the sheet is closed.
-              class: `rounded px-2 py-1 text-lg leading-none ${player.isScope('metronome') ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`,
+              class: `rounded px-2 py-1 leading-none ${player.isScope('metronome') ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`,
               onclick: onOpenMetronomeSettings,
               title: 'Metronome/Jiuchi',
+              'aria-label': 'Metronome and jiuchi settings',
             },
-            '▲'
+            // Metronome: tapered body with a pendulum arm.
+            m(
+              'svg',
+              {
+                xmlns: 'http://www.w3.org/2000/svg',
+                viewBox: '0 0 24 24',
+                fill: 'none',
+                stroke: 'currentColor',
+                'stroke-width': '2',
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                class: 'w-[1.125rem] h-[1.125rem] block',
+                'aria-hidden': 'true',
+              },
+              [
+                m('path', { d: 'M9 3h6l4 18H5L9 3z' }),
+                m('path', { d: 'M12 15L17 6' }),
+                m('circle', { cx: 12, cy: 16, r: 1 }),
+              ]
+            )
           ),
           m(
             'button',
@@ -110,6 +140,7 @@ export function Header() {
               class: 'bg-gray-700 hover:bg-gray-600 rounded px-1 py-1 leading-none',
               onclick: onOpenSettings,
               title: 'App settings',
+              'aria-label': 'App settings',
             },
             m('img', {
               src: '/assets/image/app-settings.png',
@@ -124,6 +155,7 @@ export function Header() {
               class: 'bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-lg leading-none',
               onclick: onOpenMenu,
               title: 'Menu',
+              'aria-label': 'Menu',
             },
             '☰'
           ),

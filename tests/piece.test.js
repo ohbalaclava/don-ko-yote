@@ -160,6 +160,56 @@ describe('removeSound', () => {
   });
 });
 
+// ── deleteSelectedSounds ──────────────────────────────────────────────────────
+
+describe('deleteSelectedSounds', () => {
+  it('removes all selected sounds and clears the selection', () => {
+    piece.addSound(line().id, sym('A'));
+    piece.addSound(line().id, sym('B'));
+    piece.addSound(line().id, sym('C'));
+    const [a, b] = [sounds()[0].id, sounds()[1].id];
+    piece.selection = { lineId: line().id, anchorId: a, soundIds: [a, b] };
+    piece.deleteSelectedSounds();
+    expect(sounds()).toHaveLength(1);
+    expect(sounds()[0].name).toBe('C');
+    expect(piece.selection.soundIds).toHaveLength(0);
+    expect(piece.selection.lineId).toBeNull();
+  });
+
+  it('selects the affected line afterwards', () => {
+    piece.addSound(line().id, sym('A'));
+    const a = sounds()[0].id;
+    piece.selection = { lineId: line().id, anchorId: a, soundIds: [a] };
+    piece.deleteSelectedSounds();
+    expect(piece.selectedLineId).toBe(line().id);
+  });
+
+  it('is a no-op with an empty selection', () => {
+    piece.addSound(line().id, sym('A'));
+    piece.selection = { lineId: null, anchorId: null, soundIds: [] };
+    piece.deleteSelectedSounds();
+    expect(sounds()).toHaveLength(1);
+  });
+
+  it('is a no-op when the selected line no longer exists', () => {
+    piece.addSound(line().id, sym('A'));
+    piece.selection = { lineId: 'gone', anchorId: 'x', soundIds: ['x'] };
+    piece.deleteSelectedSounds();
+    expect(sounds()).toHaveLength(1);
+  });
+
+  it('is undoable', () => {
+    piece.addSound(line().id, sym('A'));
+    piece.addSound(line().id, sym('B'));
+    const a = sounds()[0].id;
+    piece.selection = { lineId: line().id, anchorId: a, soundIds: [a] };
+    piece.deleteSelectedSounds();
+    expect(sounds()).toHaveLength(1);
+    piece.undo();
+    expect(sounds()).toHaveLength(2);
+  });
+});
+
 // ── updateSound ───────────────────────────────────────────────────────────────
 
 describe('updateSound', () => {
