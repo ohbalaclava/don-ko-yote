@@ -47,7 +47,7 @@ A mobile-first single-page Mithril.js app for creating taiko drum sheet music an
 - `Palette.jsx` — sidebar with Sounds and Patterns sections. Tap to add to selected line; drag to any line. `dragBehaviour()` handles the tap-vs-drag distinction (6 px threshold). `PatternPaletteTile` includes a delete button.
 - `SettingsModal.jsx` — bottom sheet for app settings (proportional width, font, dark mode, default background image).
 - `ScoreSettingsModal.jsx` — bottom sheet for score settings (beats per line, BPM, author, icon image upload).
-- `MetronomeSettingsModal.jsx` — bottom sheet for the playback metronome (on/off, head-beat-only, emphasise head, jiuchi, use-Shime, volume). These read/write the **per-score** `piece.metronome*` fields via `piece.setMetronome` (not global settings). Opened from the ▲ button in `Header`. A `Play jiuchi` toggle switches `metronomeJiuchi` between `'auto'` (tick the score's jiuchi) and `'inline'` (loop the score's jiuchi sections as drum rhythms); it is disabled only when the score has no jiuchi section _and_ the toggle is off, so a stale `'inline'` stays switchable. Head-only / emphasise / use-Shime grey out while inline is selected (it plays the authored drum rhythm, not ticks). `piece.addJiuchiSection` auto-selects inline (a default, not a lock). Also hosts the standalone practice loop (session-only voice/BPM on the player).
+- `MetronomeSettingsModal.jsx` — bottom sheet for the playback metronome (on/off, count-in, head-beat-only, emphasise head, jiuchi, use-Shime, volume). These read/write the **per-score** `piece.metronome*` fields via `piece.setMetronome` (not global settings), except the count-in toggle, which is the app-level `settings.countIn`. Opened from the ▲ button in `Header`. A `Play jiuchi` toggle switches `metronomeJiuchi` between `'auto'` (tick the score's jiuchi) and `'inline'` (loop the score's jiuchi sections as drum rhythms); it is disabled only when the score has no jiuchi section _and_ the toggle is off, so a stale `'inline'` stays switchable. Head-only / emphasise / use-Shime grey out while inline is selected (it plays the authored drum rhythm, not ticks). `piece.addJiuchiSection` auto-selects inline (a default, not a lock). Also hosts the standalone practice loop (session-only voice/BPM on the player).
 - `JiuchiSectionRow.jsx` — the inline `jiuchi-section` marker row: green-styled, with a compact taiko picker constrained to the score's straight/swing time (`taikoGroupsForTime`) and a remove button. Calls `piece.setJiuchiSectionTaiko` / `piece.removeJiuchiSection`.
 - `MenuSheet.jsx` — bottom sheet with New, Save, Load, Export/Import score, Export PDF, Clear, Help actions.
 - `NewScoreSheet.jsx` — bottom sheet for creating a new score (jiuchi and beats per line).
@@ -96,7 +96,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `2.31`.
+Current version: `2.32`.
 
 ## Adding a new symbol
 

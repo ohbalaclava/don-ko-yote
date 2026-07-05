@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { TAIKO_GROUPS } from '../data/symbolSets.js';
 import { piece } from '../data/piece.js';
+import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { Toggle } from './SettingsModal.jsx';
 
@@ -60,6 +61,30 @@ export function MetronomeSettingsModal() {
                   m(Toggle, {
                     checked: piece.metronome,
                     onChange: (v) => piece.setMetronome('metronome', v),
+                  }),
+                ]
+              ),
+
+              // App-level setting (applies to every score), unlike the per-score
+              // piece.metronome* fields around it — hence settings, not piece.
+              m(
+                'div',
+                {
+                  class:
+                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
+                },
+                [
+                  m('div', [
+                    m('div', { class: 'font-medium dark:text-white' }, 'Count-in'),
+                    m(
+                      'div',
+                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
+                      'Play one bar of clicks before playback'
+                    ),
+                  ]),
+                  m(Toggle, {
+                    checked: settings.countIn,
+                    onChange: (v) => settings.set('countIn', v),
                   }),
                 ]
               ),

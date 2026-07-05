@@ -258,6 +258,10 @@ export function HelpSheet() {
                   desc: 'Play a beat track alongside the score during playback. These settings are saved with the score.',
                 }),
                 m(Row, {
+                  label: 'Count-in',
+                  desc: 'Play one bar of click sounds before playback begins (applies to every score).',
+                }),
+                m(Row, {
                   label: 'Play jiuchi',
                   desc: "Off: tick the score's own jiuchi. On: loop the score's jiuchi sections as drum rhythms instead — head-only, emphasise, and Shime grey out since nothing ticks. Needs a jiuchi section in the score.",
                 }),
@@ -306,10 +310,6 @@ export function HelpSheet() {
                   desc: 'Typeface used for tile names and the score title.',
                 }),
                 m(Row, { label: 'Dark mode', desc: 'Switch between light and dark themes.' }),
-                m(Row, {
-                  label: 'Count-in',
-                  desc: 'Play one bar of click sounds before playback begins.',
-                }),
                 m(Row, {
                   label: 'UI sounds',
                   desc: 'Audible feedback when tapping and dragging tiles.',

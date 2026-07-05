@@ -141,28 +141,6 @@ export function SettingsModal() {
                 },
                 [
                   m('div', [
-                    m('div', { class: 'font-medium dark:text-white' }, 'Count-in'),
-                    m(
-                      'div',
-                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
-                      'Play one bar of clicks before playback'
-                    ),
-                  ]),
-                  m(Toggle, {
-                    checked: settings.countIn,
-                    onChange: (v) => settings.set('countIn', v),
-                  }),
-                ]
-              ),
-
-              m(
-                'div',
-                {
-                  class:
-                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
-                },
-                [
-                  m('div', [
                     m('div', { class: 'font-medium dark:text-white' }, 'UI sounds'),
                     m(
                       'div',
