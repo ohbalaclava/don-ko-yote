@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { piece, singleLineRepeatMap, jiuchiLineMap } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { effectiveVolume, groupIntoLigatures, packIntoTracks } from './util.js';
+import { tileTintPdfRgb } from './tileColor.js';
 import { uid } from './uid.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
@@ -277,8 +278,18 @@ export async function exportPdf() {
       const subdivW = BEAT_W / time;
       let xOff = 0;
 
-      /** Draws name, emphasis underline, and hand/volume for one sound at textX. */
-      const drawSound = (sound, textX) => {
+      /**
+       * Draws name, emphasis underline, and hand/volume for one sound at textX.
+       * With colour-coded tiles on, first fills a tint rect (tintX/tintW) behind
+       * the text — kept below the beat-dot zone so dots stay on white.
+       */
+      const drawSound = (sound, textX, tintX, tintW) => {
+        const tint = settings.colourTiles ? tileTintPdfRgb(sound) : null;
+        if (tint != null && tintX != null) {
+          doc.setFillColor(tint.r, tint.g, tint.b);
+          doc.roundedRect(tintX, rowY + DOT_ZONE + 0.5, tintW, 10, 1, 1, 'F');
+        }
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(0);
@@ -324,7 +335,11 @@ export async function exportPdf() {
               doc.circle(textX, rowY + 1.5, 0.8, 'F');
             }
 
-            drawSound(sound, textX);
+            // Ligature members abut seamlessly (mirroring the on-screen tile);
+            // singles get a slightly wider rect but stay clear of neighbours
+            // (centre-to-centre spacing across item boundaries is 1.5 × ligW).
+            const tintW = isSingle ? ligW * 1.25 : ligW;
+            drawSound(sound, textX, textX - tintW / 2, tintW);
 
             if (sound.instruction) {
               instrItems.push({
@@ -342,6 +357,9 @@ export async function exportPdf() {
         for (const sound of rowSounds) {
           const tw = (sound.duration / time) * BEAT_W;
           const textX = TILES_X + xOff + subdivW / 2;
+          // Inset 0.3mm per side so adjacent proportional tiles keep a white gutter.
+          const tintX = TILES_X + xOff + 0.3;
+          const tintW = tw - 0.6;
 
           for (let i = 0; i < sound.duration; i++) {
             const dotX = TILES_X + xOff + subdivW * (i + 0.5);
@@ -355,7 +373,7 @@ export async function exportPdf() {
             }
           }
 
-          drawSound(sound, textX);
+          drawSound(sound, textX, tintX, tintW);
 
           if (sound.instruction) {
             instrItems.push({ x: TILES_X + xOff + 1, text: sound.instruction });

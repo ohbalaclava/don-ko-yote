@@ -4,6 +4,7 @@ import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { anim } from '../anim.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
+import { tileTintCss, tileBorderCss } from '../tileColor.js';
 import { feedbackClick } from '../audio/feedback.js';
 
 const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
@@ -54,6 +55,21 @@ export function SoundTile() {
         ? `width: ${(sound.duration / time) * beatWidthRem}rem`
         : undefined;
 
+      // Playing/selected state backgrounds take precedence over the colour-coding tint.
+      const tint = settings.colourTiles && !isPlaying && !isSelected ? tileTintCss(sound) : null;
+      const style =
+        [
+          widthStyle,
+          tint && `background-color:${tint}`,
+          tint && `border-color:${tileBorderCss(sound)}`,
+        ]
+          .filter(Boolean)
+          .join(';') || undefined;
+      // Over a tint the default light-gray meta text washes out.
+      const metaText = tint
+        ? 'text-gray-600 dark:text-gray-300'
+        : 'text-gray-400 dark:text-gray-500';
+
       const prop = settings.proportionalWidth;
       const propPad = prop && sound.duration > 1 ? PROP_PAD_REM : 0;
 
@@ -61,7 +77,7 @@ export function SoundTile() {
         'div',
         {
           class: `sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`,
-          style: widthStyle,
+          style,
           'data-sound-id': sound.id,
           onpointerup: (e) => {
             if (!piece.selectMode) return;
@@ -120,16 +136,11 @@ export function SoundTile() {
                 ? m(
                     'div',
                     {
-                      class:
-                        'w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1',
+                      class: `w-full flex justify-between text-xs ${metaText} font-mono px-1`,
                     },
                     [m('span', sound.hand), m('span', effectiveVolume(sound))]
                   )
-                : m(
-                    'span',
-                    { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' },
-                    sound.hand
-                  ),
+                : m('span', { class: `text-xs ${metaText} font-mono` }, sound.hand),
             ]
           ),
           isEditing ? m(SoundEditor, { lineId, sound }) : null,

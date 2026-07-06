@@ -3,6 +3,7 @@ import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { isIntegerBeat, effectiveVolume } from '../util.js';
+import { tileTintCss } from '../tileColor.js';
 import { SoundEditor } from './SoundTile.jsx';
 import { feedbackClick } from '../audio/feedback.js';
 
@@ -14,11 +15,17 @@ export function LigatureTile() {
       let subPos = startPos;
       const anySelected = selectionIds && sounds.some((s) => selectionIds.has(s.id));
       const anyPlaying = sounds.some((s) => player.currentSoundId === s.id);
+      // Sub-tiles carry individual tints, so the shared border can't hue-match;
+      // a darker neutral keeps the tile edge visible over the colour fills.
+      const anyTinted =
+        settings.colourTiles && !anyPlaying && sounds.some((s) => tileTintCss(s) != null);
       const outerBorder = anyPlaying
         ? 'border-green-500 dark:border-green-400 ring-2 ring-green-400'
         : anySelected
           ? 'border-teal-500 dark:border-teal-400'
-          : 'border-gray-300 dark:border-gray-600';
+          : anyTinted
+            ? 'border-gray-500 dark:border-gray-400'
+            : 'border-gray-300 dark:border-gray-600';
 
       return m(
         'div',
@@ -42,11 +49,19 @@ export function LigatureTile() {
             : isSelected
               ? 'bg-teal-50 dark:bg-teal-900/40'
               : '';
+          // Playing/selected state backgrounds take precedence over the colour-coding tint.
+          const tint =
+            settings.colourTiles && !isPlaying && !isSelected ? tileTintCss(sound) : null;
+          // Over a tint the default light-gray meta text washes out.
+          const metaText = tint
+            ? 'text-gray-600 dark:text-gray-300'
+            : 'text-gray-400 dark:text-gray-500';
           return m(
             'div',
             {
               key: sound.id,
               class: `sound-tile relative flex flex-col items-center py-1 ${edgePad} ${subBg}`,
+              style: tint ? `background-color:${tint}` : undefined,
               'data-sound-id': sound.id,
               onclick: (e) => {
                 e.stopPropagation();
@@ -78,16 +93,11 @@ export function LigatureTile() {
                 ? m(
                     'div',
                     {
-                      class:
-                        'w-full flex justify-between text-xs text-gray-400 dark:text-gray-500 font-mono px-1',
+                      class: `w-full flex justify-between text-xs ${metaText} font-mono px-1`,
                     },
                     [m('span', sound.hand), m('span', effectiveVolume(sound))]
                   )
-                : m(
-                    'span',
-                    { class: 'text-xs text-gray-400 dark:text-gray-500 font-mono' },
-                    sound.hand
-                  ),
+                : m('span', { class: `text-xs ${metaText} font-mono` }, sound.hand),
               isEditing ? m(SoundEditor, { lineId, sound }) : null,
             ]
           );

@@ -15,6 +15,7 @@ export const settings = {
   defaultShowVolume: false,
   countIn: false,
   uiSounds: true, // audible feedback on palette taps/drags and score-tile taps
+  colourTiles: false, // tint placed tiles by hand × skin, intensity by volume
   volume: 1, // master playback-volume multiplier (1 = default loudness)
   paletteHintSeen: false, // set once the user has placed enough sounds to know the palette
   // Metronome config (on/off, head-only, emphasise, jiuchi, Shime, volume) is
@@ -31,6 +32,7 @@ export const settings = {
       if ('defaultShowVolume' in saved) settings.defaultShowVolume = saved.defaultShowVolume;
       if ('countIn' in saved) settings.countIn = saved.countIn;
       if ('uiSounds' in saved) settings.uiSounds = saved.uiSounds;
+      if ('colourTiles' in saved) settings.colourTiles = saved.colourTiles;
       if ('volume' in saved) settings.volume = saved.volume;
       if ('paletteHintSeen' in saved) settings.paletteHintSeen = saved.paletteHintSeen;
     }
@@ -51,6 +53,7 @@ export const settings = {
       defaultShowVolume: settings.defaultShowVolume,
       countIn: settings.countIn,
       uiSounds: settings.uiSounds,
+      colourTiles: settings.colourTiles,
       volume: settings.volume,
       paletteHintSeen: settings.paletteHintSeen,
     });

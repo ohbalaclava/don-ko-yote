@@ -200,6 +200,28 @@ export function SettingsModal() {
                 ]
               ),
 
+              m(
+                'div',
+                {
+                  class:
+                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
+                },
+                [
+                  m('div', [
+                    m('div', { class: 'font-medium dark:text-white' }, 'Colour-coded tiles'),
+                    m(
+                      'div',
+                      { class: 'text-sm text-gray-500 dark:text-gray-400' },
+                      'Tint tiles by hand and skin; stronger colour = louder'
+                    ),
+                  ]),
+                  m(Toggle, {
+                    checked: settings.colourTiles,
+                    onChange: (v) => settings.set('colourTiles', v),
+                  }),
+                ]
+              ),
+
               m('div', { class: 'py-4 border-b border-gray-200 dark:border-gray-700' }, [
                 m('div', { class: 'font-medium dark:text-white mb-2' }, 'Author (default)'),
                 m('input', {
