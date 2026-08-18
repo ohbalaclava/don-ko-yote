@@ -139,128 +139,130 @@ export function Score() {
           'div',
           {
             class:
-              'sticky top-0 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0',
+              'sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0',
           },
           [
-            selecting
-              ? m(
-                  'button',
-                  {
-                    class:
-                      'text-sm font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 leading-none',
-                    onclick: () =>
-                      piece.selectMode ? piece.toggleSelectMode() : piece.toggleLineSelectMode(),
-                    title: 'Cancel selection',
-                    'aria-label': 'Cancel selection',
-                  },
-                  '✕'
-                )
-              : [
-                  m(
-                    'span',
-                    { class: 'text-xs text-gray-400 dark:text-gray-500 select-none' },
-                    'Select:'
-                  ),
-                  m(
+            m('div', { class: 'flex flex-wrap items-center gap-2' }, [
+              selecting
+                ? m(
                     'button',
                     {
                       class:
-                        'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
-                      onclick: () => piece.toggleSelectMode(),
-                      'aria-pressed': String(piece.selectMode),
+                        'text-sm font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 leading-none',
+                      onclick: () =>
+                        piece.selectMode ? piece.toggleSelectMode() : piece.toggleLineSelectMode(),
+                      title: 'Cancel selection',
+                      'aria-label': 'Cancel selection',
                     },
-                    'Tiles'
-                  ),
-                  m(
-                    'button',
-                    {
-                      class:
-                        'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
-                      onclick: () => piece.toggleLineSelectMode(),
-                      'aria-pressed': String(piece.lineSelectMode),
-                    },
-                    'Lines'
-                  ),
-                ],
-
-            piece.selectMode &&
-              (hasSelection
-                ? [
+                    '✕'
+                  )
+                : [
                     m(
                       'span',
-                      { class: 'text-xs text-gray-500 dark:text-gray-400' },
-                      `${selCount} selected`
+                      { class: 'text-xs text-gray-400 dark:text-gray-500 select-none' },
+                      'Select:'
                     ),
                     m(
                       'button',
                       {
                         class:
-                          'text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1',
-                        onclick: savePattern,
+                          'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
+                        onclick: () => piece.toggleSelectMode(),
+                        'aria-pressed': String(piece.selectMode),
                       },
-                      'Save pattern'
+                      'Tiles'
                     ),
                     m(
                       'button',
                       {
                         class:
-                          'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
-                        onclick: () => piece.deleteSelectedSounds(),
+                          'text-xs font-semibold rounded px-2 py-1 border border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400',
+                        onclick: () => piece.toggleLineSelectMode(),
+                        'aria-pressed': String(piece.lineSelectMode),
                       },
-                      'Delete'
+                      'Lines'
                     ),
-                  ]
-                : m(
-                    'span',
-                    { class: 'text-xs text-gray-400 dark:text-gray-500' },
-                    'Tap tiles to select'
-                  )),
+                  ],
 
-            piece.lineSelectMode &&
-              (hasLineSelection
-                ? [
-                    m(
+              piece.selectMode &&
+                (hasSelection
+                  ? [
+                      m(
+                        'span',
+                        { class: 'text-xs text-gray-500 dark:text-gray-400' },
+                        `${selCount} selected`
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded px-2 py-1',
+                          onclick: savePattern,
+                        },
+                        'Save pattern'
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
+                          onclick: () => piece.deleteSelectedSounds(),
+                        },
+                        'Delete'
+                      ),
+                    ]
+                  : m(
                       'span',
-                      { class: 'text-xs text-gray-500 dark:text-gray-400' },
-                      `${lineSelCount} lines`
-                    ),
-                    m(
-                      'button',
-                      {
-                        class:
-                          'text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1',
-                        onclick: () => piece.duplicateSelectedLines(),
-                      },
-                      'Duplicate'
-                    ),
-                    m(
-                      'button',
-                      {
-                        class:
-                          'text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1',
-                        onclick: () => piece.addBlockRepeat(2),
-                      },
-                      'Repeat'
-                    ),
-                    m(
-                      'button',
-                      {
-                        class:
-                          'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
-                        onclick: () => piece.deleteSelectedLines(),
-                      },
-                      'Delete'
-                    ),
-                  ]
-                : m(
-                    'span',
-                    { class: 'text-xs text-gray-400 dark:text-gray-500' },
-                    'Tap lines to select'
-                  )),
+                      { class: 'text-xs text-gray-400 dark:text-gray-500' },
+                      'Tap tiles to select'
+                    )),
+
+              piece.lineSelectMode &&
+                (hasLineSelection
+                  ? [
+                      m(
+                        'span',
+                        { class: 'text-xs text-gray-500 dark:text-gray-400' },
+                        `${lineSelCount} lines`
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1',
+                          onclick: () => piece.duplicateSelectedLines(),
+                        },
+                        'Duplicate'
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white rounded px-2 py-1',
+                          onclick: () => piece.addBlockRepeat(2),
+                        },
+                        'Repeat'
+                      ),
+                      m(
+                        'button',
+                        {
+                          class:
+                            'text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded px-2 py-1',
+                          onclick: () => piece.deleteSelectedLines(),
+                        },
+                        'Delete'
+                      ),
+                    ]
+                  : m(
+                      'span',
+                      { class: 'text-xs text-gray-400 dark:text-gray-500' },
+                      'Tap lines to select'
+                    )),
+            ]),
 
             selecting
               ? null
-              : m('div', { class: 'ml-auto flex items-center gap-1' }, [
+              : m('div', { class: 'flex items-center gap-1' }, [
                   // Quick BPM stepper so practice-tempo tweaks don't require the
                   // score-settings sheet. Applies from the next play.
                   m('div', { class: 'flex items-center mr-1 select-none' }, [
