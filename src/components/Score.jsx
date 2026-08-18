@@ -305,7 +305,7 @@ export function Score() {
                     return m(
                       'button',
                       {
-                        class: `text-sm rounded px-2 py-0.5 border ${allActive ? 'bg-green-600 text-white border-green-600' : 'border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`,
+                        class: `text-sm rounded px-0.5 py-0.5 ${allActive ? 'bg-green-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`,
                         onclick: () => player.toggleAll(piece),
                         title: allActive ? 'Stop' : 'Play whole piece',
                         'aria-label': allActive ? 'Stop playback' : 'Play whole piece',
