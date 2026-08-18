@@ -56,7 +56,7 @@ Tap anywhere on a line (not on a tile) to select it. The selected line gets a bl
 
 ### Adding and removing lines
 
-- Tap **+ Add line** at the bottom of the score to append a new line.
+- Tap **+ Line** at the bottom of the score to append a new line.
 - Tap the **×** button on the right of a line to remove it and all its sounds.
 
 ---

@@ -195,16 +195,16 @@ export function HelpSheet() {
 
               m(Section, { title: 'Structure rows' }, [
                 m(Row, {
-                  label: '+ Add heading',
+                  label: '+ Heading',
                   desc: 'Tap to edit the name. The ▶ button previews all lines between this heading and the next.',
                 }),
                 m(Row, {
-                  label: '+ Add note',
+                  label: '+ Note',
                   desc: 'Free-text annotation that appears between lines.',
                 }),
-                m(Row, { label: '+ Add divider', desc: 'Visual separator between sections.' }),
+                m(Row, { label: '+ Divider', desc: 'Visual separator between sections.' }),
                 m(Row, {
-                  label: '+ Add jiuchi',
+                  label: '+ Jiuchi',
                   desc: 'Insert a jiuchi section — an inline base rhythm (see below).',
                 }),
                 m(Row, {

@@ -28,7 +28,7 @@ export function AddRowActions() {
                 'text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300',
               onclick: act(() => piece.addLine()),
             },
-            '+ Add line'
+            '+ Line'
           ),
           m(
             'button',
@@ -37,7 +37,7 @@ export function AddRowActions() {
                 'text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
               onclick: act(() => piece.addHeading()),
             },
-            '+ Add heading'
+            '+ Heading'
           ),
           m(
             'button',
@@ -46,7 +46,7 @@ export function AddRowActions() {
                 'text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
               onclick: act(() => piece.addNote()),
             },
-            '+ Add note'
+            '+ Note'
           ),
           m(
             'button',
@@ -55,7 +55,7 @@ export function AddRowActions() {
                 'text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
               onclick: act(() => piece.addDivider()),
             },
-            '+ Add divider'
+            '+ Divider'
           ),
           m(
             'button',
@@ -64,7 +64,7 @@ export function AddRowActions() {
                 'text-sm font-semibold text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300',
               onclick: act(() => piece.addJiuchiSection()),
             },
-            '+ Add jiuchi'
+            '+ Jiuchi'
           ),
         ]
       );
