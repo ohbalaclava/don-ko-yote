@@ -122,21 +122,46 @@ export function sampleKey(sound, taiko) {
   return null;
 }
 
-// Decoded buffers, keyed `${taiko}/${sampleKey}`. A null value marks a key that
-// failed to load, so we don't retry it every play (the strike falls back to synth).
+// Decoded buffers, keyed by sample URL. Taikos share recordings - every set
+// includes the same kakegoe calls, and Okedo borrows Nagado's drums - so keying
+// by taiko would fetch and decode the same file once per taiko and hold a
+// duplicate buffer for each. A null value marks a URL that failed to load, so we
+// don't retry it every play (the strike falls back to synth).
 const buffers = new Map();
-// In-flight / completed load promises per taiko, so loadSamples only fetches once.
+// In-flight / completed load promise per URL, so a shared recording is fetched once
+// however many taikos want it.
+const urlLoads = new Map();
+// In-flight / completed load promise per taiko, so loadSamples resolves only once
+// that taiko's whole set is decoded.
 const loads = new Map();
 
-/** Cache key for a single decoded sample. */
-function bufKey(taiko, key) {
-  return `${taiko}/${key}`;
+/**
+ * Fetches and decodes one sample (once; memoised by URL). Failures are logged and
+ * cached as null so the strike falls back to the synth without retrying.
+ * @param {string} url
+ * @returns {Promise<void>}
+ */
+function loadUrl(url) {
+  if (urlLoads.has(url)) return urlLoads.get(url);
+  const ctx = getAudioContext();
+  const promise = (async () => {
+    try {
+      const res = await fetch(url);
+      const data = await res.arrayBuffer();
+      buffers.set(url, await ctx.decodeAudioData(data));
+    } catch (err) {
+      console.warn(`Failed to load sample ${url}:`, err);
+      buffers.set(url, null);
+    }
+  })();
+  urlLoads.set(url, promise);
+  return promise;
 }
 
 /**
  * Fetches and decodes every sample for `taiko` (once; memoised). Resolves
- * immediately for taikos without a sample set. Individual fetch/decode failures
- * are logged and leave that key uncached, so its strikes fall back to the synth.
+ * immediately for taikos without a sample set. Recordings already decoded for
+ * another taiko are reused rather than fetched again.
  * @param {string} taiko - Taiko display name.
  * @returns {Promise<void>}
  */
@@ -145,20 +170,7 @@ export function loadSamples(taiko) {
   if (!set) return Promise.resolve();
   if (loads.has(taiko)) return loads.get(taiko);
 
-  const ctx = getAudioContext();
-  const promise = Promise.all(
-    Object.entries(set).map(async ([key, url]) => {
-      try {
-        const res = await fetch(url);
-        const data = await res.arrayBuffer();
-        const buffer = await ctx.decodeAudioData(data);
-        buffers.set(bufKey(taiko, key), buffer);
-      } catch (err) {
-        console.warn(`Failed to load sample ${taiko}/${key} (${url}):`, err);
-        buffers.set(bufKey(taiko, key), null);
-      }
-    })
-  ).then(() => {});
+  const promise = Promise.all(Object.values(set).map(loadUrl)).then(() => {});
   loads.set(taiko, promise);
   return promise;
 }
@@ -171,5 +183,6 @@ export function loadSamples(taiko) {
  * @returns {AudioBuffer|undefined}
  */
 export function getBuffer(taiko, key) {
-  return buffers.get(bufKey(taiko, key)) ?? undefined;
+  const url = SAMPLE_SETS[taiko]?.[key];
+  return (url ? buffers.get(url) : undefined) ?? undefined;
 }

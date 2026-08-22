@@ -380,6 +380,23 @@ export const piece = {
   },
 
   /**
+   * Every taiko this score can sound with: the score's own, each jiuchi
+   * section's, and Shime when the metronome is set to tick with its sample.
+   * Used to warm the sample cache - a taiko whose buffers are still undecoded
+   * falls back to the synth for its first strikes, so all of them are preloaded
+   * rather than just the score's.
+   * @returns {string[]} Distinct taiko names.
+   */
+  taikosInUse() {
+    const taikos = new Set([piece.taiko]);
+    for (const line of piece.lines) {
+      if (line.type === 'jiuchi-section' && line.taiko) taikos.add(line.taiko);
+    }
+    if (piece.metronomeShime) taikos.add('Shime');
+    return [...taikos];
+  },
+
+  /**
    * The taiko a line should sound with: its jiuchi section's taiko when the line
    * is part of a section definition, else the score's taiko.
    * @param {string} lineId

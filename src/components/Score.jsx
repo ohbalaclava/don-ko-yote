@@ -15,6 +15,25 @@ import { DividerRow } from './DividerRow.jsx';
 import { JiuchiSectionRow } from './JiuchiSectionRow.jsx';
 import { AddRowActions } from './AddRowActions.jsx';
 
+// Taikos whose samples have already been asked for, so the per-redraw check is a
+// string compare. loadSamples is itself memoised - this only avoids rescanning
+// the lines and re-calling it 60 times a second while the playhead redraws.
+let warmedTaikos = '';
+
+/**
+ * Decodes the samples for every taiko this score can sound with. Fire-and-forget:
+ * loadSamples is memoised, so play()'s own await resolves instantly once this has
+ * warmed the cache, and decodeAudioData works on the suspended context without a
+ * user gesture.
+ */
+function warmSamples() {
+  const taikos = piece.taikosInUse();
+  const key = taikos.join('|');
+  if (key === warmedTaikos) return;
+  warmedTaikos = key;
+  for (const taiko of taikos) voice.preload(taiko);
+}
+
 export function Score() {
   let sortable;
   // FLIP state: pre-reorder top positions keyed by row element. Mithril reuses the
@@ -105,15 +124,17 @@ export function Score() {
       // Keyboard shortcuts (incl. Backspace delete) are centralised in main.jsx,
       // which knows whether a sheet is open and must swallow them.
 
-      // Decode this taiko's samples now (score open) so the first Play isn't
-      // delayed by the fetch + decode. Fire-and-forget: loadSamples is memoised,
-      // so play()'s own await resolves instantly once this warms the cache, and
-      // decodeAudioData works on the suspended context without a user gesture.
-      voice.preload(piece.taiko);
+      // Decode this score's samples now (score open) so the first Play isn't
+      // delayed by the fetch + decode. See warmSamples.
+      warmSamples();
     },
     onupdate({ dom }) {
       // Animate rows to their new positions after a reorder redraw.
       if (flipFirst) runFlip(dom.querySelector('.lines-container'));
+      // Adding a jiuchi section, switching taiko or turning on the Shime
+      // metronome all bring a new taiko into play mid-session; warm it now
+      // rather than letting its first strikes fall back to the synth.
+      warmSamples();
     },
     onremove() {
       if (sortable) sortable.destroy();
