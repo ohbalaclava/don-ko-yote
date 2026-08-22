@@ -765,3 +765,35 @@ describe('removeLine / deleteSelectedLines — block-repeat pruning', () => {
     expect(marker().lineIds).toEqual([a, c]);
   });
 });
+
+// ── taikosInUse ───────────────────────────────────────────────────────────────
+
+describe('taikosInUse', () => {
+  it("returns just the score's taiko for a plain score", () => {
+    expect(piece.taikosInUse()).toEqual(['Shime']);
+  });
+
+  it('includes each jiuchi section taiko', () => {
+    piece.addJiuchiSection();
+    const marker = piece.lines.find((l) => l.type === 'jiuchi-section');
+    piece.setJiuchiSectionTaiko(marker.id, 'Nagado');
+    expect(piece.taikosInUse().sort()).toEqual(['Nagado', 'Shime']);
+  });
+
+  it('de-duplicates a section that matches the score taiko', () => {
+    piece.addJiuchiSection();
+    expect(piece.taikosInUse()).toEqual(['Shime']);
+  });
+
+  it('includes Shime when the metronome uses its sample', () => {
+    piece.reset({ taiko: 'Nagado', jiuchi: 'Gobu Gobu', beatsPerLine: 8 });
+    expect(piece.taikosInUse()).toEqual(['Nagado']);
+    piece.metronomeShime = true;
+    expect(piece.taikosInUse().sort()).toEqual(['Nagado', 'Shime']);
+  });
+
+  it('tracks a taiko change on the score', () => {
+    piece.setTaiko('Odaiko');
+    expect(piece.taikosInUse()).toEqual(['Odaiko']);
+  });
+});
