@@ -76,6 +76,50 @@ Two separate mechanisms:
 2. **Within/between lines**: SortableJS instances on each `.sounds-container[data-line-id]` div, grouped as `'sounds'`. `onEnd` calls `piece.moveSound` / `piece.moveSounds`. A `domIndexToDataIndex()` helper maps DOM drop indices to data indices accounting for multi-sound `LigatureTile`s.
 3. **Line reordering**: SortableJS instance in `Score.jsx` on `.lines-container`, using `.line-drag-handle` as the drag handle. `onEnd` calls `piece.reorderLine`.
 
+## Synthesis lab (`src/lab/`, `lab/index.html`)
+
+A standalone experiment page for building a physically-modelled taiko synth to
+replace the recorded samples. **It is isolated on purpose:** `src/lab/` imports
+nothing from `src/audio`, `src/data` or `src/components`, and the app imports
+nothing from it. Keep it that way — the lab is where synthesis ideas are tried
+and rejected, and the app must not depend on any of them.
+
+- Served by `npm run dev` at `/lab/`. It is **excluded from `npm run build`** so
+  the deployed PWA and its service worker never see it; `npm run lab:build`
+  (POSIX shell — sets `LAB=1`) emits it when a static copy is wanted.
+- `dsp/membrane.js`, `dsp/render.js` — the pure model: Bessel modes of a circular
+  membrane, the fundamental derived from radius/tension/thickness, hit-position
+  excitation via `J_m`, frequency-dependent damping, a shell air mode, and an
+  offline renderer that sums the decaying sinusoids. Unit-tested in
+  `tests/lab-membrane.test.js` / `tests/lab-render.test.js`.
+- `dsp/reverb.js` — the room. Generates a stereo impulse response (decaying
+  noise, tail lowpass sweeping down with `reverbDamping`, decorrelated channels)
+  driven by the `reverbMix`/`reverbSize`/`reverbDamping` shared params. It is a
+  host-graph effect, not an engine one: `main.js` hangs a convolver send off
+  master **after** the analyser tap, so the scopes stay dry while the ear hears
+  the room. The IR is energy-normalised (`convolver.normalize = false`), so wet
+  level does not swing with room size. Unit-tested in `tests/lab-reverb.test.js`.
+- `params.js` — the shared control vocabulary (`SHARED_PARAMS`). Every engine
+  consumes the same keys so switching engine is a true A/B, and the UI generates
+  its sliders from these specs — adding a control means adding a spec, never
+  editing the UI.
+- `engines/` — pluggable synthesis methods behind one `strike(ctx, destination,
+{ when, params })` interface, deliberately shaped like the app's
+  `voice.strike(sound, when, taiko)`. `modal` is the additive physical model
+  (rendered offline, buffers cached on the waveform-affecting parameters); `fm`
+  is the cheap comparison; `mesh` is a 2D digital waveguide mesh over the head
+  (`dsp/mesh.js`, unit-tested in `tests/lab-mesh.test.js`) run at its own
+  iteration rate and resampled, so partials and hit-position behaviour emerge
+  from the grid rather than a mode table. Mesh pitch lands within ~2% of the
+  target fundamental at the default grid radius (mesh dispersion), tightening as
+  the grid gets finer.
+- `presets.js` — localStorage plus JSON export/import; `BUILTIN_PRESETS` holds
+  rough Shime/Nagado/Katsugi/Odaiko starting points at real dimensions.
+
+If an engine wins, the port back is a new `src/audio/synthVoice.js` mapping
+taiko name to a preset and `sound.name`/`sound.volume` to hit position and
+velocity, replacing the body of `synthStrike` in `src/audio/engine.js`.
+
 ## Testing
 
 Tests live in `tests/` at the project root. Use Vitest (`npm test`). Use `fake-indexeddb` for IndexedDB-dependent tests (see `tests/db.test.js`). Import source files with relative paths from `tests/`, e.g. `../src/data/piece.js`.
@@ -96,7 +140,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `2.32`.
+Current version: `2.39`.
 
 ## Adding a new symbol
 

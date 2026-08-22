@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lab:build": "LAB=1 vite build"
   },
   "lint-staged": {
     "*.{js,jsx}": [
