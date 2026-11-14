@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { TAIKO_GROUPS } from '../data/symbolSets.js';
+import { ALL_JIUCHI_SECTIONS } from '../data/sequence.js';
 import { piece } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
@@ -316,9 +317,19 @@ export function MetronomeSettingsModal() {
                             // own taiko — so they are sources, not voices, and replace
                             // the taiko choice rather than combining with it.
                             sections.length
-                              ? m(
-                                  'optgroup',
-                                  { label: 'Custom jiuchi' },
+                              ? m('optgroup', { label: 'Custom jiuchi' }, [
+                                  // Chaining is only a distinct choice with more than
+                                  // one section — with one it is that section.
+                                  sections.length > 1
+                                    ? m(
+                                        'option',
+                                        {
+                                          value: SECTION_PREFIX + ALL_JIUCHI_SECTIONS,
+                                          selected: player.metroSection === ALL_JIUCHI_SECTIONS,
+                                        },
+                                        `All sections (${sections.length}, in order)`
+                                      )
+                                    : null,
                                   sections.map((s, i) =>
                                     m(
                                       'option',
@@ -328,8 +339,8 @@ export function MetronomeSettingsModal() {
                                       },
                                       sectionLabel(piece.lines, s, i)
                                     )
-                                  )
-                                )
+                                  ),
+                                ])
                               : null,
                           ]
                         ),

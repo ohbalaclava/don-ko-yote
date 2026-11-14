@@ -277,7 +277,7 @@ export function HelpSheet() {
                 m(Row, { label: 'Volume', desc: 'Level of the metronome track.' }),
                 m(Row, {
                   label: 'Practice loop',
-                  desc: "Loop a jiuchi on its own without playing the score. Pick a source — a tick, drum strikes on any taiko, or one of the score's own custom jiuchi sections (played on the taiko it was written for) — and a BPM, then ▶ to start and ⏹ to stop. The source and BPM aren't saved with the score.",
+                  desc: "Loop a jiuchi on its own without playing the score. Pick a source — a tick, drum strikes on any taiko, one of the score's own custom jiuchi sections (played on the taiko it was written for), or All sections to cycle through every section in score order — and a BPM, then ▶ to start and ⏹ to stop. The source and BPM aren't saved with the score.",
                 }),
               ]),
 

@@ -13,7 +13,8 @@ import {
   jiuchiRegions,
   jiuchiEventsFromLines,
   jiuchiSectionSlice,
-  jiuchiSectionLoop,
+  jiuchiPracticeLoop,
+  ALL_JIUCHI_SECTIONS,
 } from '../src/data/sequence.js';
 import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
 
@@ -387,39 +388,86 @@ describe('jiuchiSectionSlice', () => {
   });
 });
 
-// ── jiuchiSectionLoop ────────────────────────────────────────────────────────
+// ── jiuchiPracticeLoop ───────────────────────────────────────────────────────
 
-describe('jiuchiSectionLoop', () => {
-  it('returns the section rhythm with its own taiko', () => {
+describe('jiuchiPracticeLoop', () => {
+  it('returns one section rhythm, every event tagged with the section taiko', () => {
     const lines = [
       jiuchiSection('j1', 'Nagado'),
       line('a', [sound('DON', 'R', 4), sound('KA', 'L', 4)]),
       heading('h2'),
       line('c', [sound('TEN', 'R', 4)]),
     ];
-    const loop = jiuchiSectionLoop(lines, 'j1', 4);
-    expect(loop.taiko).toBe('Nagado');
+    const loop = jiuchiPracticeLoop(lines, 'j1', 4);
     expect(loop.events.map((e) => e.name)).toEqual(['DON', 'KA']);
+    expect(loop.events.map((e) => e.taiko)).toEqual(['Nagado', 'Nagado']);
     expect(loop.lengthDiv).toBe(8);
   });
 
   it('keeps trailing rests in the loop period but not in the events', () => {
     const lines = [jiuchiSection('j1'), line('a', [sound('TEN', 'R', 4), rest(4)])];
-    const loop = jiuchiSectionLoop(lines, 'j1', 4);
+    const loop = jiuchiPracticeLoop(lines, 'j1', 4);
     expect(loop.events).toHaveLength(1);
     expect(loop.lengthDiv).toBe(8);
   });
 
-  it('returns null without a usable section', () => {
-    const lines = [jiuchiSection('j1'), line('a', [sound('TEN', 'R', 4)])];
-    expect(jiuchiSectionLoop(lines, null, 4)).toBeNull(); // nothing selected
-    expect(jiuchiSectionLoop(lines, 'gone', 4)).toBeNull(); // section removed since
-    expect(jiuchiSectionLoop([heading('h1'), line('a')], 'h1', 4)).toBeNull(); // not a marker
+  it('chains every section in score order for ALL_JIUCHI_SECTIONS', () => {
+    const lines = [
+      jiuchiSection('j1', 'Shime'),
+      line('a', [sound('TEN', 'R', 4), sound('TSU', 'L', 4)]),
+      heading('h'),
+      line('body', [sound('DON', 'R', 4)]),
+      jiuchiSection('j2', 'Nagado'),
+      line('b', [sound('DON', 'R', 4)]),
+    ];
+    const loop = jiuchiPracticeLoop(lines, ALL_JIUCHI_SECTIONS, 4);
+    expect(loop.events.map((e) => [e.name, e.taiko, e.startDiv])).toEqual([
+      ['TEN', 'Shime', 0],
+      ['TSU', 'Shime', 4],
+      ['DON', 'Nagado', 8], // offset by the first section's length, on its own taiko
+    ]);
+    expect(loop.lengthDiv).toBe(12);
   });
 
-  it('returns null for a section with no audible sounds', () => {
-    expect(jiuchiSectionLoop([jiuchiSection('j1'), line('a')], 'j1', 4)).toBeNull();
-    expect(jiuchiSectionLoop([jiuchiSection('j1'), line('a', [rest(4)])], 'j1', 4)).toBeNull();
+  it('keeps a rest-only section as authored silence when chaining', () => {
+    const lines = [
+      jiuchiSection('j1'),
+      line('a', [rest(4)]),
+      divider('d'),
+      jiuchiSection('j2'),
+      line('b', [sound('TEN', 'R', 4)]),
+    ];
+    const loop = jiuchiPracticeLoop(lines, ALL_JIUCHI_SECTIONS, 4);
+    expect(loop.events.map((e) => e.startDiv)).toEqual([4]);
+    expect(loop.lengthDiv).toBe(8);
+  });
+
+  it('skips a section with no definition lines when chaining', () => {
+    const lines = [
+      jiuchiSection('j1'),
+      divider('d'),
+      jiuchiSection('j2'),
+      line('b', [sound('TEN', 'R', 4)]),
+    ];
+    const loop = jiuchiPracticeLoop(lines, ALL_JIUCHI_SECTIONS, 4);
+    expect(loop.events.map((e) => e.startDiv)).toEqual([0]);
+    expect(loop.lengthDiv).toBe(4);
+  });
+
+  it('returns null without a usable source', () => {
+    const lines = [jiuchiSection('j1'), line('a', [sound('TEN', 'R', 4)])];
+    expect(jiuchiPracticeLoop(lines, null, 4)).toBeNull(); // nothing selected
+    expect(jiuchiPracticeLoop(lines, 'gone', 4)).toBeNull(); // section removed since
+    expect(jiuchiPracticeLoop([heading('h1'), line('a')], 'h1', 4)).toBeNull(); // not a marker
+    expect(jiuchiPracticeLoop([line('a')], ALL_JIUCHI_SECTIONS, 4)).toBeNull(); // no sections
+  });
+
+  it('returns null when nothing in the source is audible', () => {
+    expect(jiuchiPracticeLoop([jiuchiSection('j1'), line('a')], 'j1', 4)).toBeNull();
+    expect(jiuchiPracticeLoop([jiuchiSection('j1'), line('a', [rest(4)])], 'j1', 4)).toBeNull();
+    expect(
+      jiuchiPracticeLoop([jiuchiSection('j1'), line('a', [rest(4)])], ALL_JIUCHI_SECTIONS, 4)
+    ).toBeNull();
   });
 });
 
