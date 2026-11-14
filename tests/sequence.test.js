@@ -13,6 +13,7 @@ import {
   jiuchiRegions,
   jiuchiEventsFromLines,
   jiuchiSectionSlice,
+  jiuchiSectionLoop,
 } from '../src/data/sequence.js';
 import { KAKEGOE_VOLUME } from '../src/data/kakegoe.js';
 
@@ -383,6 +384,42 @@ describe('jiuchiSectionSlice', () => {
     const { events, totalDiv } = buildSequence(jiuchiSectionSlice(lines, 'j1'), 4);
     expect(events.map((e) => e.name)).toEqual(['TEN', 'KEN']);
     expect(totalDiv).toBe(8);
+  });
+});
+
+// ── jiuchiSectionLoop ────────────────────────────────────────────────────────
+
+describe('jiuchiSectionLoop', () => {
+  it('returns the section rhythm with its own taiko', () => {
+    const lines = [
+      jiuchiSection('j1', 'Nagado'),
+      line('a', [sound('DON', 'R', 4), sound('KA', 'L', 4)]),
+      heading('h2'),
+      line('c', [sound('TEN', 'R', 4)]),
+    ];
+    const loop = jiuchiSectionLoop(lines, 'j1', 4);
+    expect(loop.taiko).toBe('Nagado');
+    expect(loop.events.map((e) => e.name)).toEqual(['DON', 'KA']);
+    expect(loop.lengthDiv).toBe(8);
+  });
+
+  it('keeps trailing rests in the loop period but not in the events', () => {
+    const lines = [jiuchiSection('j1'), line('a', [sound('TEN', 'R', 4), rest(4)])];
+    const loop = jiuchiSectionLoop(lines, 'j1', 4);
+    expect(loop.events).toHaveLength(1);
+    expect(loop.lengthDiv).toBe(8);
+  });
+
+  it('returns null without a usable section', () => {
+    const lines = [jiuchiSection('j1'), line('a', [sound('TEN', 'R', 4)])];
+    expect(jiuchiSectionLoop(lines, null, 4)).toBeNull(); // nothing selected
+    expect(jiuchiSectionLoop(lines, 'gone', 4)).toBeNull(); // section removed since
+    expect(jiuchiSectionLoop([heading('h1'), line('a')], 'h1', 4)).toBeNull(); // not a marker
+  });
+
+  it('returns null for a section with no audible sounds', () => {
+    expect(jiuchiSectionLoop([jiuchiSection('j1'), line('a')], 'j1', 4)).toBeNull();
+    expect(jiuchiSectionLoop([jiuchiSection('j1'), line('a', [rest(4)])], 'j1', 4)).toBeNull();
   });
 });
 

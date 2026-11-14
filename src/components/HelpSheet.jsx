@@ -262,7 +262,7 @@ export function HelpSheet() {
                   desc: 'Play one bar of click sounds before playback begins (applies to every score).',
                 }),
                 m(Row, {
-                  label: 'Play jiuchi',
+                  label: 'Play custom jiuchi',
                   desc: "Off: tick the score's own jiuchi. On: loop the score's jiuchi sections as drum rhythms instead — head-only, emphasise, and Shime grey out since nothing ticks. Needs a jiuchi section in the score.",
                 }),
                 m(Row, {
@@ -277,7 +277,7 @@ export function HelpSheet() {
                 m(Row, { label: 'Volume', desc: 'Level of the metronome track.' }),
                 m(Row, {
                   label: 'Practice loop',
-                  desc: "Loop the jiuchi on its own without playing the score. Pick a voice (tick or a taiko) and a BPM, then ▶ to start and ⏹ to stop. The voice and BPM aren't saved with the score.",
+                  desc: "Loop a jiuchi on its own without playing the score. Pick a source — a tick, drum strikes on any taiko, or one of the score's own custom jiuchi sections (played on the taiko it was written for) — and a BPM, then ▶ to start and ⏹ to stop. The source and BPM aren't saved with the score.",
                 }),
               ]),
 
