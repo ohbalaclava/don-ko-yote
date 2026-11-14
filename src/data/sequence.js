@@ -286,6 +286,29 @@ export function jiuchiSectionSlice(lines, sectionId) {
 }
 
 /**
+ * Resolves one jiuchi section to a self-contained looping rhythm, for playing it
+ * as the standalone practice loop. Combines the section lookup, the definition
+ * slice, and the event capture so a caller only needs the marker id, and returns
+ * null for every unusable case (missing id, id that isn't a jiuchi-section marker,
+ * a section whose definition lines hold no audible sounds) so the caller can fall
+ * back to ticks.
+ *
+ * @param {Array<object>} lines - The piece's lines array.
+ * @param {string|null|undefined} sectionId - The id of the jiuchi-section marker row.
+ * @param {number} time - Divisions per beat (4 straight, 3 swing).
+ * @returns {{ events: Array<object>, lengthDiv: number, taiko: string }|null} The
+ *   section's one-cycle rhythm with the taiko it is authored for, or null.
+ */
+export function jiuchiSectionLoop(lines, sectionId, time) {
+  if (!sectionId) return null;
+  const marker = lines.find((l) => l.id === sectionId && l.type === 'jiuchi-section');
+  if (!marker) return null;
+  const { events, lengthDiv } = jiuchiEventsFromLines(jiuchiSectionSlice(lines, sectionId), time);
+  if (!events.length || !(lengthDiv > 0)) return null;
+  return { events, lengthDiv, taiko: marker.taiko };
+}
+
+/**
  * Returns the lines covered by a block-repeat, from its first member line through
  * the marker row inclusive. Including the marker means {@link expandRepeats} applies
  * the block's repeat count when the slice is played.

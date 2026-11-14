@@ -3,9 +3,8 @@ import {
   buildSequence,
   divToSeconds,
   excludeJiuchiSections,
-  jiuchiEventsFromLines,
   jiuchiRegions,
-  jiuchiSectionSlice,
+  jiuchiSectionLoop,
 } from '../data/sequence.js';
 import { jiuchiLoop, jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
 import { primaryStrike, timeForJiuchi } from '../data/symbolSets.js';
@@ -36,6 +35,11 @@ export const player = {
   // Session-only taiko voice for the practice loop. Null means tick (synth
   // click / Shime sample); a taiko name plays the pattern as drum strikes.
   metroTaiko: null,
+  // Session-only practice-loop source: null plays the score's named jiuchi
+  // (voiced by metroTaiko), or a jiuchi-section marker id to loop that section's
+  // authored rhythm with its own taiko. Independent of piece.metronomeJiuchi,
+  // which governs the metronome during score playback only.
+  metroSection: null,
 
   _events: [],
   // Loop period in seconds for the standalone metronome; 0 = normal finite
@@ -115,13 +119,17 @@ export const player = {
   },
 
   /**
-   * Sets the session-only practice-loop voice: null for ticks, or a taiko name
-   * to play the pattern as drum strikes. A running loop restarts with the new voice.
+   * Sets the session-only practice-loop source. The two fields are mutually
+   * exclusive — a jiuchi section carries its own taiko — so they are set together
+   * and a running loop restarts once.
    * @param {object} piece
-   * @param {string|null} taiko
+   * @param {{ taiko?: string|null, sectionId?: string|null }} src - A taiko name to
+   *   voice the score's named jiuchi as drum strikes, a jiuchi-section marker id to
+   *   loop that section's authored rhythm, or neither for ticks.
    */
-  setMetroTaiko(piece, taiko) {
-    this.metroTaiko = taiko;
+  setMetroSource(piece, { taiko = null, sectionId = null } = {}) {
+    this.metroTaiko = sectionId ? null : taiko;
+    this.metroSection = sectionId;
     if (this.isScope('metronome')) {
       this.stop();
       this.playMetronome(piece);
@@ -129,11 +137,12 @@ export const player = {
   },
 
   /**
-   * Starts the standalone practice metronome: one cycle of the configured jiuchi
-   * (a standard tick pattern, or the score's first inline jiuchi section played
-   * with its own taiko) looped indefinitely at `metroBpm` (defaulting to the
-   * score's bpm). Independent of the `piece.metronome` toggle, which only
-   * governs the metronome during score playback. Stopped by `stop()` like any
+   * Starts the standalone practice metronome: one cycle of its source — the
+   * jiuchi section picked by `metroSection`, played with that section's own
+   * taiko, else the score's named jiuchi as ticks or `metroTaiko` strikes —
+   * looped indefinitely at `metroBpm` (defaulting to the score's bpm).
+   * Independent of `piece.metronome` and `piece.metronomeJiuchi`, which govern
+   * the metronome during score playback only. Stopped by `stop()` like any
    * other playback.
    * @param {object} piece
    */
@@ -143,20 +152,12 @@ export const player = {
     const { time } = piece;
     if (!(bpm > 0)) return;
 
-    // Inline: capture one cycle of the first jiuchi section's rhythm. Falls back
-    // to the standard 'auto' ticks when there is no section or it has no sounds,
-    // so the loop is never silent.
-    let inline = null;
-    if (piece.metronomeJiuchi === 'inline') {
-      const marker = piece.lines.find((l) => l.type === 'jiuchi-section');
-      if (marker) {
-        const { events, lengthDiv } = jiuchiEventsFromLines(
-          jiuchiSectionSlice(piece.lines, marker.id),
-          time
-        );
-        if (events.length && lengthDiv > 0) inline = { events, lengthDiv, taiko: marker.taiko };
-      }
-    }
+    // The selected jiuchi section's authored rhythm, looped with its own taiko.
+    // Null for every unusable case — no selection, a section removed since it was
+    // picked, or one with no audible sounds — so the loop falls back to the
+    // standard ticks below and is never silent.
+    const inline = jiuchiSectionLoop(piece.lines, this.metroSection, time);
+    if (this.metroSection && !inline) this.metroSection = null;
 
     this.playing = true;
     this.scope = { type: 'metronome' };
@@ -191,10 +192,10 @@ export const player = {
         .sort((a, b) => a.atSec - b.atSec);
       lengthDiv = inline.lengthDiv;
     } else {
-      const name = resolveJiuchi(
-        piece.metronomeJiuchi === 'inline' ? 'auto' : piece.metronomeJiuchi,
-        piece
-      );
+      // 'inline' is a score-playback choice with no meaning here (the practice
+      // loop picks its own source), so it resolves to the score's own jiuchi.
+      const setting = piece.metronomeJiuchi === 'inline' ? 'auto' : piece.metronomeJiuchi;
+      const name = resolveJiuchi(setting, piece);
       // With no score grid to align with, a named jiuchi plays in its native
       // feel — Shichisan swings (time 3) even when the score is straight. The
       // beat length (60/bpm) is the same either way.
@@ -238,7 +239,7 @@ export const player = {
     this._events = [];
     // The Tick voice is always the synth click here; 'Use Shime sound' applies
     // to the score-playback metronome only. A Shime drum voice is available
-    // explicitly through the loop's taiko selector instead.
+    // explicitly through the loop's Source selector instead.
     this._metroShime = false;
     this._metroVolume = piece.metronomeVolume;
     this._startTime = c.currentTime + LEAD_IN;
