@@ -286,26 +286,51 @@ export function jiuchiSectionSlice(lines, sectionId) {
 }
 
 /**
- * Resolves one jiuchi section to a self-contained looping rhythm, for playing it
- * as the standalone practice loop. Combines the section lookup, the definition
- * slice, and the event capture so a caller only needs the marker id, and returns
- * null for every unusable case (missing id, id that isn't a jiuchi-section marker,
- * a section whose definition lines hold no audible sounds) so the caller can fall
- * back to ticks.
+ * The practice-loop source that chains every jiuchi section in the score, rather
+ * than naming one marker. Marker ids are UUIDs, so it cannot collide with one.
+ */
+export const ALL_JIUCHI_SECTIONS = 'all';
+
+/**
+ * Resolves a practice-loop source to a self-contained looping rhythm: one jiuchi
+ * section named by its marker id, or {@link ALL_JIUCHI_SECTIONS} to chain every
+ * section in the score back to back into a single longer cycle. Combines the
+ * section lookup, the definition slice, and the event capture so a caller only
+ * needs the source, and each event carries the taiko of the section it came from
+ * so a chained loop switches drum as it goes.
+ *
+ * A section contributes its whole span even when it is all rests, so authored
+ * silence between sections survives chaining; sections with no span at all (an
+ * empty definition) are skipped. Returns null for every unusable case — no
+ * source, an id that is not a jiuchi-section marker, nothing audible in the
+ * result — so the caller can fall back to ticks.
  *
  * @param {Array<object>} lines - The piece's lines array.
- * @param {string|null|undefined} sectionId - The id of the jiuchi-section marker row.
+ * @param {string|null|undefined} source - A jiuchi-section marker id, or
+ *   {@link ALL_JIUCHI_SECTIONS}.
  * @param {number} time - Divisions per beat (4 straight, 3 swing).
- * @returns {{ events: Array<object>, lengthDiv: number, taiko: string }|null} The
- *   section's one-cycle rhythm with the taiko it is authored for, or null.
+ * @returns {{ events: Array<object>, lengthDiv: number }|null} The one-cycle
+ *   rhythm, each event tagged with its section's `taiko`, or null.
  */
-export function jiuchiSectionLoop(lines, sectionId, time) {
-  if (!sectionId) return null;
-  const marker = lines.find((l) => l.id === sectionId && l.type === 'jiuchi-section');
-  if (!marker) return null;
-  const { events, lengthDiv } = jiuchiEventsFromLines(jiuchiSectionSlice(lines, sectionId), time);
-  if (!events.length || !(lengthDiv > 0)) return null;
-  return { events, lengthDiv, taiko: marker.taiko };
+export function jiuchiPracticeLoop(lines, source, time) {
+  if (!source) return null;
+  const markers =
+    source === ALL_JIUCHI_SECTIONS
+      ? lines.filter((l) => l.type === 'jiuchi-section')
+      : lines.filter((l) => l.id === source && l.type === 'jiuchi-section');
+  if (!markers.length) return null;
+
+  const events = [];
+  let lengthDiv = 0;
+  for (const marker of markers) {
+    const cycle = jiuchiEventsFromLines(jiuchiSectionSlice(lines, marker.id), time);
+    if (!(cycle.lengthDiv > 0)) continue;
+    for (const e of cycle.events) {
+      events.push({ ...e, startDiv: e.startDiv + lengthDiv, taiko: marker.taiko });
+    }
+    lengthDiv += cycle.lengthDiv;
+  }
+  return events.length ? { events, lengthDiv } : null;
 }
 
 /**

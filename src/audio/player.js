@@ -4,7 +4,7 @@ import {
   divToSeconds,
   excludeJiuchiSections,
   jiuchiRegions,
-  jiuchiSectionLoop,
+  jiuchiPracticeLoop,
 } from '../data/sequence.js';
 import { jiuchiLoop, jiuchiTicks, loopEvents, resolveJiuchi } from '../data/metronome.js';
 import { primaryStrike, timeForJiuchi } from '../data/symbolSets.js';
@@ -36,9 +36,10 @@ export const player = {
   // click / Shime sample); a taiko name plays the pattern as drum strikes.
   metroTaiko: null,
   // Session-only practice-loop source: null plays the score's named jiuchi
-  // (voiced by metroTaiko), or a jiuchi-section marker id to loop that section's
-  // authored rhythm with its own taiko. Independent of piece.metronomeJiuchi,
-  // which governs the metronome during score playback only.
+  // (voiced by metroTaiko); a jiuchi-section marker id loops that section's
+  // authored rhythm with its own taiko; ALL_JIUCHI_SECTIONS chains every section
+  // in the score into one cycle, switching taiko as it goes. Independent of
+  // piece.metronomeJiuchi, which governs the metronome during score playback only.
   metroSection: null,
 
   _events: [],
@@ -124,8 +125,8 @@ export const player = {
    * and a running loop restarts once.
    * @param {object} piece
    * @param {{ taiko?: string|null, sectionId?: string|null }} src - A taiko name to
-   *   voice the score's named jiuchi as drum strikes, a jiuchi-section marker id to
-   *   loop that section's authored rhythm, or neither for ticks.
+   *   voice the score's named jiuchi as drum strikes, a jiuchi-section marker id (or
+   *   `ALL_JIUCHI_SECTIONS`) to loop authored rhythms, or neither for ticks.
    */
   setMetroSource(piece, { taiko = null, sectionId = null } = {}) {
     this.metroTaiko = sectionId ? null : taiko;
@@ -152,11 +153,12 @@ export const player = {
     const { time } = piece;
     if (!(bpm > 0)) return;
 
-    // The selected jiuchi section's authored rhythm, looped with its own taiko.
-    // Null for every unusable case — no selection, a section removed since it was
-    // picked, or one with no audible sounds — so the loop falls back to the
-    // standard ticks below and is never silent.
-    const inline = jiuchiSectionLoop(piece.lines, this.metroSection, time);
+    // The chosen jiuchi section's authored rhythm — or every section in the score
+    // chained into one cycle — each event tagged with its own section's taiko.
+    // Null for every unusable case (no selection, a section removed since it was
+    // picked, nothing audible) so the loop falls back to the standard ticks below
+    // and is never silent.
+    const inline = jiuchiPracticeLoop(piece.lines, this.metroSection, time);
     if (this.metroSection && !inline) this.metroSection = null;
 
     this.playing = true;
@@ -166,7 +168,10 @@ export const player = {
     await resumeAudio();
     if (this._epoch !== epoch) return;
     if (inline) {
-      await voice.preload(inline.taiko);
+      for (const t of new Set(inline.events.map((e) => e.taiko))) {
+        await voice.preload(t);
+        if (this._epoch !== epoch) return;
+      }
     } else if (this.metroTaiko) {
       await voice.preload(this.metroTaiko);
     }
@@ -187,7 +192,7 @@ export const player = {
             volume: e.volume * piece.metronomeVolume,
             duration: e.durationDiv,
           },
-          taiko: inline.taiko,
+          taiko: e.taiko,
         }))
         .sort((a, b) => a.atSec - b.atSec);
       lengthDiv = inline.lengthDiv;
