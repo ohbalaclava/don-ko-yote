@@ -49,7 +49,7 @@ export const player = {
   _metroTicks: [], // { atSec, accent } beat-grid ticks, when the metronome is on
   _metroStrikes: [], // { atSec, sound, taiko } looped drum strikes for inline jiuchi regions
   _metroShime: false, // per-score Shime-tick flag, captured at play time for _schedule
-  _metroVolume: 1, // per-score metronome volume, captured at play time for _schedule
+  _metroVolume: 1, // per-score metronome volume (gain trim), captured at play time for _schedule
   _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
@@ -189,7 +189,7 @@ export const player = {
             name: e.name,
             hand: e.hand,
             skin: e.skin,
-            volume: e.volume * piece.metronomeVolume,
+            volume: e.volume,
             duration: e.durationDiv,
           },
           taiko: e.taiko,
@@ -221,7 +221,7 @@ export const player = {
           sound: {
             name: sym.name,
             hand: sym.hand,
-            volume: sym.volume * (t.accent ? 1.5 : 1) * piece.metronomeVolume,
+            volume: sym.volume * (t.accent ? 1.5 : 1),
             duration: sym.duration,
           },
           taiko: this.metroTaiko,
@@ -405,7 +405,8 @@ export const player = {
    * Builds the looped drum strikes for the inline jiuchi regions: each region's
    * captured rhythm is tiled across the span it covers, offset to its start, and
    * tagged with the region's taiko so the scheduler renders it with that voice.
-   * Volumes are scaled by the metronome volume setting (the engine caps at 8).
+   * Volumes are the authored ones; the metronome volume setting is applied as a
+   * gain trim at schedule time (see _schedule) so it is not clamped to 1-8.
    * @param {object} piece
    * @param {Array<{ startDiv: number, endDiv: number, events: Array, lengthDiv: number, taiko: string }>} regions
    * @returns {Array<{ atSec: number, sound: object, taiko: string }>}
@@ -422,7 +423,7 @@ export const player = {
             name: e.name,
             hand: e.hand,
             skin: e.skin,
-            volume: e.volume * piece.metronomeVolume,
+            volume: e.volume,
             duration: e.durationDiv,
           },
           taiko: r.taiko,
@@ -484,7 +485,7 @@ export const player = {
       const s = strikes[i % strikes.length];
       const when = this._startTime + Math.floor(i / strikes.length) * this._loopSec + s.atSec;
       if (when >= horizon) break;
-      voice.strike(s.sound, when, s.taiko);
+      voice.strike(s.sound, when, s.taiko, this._metroVolume);
       this._nextMetroStrikeIdx++;
     }
   },

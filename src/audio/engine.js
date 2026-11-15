@@ -164,10 +164,14 @@ function panTo(c, node, pan) {
  * @param {{ name: string, hand?: string, volume: number }} sound
  * @param {number} when - Start time in seconds on the AudioContext clock.
  * @param {string} taiko - Taiko display name (selects the timbre).
+ * @param {number} [gainMul=1] - Extra gain factor applied after the per-note
+ *   volume curve, so a caller can trim the whole voice continuously (down to
+ *   silence) rather than being bounded by the 1-8 volume steps.
  */
-function synthStrike(sound, when, taiko) {
+function synthStrike(sound, when, taiko, gainMul = 1) {
   const c = getAudioContext();
-  const { freq, decay, noiseAmt, metal, gain, pan } = voiceParams(sound, taiko);
+  const { freq, decay, noiseAmt, metal, gain: baseGain, pan } = voiceParams(sound, taiko);
+  const gain = baseGain * gainMul;
 
   // Pitched body: a sine (or detuned inharmonic pair for metal) with a fast pitch
   // drop and exponential amplitude decay.
@@ -315,22 +319,31 @@ const LAYER_GAIN = 0.71;
  * recordings (e.g. Odaiko-L + Odaiko-R) layers both for a fuller two-stick sound.
  * Where a single recording already covers 'B' (Nagado KI, the hand-independent Shime
  * sample) or there is no sample, it falls through to the normal single-voice path.
+ *
+ * @param {{ name: string, hand?: string, volume: number }} sound
+ * @param {number} when - Start time in seconds on the AudioContext clock.
+ * @param {string} taiko - Taiko display name.
+ * @param {number} [gainMul=1] - Continuous gain trim applied on top of the note's
+ *   own volume (1-8) curve. The metronome uses it to balance against the score:
+ *   folding its volume setting into `sound.volume` instead would be clamped to
+ *   the 1-8 range, so cuts bottomed out at step 1 and never reached silence.
  */
-function strike(sound, when, taiko) {
+function strike(sound, when, taiko, gainMul = 1) {
+  if (!(gainMul > 0)) return; // silent; also avoids scheduling inaudible voices
   if (sound.hand === 'B') {
     const left = { ...sound, hand: 'L' };
     const right = { ...sound, hand: 'R' };
     const lKey = sampleKey(left, taiko);
     const rKey = sampleKey(right, taiko);
     if (lKey && rKey && lKey !== rKey) {
-      const l = sampleStrike(left, when, taiko, LAYER_GAIN);
-      const r = sampleStrike(right, when, taiko, LAYER_GAIN);
+      const l = sampleStrike(left, when, taiko, LAYER_GAIN * gainMul);
+      const r = sampleStrike(right, when, taiko, LAYER_GAIN * gainMul);
       if (l || r) return; // else both buffers unloaded — fall through to synth
     }
   }
-  if (sampleStrike(sound, when, taiko)) return;
+  if (sampleStrike(sound, when, taiko, gainMul)) return;
   if (isKakegoe(sound.name)) return;
-  synthStrike(sound, when, taiko);
+  synthStrike(sound, when, taiko, gainMul);
 }
 
 /** The active voice. */
