@@ -103,6 +103,25 @@ export function HelpSheet() {
                 m(Row, { label: '✕', desc: 'Remove the line and all its sounds.' }),
               ]),
 
+              m(Section, { title: 'Parts (several drums)' }, [
+                m(Row, {
+                  label: 'Add a part',
+                  desc: "Score settings ♩ → Parts, or + part at the foot of the score. Each part is one drum on its own row, read down the page like a conductor's score.",
+                }),
+                m(Row, {
+                  label: 'Taiko set',
+                  desc: 'Give two or more neighbouring parts the same player in Parts and a bracket links them — one person playing several drums.',
+                }),
+                m(Row, {
+                  label: 'Beats line up',
+                  desc: 'Every part shares one tempo and beat grid, so beat 3 of one part sits above beat 3 of the next. Scroll sideways; the part names stay put.',
+                }),
+                m(Row, {
+                  label: 'M / S',
+                  desc: 'Mute a part (saved with the score) or solo one for practice (this session only). Both apply from the next play.',
+                }),
+              ]),
+
               m(Section, { title: 'Tiles' }, [
                 m(Row, {
                   label: 'Tap a tile',
@@ -114,7 +133,7 @@ export function HelpSheet() {
                 }),
                 m(Row, {
                   label: 'Drag a tile',
-                  desc: 'Reorder within a line or move to another line.',
+                  desc: 'Reorder within a row, or move to another row of the same part.',
                 }),
               ]),
 
@@ -141,6 +160,10 @@ export function HelpSheet() {
                   desc: 'Move the line selection; Enter adds a new line below it.',
                 }),
                 m(Row, {
+                  label: 'Alt+↑ / ↓',
+                  desc: 'Move to the part above or below in the same row (ensemble scores).',
+                }),
+                m(Row, {
                   label: 'Esc',
                   desc: 'Close the open sheet or tile editor, or cancel selection.',
                 }),
@@ -151,6 +174,21 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Ctrl+S · + / − · ?',
                   desc: 'Save · nudge BPM · open this help.',
+                }),
+              ]),
+
+              m(Section, { title: 'Parts' }, [
+                m(Row, {
+                  label: 'Add a part',
+                  desc: 'Score settings ♩ → Parts. Each part is one drum and gets its own lane in every row, with beats aligned across the parts.',
+                }),
+                m(Row, {
+                  label: 'Player (taiko set)',
+                  desc: 'Give two or more parts the same player to mark a taiko set — one person on several drums. Their lanes are linked by a bracket carrying the player name.',
+                }),
+                m(Row, {
+                  label: 'Sideways scroll',
+                  desc: 'Lanes never wrap once there are several parts; the part labels stay pinned to the left as the music scrolls.',
                 }),
               ]),
 

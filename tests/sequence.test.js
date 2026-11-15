@@ -6,6 +6,7 @@ vi.mock('mithril', () => ({ default: { redraw: vi.fn() } }));
 import {
   expandRepeats,
   buildSequence,
+  buildPartSequences,
   divToSeconds,
   sectionSlice,
   blockRepeatSlice,
@@ -502,5 +503,60 @@ describe('divToSeconds', () => {
     expect(divToSeconds(4, 120, 4)).toBeCloseTo(0.5);
     expect(divToSeconds(1, 120, 4)).toBeCloseTo(0.125);
     expect(divToSeconds(3, 180, 3)).toBeCloseTo(1 / 3);
+  });
+});
+
+// ── buildPartSequences ──────────────────────────────────────────────────────
+
+describe('buildPartSequences', () => {
+  const parts = [
+    { id: 'p1', taiko: 'Nagado', volume: 1 },
+    { id: 'p2', taiko: 'Shime', volume: 1 },
+  ];
+  /** One system, one lane per part, with differing lane lengths. */
+  const lines = [
+    {
+      id: 'l1',
+      lanes: [
+        { id: 'a', partId: 'p1', sounds: [sound('DON'), sound('KA')] },
+        { id: 'b', partId: 'p2', sounds: [sound('TEN')] },
+      ],
+    },
+  ];
+
+  it('returns one stream per part, carrying its taiko', () => {
+    const { streams } = buildPartSequences(lines, parts, 4);
+    expect(streams.map((s) => [s.partId, s.taiko])).toEqual([
+      ['p1', 'Nagado'],
+      ['p2', 'Shime'],
+    ]);
+  });
+
+  it('gives each stream only its own part events', () => {
+    const { streams } = buildPartSequences(lines, parts, 4);
+    expect(streams[0].events.map((e) => e.name)).toEqual(['DON', 'KA']);
+    expect(streams[1].events.map((e) => e.name)).toEqual(['TEN']);
+  });
+
+  it('starts every part at the same division, the system span being the longest lane', () => {
+    const { streams, totalDiv } = buildPartSequences(lines, parts, 4);
+    expect(streams.map((s) => s.events[0].startDiv)).toEqual([0, 0]);
+    expect(totalDiv).toBe(8);
+  });
+
+  it('matches buildSequence for a single part', () => {
+    const solo = [{ id: 'l1', lanes: [{ id: 'a', partId: 'p1', sounds: [sound('DON')] }] }];
+    const one = buildPartSequences(solo, [parts[0]], 4);
+    const direct = buildSequence(solo, 4);
+    expect(one.streams).toHaveLength(1);
+    expect(one.streams[0].events).toEqual(direct.events);
+    expect(one.totalDiv).toBe(direct.totalDiv);
+  });
+
+  it('falls back to one part-less stream when there are no parts', () => {
+    const { streams } = buildPartSequences(lines, [], 4);
+    expect(streams).toHaveLength(1);
+    expect(streams[0].partId).toBeNull();
+    expect(streams[0].events.map((e) => e.name)).toEqual(['DON', 'KA']);
   });
 });

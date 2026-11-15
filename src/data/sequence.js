@@ -1,4 +1,4 @@
-import { isSoundLine } from './piece.js';
+import { isSoundLine, lanesOf, laneFor, systemSpan } from './piece.js';
 import { effectiveVolume } from '../util.js';
 import { isKakegoe, KAKEGOE_VOLUME } from './kakegoe.js';
 
@@ -87,30 +87,75 @@ export function expandRepeats(lines) {
  * Accented sounds (`emphasis: true`) play at 1.5× their effective volume; the engine
  * caps the result at 8, so accents read louder without altering the displayed volume.
  *
+ * One part at a time: each system contributes that part's lane, anchored at the
+ * system's start, so a part with a short lane rests out the remainder instead of
+ * drifting ahead of the others. With one lane per system the span equals that
+ * lane's duration, which is why a single-part score's timing is unchanged.
+ *
  * @param {Array<object>} lines - The piece's lines array.
  * @param {number} time - Divisions per beat (e.g. 4 straight, 3 swing).
+ * @param {string} [partId] - Which part to voice; omitted plays each system's first lane.
  * @returns {{ events: Array<{ lineId: string, soundId: string, name: string, hand: string|undefined, skin: string|undefined, volume: number|null, startDiv: number, durationDiv: number }>, totalDiv: number }}
  */
-export function buildSequence(lines, time) {
+export function buildSequence(lines, time, partId) {
   const events = [];
   let pos = 0;
-  for (const line of expandRepeats(lines)) {
-    for (const s of line.sounds) {
+  for (const system of expandRepeats(lines)) {
+    const lane = partId === undefined ? lanesOf(system)[0] : laneFor(system, partId);
+    let p = pos;
+    for (const s of lane?.sounds ?? []) {
       const vol = s.silent ? null : isKakegoe(s.name) ? KAKEGOE_VOLUME : effectiveVolume(s);
       events.push({
-        lineId: line.id,
+        lineId: lane.id,
         soundId: s.id,
         name: s.name,
         hand: s.hand,
         skin: s.skin, // selects the Katsugi front/back recording
         volume: vol != null && s.emphasis ? vol * 1.5 : vol,
-        startDiv: pos,
+        startDiv: p,
         durationDiv: s.duration,
       });
-      pos += s.duration;
+      p += s.duration;
     }
+    pos += systemSpan(system);
   }
   return { events, totalDiv: pos };
+}
+
+/**
+ * Builds one event stream per part, all on the same division timeline, so the
+ * parts sound together. Each stream is exactly what `buildSequence` produces for
+ * that part — every system anchors its lane at the system's start, which is what
+ * keeps the parts in step when their lanes differ in length.
+ *
+ * With a single part this is `buildSequence` with one stream, including its
+ * `totalDiv`, so solo playback is untouched.
+ *
+ * @param {Array<object>} lines - The piece's lines array (melody; exclude jiuchi sections first).
+ * @param {Array<{ id: string, taiko: string, volume: number, muted: boolean }>} parts
+ * @param {number} time - Divisions per beat.
+ * @returns {{ streams: Array<{ partId: string, taiko: string, events: Array<object> }>, totalDiv: number }}
+ */
+export function buildPartSequences(lines, parts, time) {
+  const list = parts?.length ? parts : [null];
+  let totalDiv = 0;
+  const streams = list.map((part) => {
+    const { events, totalDiv: span } = buildSequence(lines, time, part?.id);
+    totalDiv = Math.max(totalDiv, span);
+    return { partId: part?.id ?? null, taiko: part?.taiko ?? null, events };
+  });
+  return { streams, totalDiv };
+}
+
+/**
+ * Total span of a lines array in divisions: the sum of every system's span, with
+ * block-repeats unrolled. Equals `buildSequence(...).totalDiv` for a single-part
+ * score, and is the ensemble length when parts have differing lane lengths.
+ * @param {Array<object>} lines
+ * @returns {number}
+ */
+export function totalSpan(lines) {
+  return expandRepeats(lines).reduce((sum, system) => sum + systemSpan(system), 0);
 }
 
 /** True for rows that close a jiuchi section's definition run. */
@@ -202,7 +247,7 @@ export function jiuchiRegions(lines, time) {
     if (!marker || split < 0) split = marker ? items.length : 0;
     const def = marker ? items.slice(0, split) : [];
     const body = items.slice(marker ? split : 0);
-    const bodyDur = buildSequence(body, time).totalDiv;
+    const bodyDur = totalSpan(body);
     if (marker && bodyDur > 0) {
       const { events, lengthDiv } = jiuchiEventsFromLines(def, time);
       if (events.length && lengthDiv > 0) {

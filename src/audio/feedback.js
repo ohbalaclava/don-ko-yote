@@ -27,7 +27,9 @@ export function feedbackSound(sound) {
   if (volume == null) return feedbackClick('tap');
   resumeAudio(); // fire-and-forget; awaiting would lose the gesture context
   const c = getAudioContext();
-  voice.strike({ ...sound, volume }, c.currentTime, piece.taiko);
+  // The drum the user is editing on, which in an ensemble is the selected lane's
+  // part rather than the score's first.
+  voice.strike({ ...sound, volume }, c.currentTime, piece.taikoForLane(piece.selectedLineId));
 }
 
 /**

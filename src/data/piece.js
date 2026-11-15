@@ -4,6 +4,12 @@ import { anim } from '../anim.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
 import { uid } from '../uid.js';
 
+/**
+ * Score data format. 1 = pre-3.0 (flat `lines` of `{ id, sounds }`); 2 = parts
+ * with systems of lanes. Stamped on every snapshot; `migrateScore` reads it.
+ */
+export const FORMAT = 2;
+
 /** Item `type` values that are not sound lines (structural rows / markers). */
 const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat', 'jiuchi-section']);
 
@@ -85,8 +91,124 @@ function makeSound(symbol) {
   };
 }
 
-function makeLine() {
-  return { id: uid(), sounds: [] };
+/**
+ * Creates a part: one drum played by one person, drawn as one lane in every
+ * system. `name` falls back to the taiko name in the UI; `setId` links the part
+ * to a taiko set (a player holding several drums) when non-null.
+ * @param {{ name?: string, taiko?: string, setId?: string|null, volume?: number, muted?: boolean }} [opts]
+ */
+export function makePart(opts = {}) {
+  return {
+    id: uid(),
+    name: opts.name ?? '',
+    taiko: opts.taiko ?? _defaultTaiko,
+    setId: opts.setId ?? null,
+    volume: opts.volume ?? 1,
+    muted: opts.muted ?? false,
+  };
+}
+
+/**
+ * Creates a taiko set: a named group of parts played by one person, drawn with a
+ * bracket linking their lanes.
+ * @param {string} name
+ */
+export function makeSet(name) {
+  return { id: uid(), name: name ?? '' };
+}
+
+/**
+ * Creates a lane: one part's sounds within one system. A lane is exactly what a
+ * sound line used to be, plus the part it belongs to. `partId` is null for a
+ * jiuchi-section definition lane, which takes its drum from the section marker.
+ * @param {string|null} partId
+ */
+export function makeLane(partId = null) {
+  return { id: uid(), partId: partId ?? null, sounds: [] };
+}
+
+/**
+ * Creates a system: one score row holding one lane per part, in `piece.parts`
+ * order. A system carries no `type`, so every structural helper (isSoundLine,
+ * block-repeat membership, the jiuchi-section scan, the Sortable index mapping)
+ * treats it exactly as it treated a sound line.
+ * @param {Array<string|null>} partIds - Part ids, in order. Empty → one part-less lane.
+ */
+export function makeSystem(partIds = [null]) {
+  const ids = partIds.length ? partIds : [null];
+  return { id: uid(), lanes: ids.map((partId) => makeLane(partId)) };
+}
+
+/**
+ * The lanes of a sound row. Tolerates a pre-3.0 row (`{ id, sounds }`) by
+ * presenting it as one part-less lane, so pure readers (sequence, pdf, anim) and
+ * older test fixtures work on un-migrated data.
+ * @param {{ id: string, lanes?: object[], sounds?: object[] }} row
+ * @returns {Array<{ id: string, partId: string|null, sounds: object[] }>}
+ */
+export function lanesOf(row) {
+  return row.lanes ?? [{ id: row.id, partId: null, sounds: row.sounds ?? [] }];
+}
+
+/**
+ * The lane a part owns in `row`. A single-lane row serves any part when either
+ * side is part-less, which is what keeps a solo score (and a jiuchi definition
+ * row) behaving exactly as it did before parts existed.
+ * @param {object} row
+ * @param {string|null} partId
+ * @returns {object|null}
+ */
+export function laneFor(row, partId) {
+  const lanes = lanesOf(row);
+  if (lanes.length === 1 && (partId == null || lanes[0].partId == null)) return lanes[0];
+  return lanes.find((l) => l.partId === partId) ?? null;
+}
+
+/**
+ * Locates a lane by id anywhere in `lines`.
+ * @param {Array<object>} lines
+ * @param {string} laneId
+ * @returns {{ system: object, lane: object, systemIdx: number, laneIdx: number }|null}
+ */
+export function findLane(lines, laneId) {
+  for (let i = 0; i < lines.length; i++) {
+    const row = lines[i];
+    if (!isSoundLine(row)) continue;
+    const lanes = lanesOf(row);
+    for (let j = 0; j < lanes.length; j++) {
+      if (lanes[j].id === laneId) return { system: row, lane: lanes[j], systemIdx: i, laneIdx: j };
+    }
+  }
+  return null;
+}
+
+/** Total duration of a lane's sounds, in divisions. */
+export function laneDur(lane) {
+  return lane.sounds.reduce((sum, s) => sum + s.duration, 0);
+}
+
+/**
+ * A system's span in divisions: its longest lane. Shorter lanes rest out the
+ * remainder, so parts cannot drift apart. With one lane this is that lane's own
+ * duration, which is why a single-part score's timing is unchanged.
+ * @param {object} row
+ */
+export function systemSpan(row) {
+  return lanesOf(row).reduce((max, lane) => Math.max(max, laneDur(lane)), 0);
+}
+
+/** Id of the first lane of the first sound row, or null. */
+export function firstLaneId(lines) {
+  const row = lines.find(isSoundLine);
+  return row ? lanesOf(row)[0].id : null;
+}
+
+/** Id of the first lane of the last sound row, or the last row's id, or null. */
+export function lastLaneId(lines) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (isSoundLine(lines[i])) return lanesOf(lines[i])[0].id;
+  }
+  return lines[lines.length - 1]?.id ?? null;
 }
 
 function makeHeading() {
@@ -116,35 +238,35 @@ function makeJiuchiSection(taiko) {
  * @param {...object} items
  */
 function insertAfterSelected(...items) {
-  const idx = piece.lines.findIndex((l) => l.id === piece.selectedLineId);
+  const found = findLane(piece.lines, piece.selectedLineId);
+  const idx = found ? found.systemIdx : piece.lines.findIndex((l) => l.id === piece.selectedLineId);
   if (idx >= 0) piece.lines.splice(idx + 1, 0, ...items);
   else piece.lines.push(...items);
 }
 
-function lineDur(line) {
-  return line.sounds.reduce((sum, s) => sum + s.duration, 0);
-}
-
 /**
- * Returns the index of the first line (starting from fromIdx) that can fit
- * `duration` divisions. Creates a new line at the end when all lines are full.
- * When beatsPerLine is 0 (unlimited) or the item is too large to fit anywhere,
- * returns fromIdx unchanged.
- * @param {number} fromIdx - Starting line index.
+ * Returns the first lane that can fit `duration` divisions: the lane itself, else
+ * the same part's lane in a later system, else a lane in a system appended to the
+ * end. Overflow always stays within one part. When beatsPerLine is 0 (unlimited)
+ * or the item is too large to fit anywhere, returns the starting lane.
+ * @param {string} fromLaneId
  * @param {number} duration - Duration to accommodate, in divisions.
- * @returns {number} Index of the target line.
+ * @returns {object|null} The target lane, or null when fromLaneId is unknown.
  */
-function targetLineIdx(fromIdx, duration) {
+function targetLane(fromLaneId, duration) {
+  const from = findLane(piece.lines, fromLaneId);
+  if (!from) return null;
   const max = piece.beatsPerLine * piece.time;
-  if (!piece.beatsPerLine || duration > max) return fromIdx;
-  let i = fromIdx;
-  while (i < piece.lines.length) {
-    const item = piece.lines[i];
-    if (isSoundLine(item) && lineDur(item) + duration <= max) return i;
-    i++;
+  if (!piece.beatsPerLine || duration > max) return from.lane;
+  for (let i = from.systemIdx; i < piece.lines.length; i++) {
+    const row = piece.lines[i];
+    if (!isSoundLine(row)) continue;
+    const lane = i === from.systemIdx ? from.lane : laneFor(row, from.lane.partId);
+    if (lane && laneDur(lane) + duration <= max) return lane;
   }
-  piece.lines.push(makeLine());
-  return piece.lines.length - 1;
+  const system = makeSystem(piece.partIds());
+  piece.lines.push(system);
+  return laneFor(system, from.lane.partId) ?? system.lanes[0];
 }
 
 /** True for the structural rows that are skipped when computing line adjacency. */
@@ -261,37 +383,39 @@ function updateBlockRepeatMembership(moved) {
 }
 
 /**
- * Finds the sound line that differs between two `lines` arrays — used to follow a
- * change with the selection after undo/redo. Prefers a line whose content changed,
- * then a line newly present in `newLines` (e.g. redo of an add), then the line
- * nearest a removal. Only sound lines are considered (selectedLineId tracks a
- * sound line); returns null when no sound line changed.
+ * Finds the lane that differs between two `lines` arrays — used to follow a
+ * change with the selection after undo/redo. Prefers a lane whose content changed,
+ * then a lane newly present in `newLines` (e.g. redo of an add), then the lane
+ * nearest a removal. Only lanes are considered (selectedLineId tracks a lane);
+ * returns null when no lane changed.
  * @param {Array<object>} oldLines
  * @param {Array<object>} newLines
- * @returns {string|null} id of the changed sound line, or null.
+ * @returns {string|null} id of the changed lane, or null.
  */
-function changedSoundLineId(oldLines, newLines) {
-  const oldSound = oldLines.filter(isSoundLine);
-  const newSound = newLines.filter(isSoundLine);
-  const oldById = new Map(oldSound.map((l) => [l.id, l]));
-  const newById = new Map(newSound.map((l) => [l.id, l]));
-  for (const l of newSound) {
+function changedLaneId(oldLines, newLines) {
+  const flatten = (lines) => lines.filter(isSoundLine).flatMap((row) => lanesOf(row));
+  const oldLanes = flatten(oldLines);
+  const newLanes = flatten(newLines);
+  const oldById = new Map(oldLanes.map((l) => [l.id, l]));
+  const newById = new Map(newLanes.map((l) => [l.id, l]));
+  for (const l of newLanes) {
     const o = oldById.get(l.id);
     if (o && JSON.stringify(o) !== JSON.stringify(l)) return l.id;
   }
-  for (const l of newSound) if (!oldById.has(l.id)) return l.id;
-  for (let i = 0; i < oldSound.length; i++) {
-    if (!newById.has(oldSound[i].id)) {
-      return newSound[Math.min(i, newSound.length - 1)]?.id ?? null;
+  for (const l of newLanes) if (!oldById.has(l.id)) return l.id;
+  for (let i = 0; i < oldLanes.length; i++) {
+    if (!newById.has(oldLanes[i].id)) {
+      return newLanes[Math.min(i, newLanes.length - 1)]?.id ?? null;
     }
   }
   return null;
 }
 
-const _firstLine = makeLine();
 const _defaultSet = SYMBOL_SETS[0];
 const _defaultTaiko = _defaultSet.taiko[0].name;
 const _defaultJiuchi = _defaultSet.jiuchis[0];
+const _firstPart = makePart({ taiko: _defaultTaiko });
+const _firstLine = makeSystem([_firstPart.id]);
 
 /**
  * Single source of truth for the scalar piece fields that are persisted (to
@@ -306,6 +430,11 @@ const _defaultJiuchi = _defaultSet.jiuchis[0];
 const PERSISTED_FIELDS = {
   title: () => 'Untitled',
   taiko: () => piece.taiko,
+  // `parts` is defaulted from `taiko` (part 0's drum), so it must follow it here.
+  // Lanes are not repaired by this default — migrateScore owns the lines array.
+  format: () => FORMAT,
+  parts: () => [makePart({ taiko: piece.taiko })],
+  sets: () => [],
   jiuchi: () => piece.jiuchi,
   beatsPerLine: () => piece.beatsPerLine,
   bpm: () => 120,
@@ -344,7 +473,15 @@ function applyPersistedFields(source) {
 export const piece = {
   id: null,
   title: 'Untitled',
+  format: FORMAT,
+  // The drum of part 0. Kept as a scalar — `symbolSet`, `time`, the PDF header
+  // and pattern tagging all resolve through it — with the invariant
+  // `piece.taiko === piece.parts[0].taiko`, maintained by setTaiko/setPartTaiko.
   taiko: _defaultTaiko,
+  /** @type {Array<{ id: string, name: string, taiko: string, setId: string|null, volume: number, muted: boolean }>} Ordered top → bottom. */
+  parts: [_firstPart],
+  /** @type {Array<{ id: string, name: string }>} Named taiko sets (one player, several drums). */
+  sets: [],
   jiuchi: _defaultJiuchi,
   beatsPerLine: 8,
   bpm: 120,
@@ -359,7 +496,23 @@ export const piece = {
   metronomeShime: false,
   metronomeVolume: 1,
   lines: [_firstLine],
-  selectedLineId: _firstLine.id,
+  selectedLineId: _firstLine.lanes[0].id,
+
+  // Bumped by every commit/restore/load so derived maps over `lines` can be
+  // memoised: with P lanes per system the per-row scans would otherwise be
+  // re-run P times per redraw.
+  _rev: 0,
+  _jiuchiMap: null,
+  _jiuchiMapRev: -1,
+
+  /** Memoised jiuchiLineMap over the current lines: system id → section taiko. */
+  get jiuchiMap() {
+    if (this._jiuchiMapRev !== this._rev) {
+      this._jiuchiMap = jiuchiLineMap(this.lines);
+      this._jiuchiMapRev = this._rev;
+    }
+    return this._jiuchiMap;
+  },
 
   /** Active symbol set, resolved lazily from (taiko, jiuchi). */
   get symbolSet() {
@@ -367,28 +520,36 @@ export const piece = {
   },
 
   /**
-   * The symbol set to author with for the currently selected line: a jiuchi
-   * section's taiko set when the selected line belongs to one, else the score's
-   * own symbol set. The straight/swing `time` is unchanged either way.
+   * The symbol set to author with for the currently selected lane.
+   * @see symbolSetForLane
    */
   get activeSymbolSet() {
-    const taiko = jiuchiLineMap(this.lines).get(this.selectedLineId);
-    if (taiko && taiko !== this.taiko) {
-      return symbolSetForTaiko(taiko, this.time) ?? this.symbolSet;
-    }
-    return this.symbolSet;
+    return this.symbolSetForLane(this.selectedLineId);
   },
 
   /**
-   * Every taiko this score can sound with: the score's own, each jiuchi
-   * section's, and Shime when the metronome is set to tick with its sample.
-   * Used to warm the sample cache - a taiko whose buffers are still undecoded
-   * falls back to the synth for its first strikes, so all of them are preloaded
-   * rather than just the score's.
+   * The symbol set to author a lane with: a jiuchi section's taiko set when the
+   * lane is part of a section definition, its part's taiko set otherwise. The
+   * straight/swing `time` is the score's either way.
+   * @param {string} laneId
+   */
+  symbolSetForLane(laneId) {
+    const taiko = this.taikoForLane(laneId);
+    if (taiko === this.taiko) return this.symbolSet;
+    return symbolSetForTaiko(taiko, this.time) ?? this.symbolSet;
+  },
+
+  /**
+   * Every taiko this score can sound with: every part's, each jiuchi section's,
+   * and Shime when the metronome is set to tick with its sample. Used to warm the
+   * sample cache - a taiko whose buffers are still undecoded falls back to the
+   * synth for its first strikes, so all of them are preloaded rather than just
+   * the score's.
    * @returns {string[]} Distinct taiko names.
    */
   taikosInUse() {
     const taikos = new Set([piece.taiko]);
+    for (const part of piece.parts) taikos.add(part.taiko);
     for (const line of piece.lines) {
       if (line.type === 'jiuchi-section' && line.taiko) taikos.add(line.taiko);
     }
@@ -396,14 +557,48 @@ export const piece = {
     return [...taikos];
   },
 
+  /** Part ids in score order — the lane template for a new system. */
+  partIds() {
+    return piece.parts.map((p) => p.id);
+  },
+
   /**
-   * The taiko a line should sound with: its jiuchi section's taiko when the line
-   * is part of a section definition, else the score's taiko.
-   * @param {string} lineId
+   * @param {string} partId
+   * @returns {object|undefined}
+   */
+  partById(partId) {
+    return piece.parts.find((p) => p.id === partId);
+  },
+
+  /** The lane `selectedLineId` names, or null. */
+  get selectedLane() {
+    return findLane(this.lines, this.selectedLineId)?.lane ?? null;
+  },
+
+  /** The system containing the selected lane, or null. */
+  get selectedSystem() {
+    return findLane(this.lines, this.selectedLineId)?.system ?? null;
+  },
+
+  /** The part the selected lane belongs to, or null (a jiuchi definition lane). */
+  get selectedPartId() {
+    return this.selectedLane?.partId ?? null;
+  },
+
+  /**
+   * The taiko a lane should sound with: its jiuchi section's taiko when the lane
+   * is part of a section definition, else its part's taiko. Also accepts a system
+   * id, for callers that address a whole row.
+   * @param {string} id - A lane id, or a system id.
    * @returns {string}
    */
-  taikoForLine(lineId) {
-    return jiuchiLineMap(this.lines).get(lineId) ?? this.taiko;
+  taikoForLane(id) {
+    const found = findLane(this.lines, id);
+    if (!found) return this.jiuchiMap.get(id) ?? this.taiko;
+    if (found.lane.partId == null) return this.jiuchiMap.get(found.system.id) ?? this.taiko;
+    return (
+      this.jiuchiMap.get(found.system.id) ?? this.partById(found.lane.partId)?.taiko ?? this.taiko
+    );
   },
 
   /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
@@ -411,9 +606,15 @@ export const piece = {
     return this.symbolSet.time;
   },
 
-  /** Number of skins on the active taiko (1 or 2). Sounds with a hand can target either skin when 2. */
-  get skins() {
-    return this.symbolSet.taiko.find((t) => t.name === this.taiko)?.skins ?? 1;
+  /**
+   * Number of skins on a lane's taiko (1 or 2). Sounds with a hand can target
+   * either skin when 2.
+   * @param {string} laneId
+   */
+  skinsForLane(laneId) {
+    const taiko = this.taikoForLane(laneId);
+    const set = this.symbolSetForLane(laneId);
+    return set.taiko.find((t) => t.name === taiko)?.skins ?? 1;
   },
 
   /** @type {{ lineId: string, soundId: string } | null} Which tile has its popup open. */
@@ -442,6 +643,11 @@ export const piece = {
     return { ...readPersistedFields(), lines: piece.lines };
   },
 
+  /** Invalidates the memoised derived maps. Call after any change to `lines`. */
+  _touch() {
+    piece._rev++;
+  },
+
   /**
    * Pushes the current state onto the undo history and triggers a redraw.
    * Diffs the lines against the previous baseline so added/removed tiles and
@@ -450,6 +656,7 @@ export const piece = {
    * @param {{ animate?: boolean }} [opts]
    */
   _commit(opts) {
+    piece._touch();
     anim.sync(piece.lines, { animate: opts?.animate ?? true });
     history.push(piece._snapshot());
     m.redraw();
@@ -468,6 +675,10 @@ export const piece = {
     if (piece.metronomeJiuchi !== 'auto' && piece.metronomeJiuchi !== 'inline') {
       piece.metronomeJiuchi = 'auto';
     }
+    piece.format = FORMAT;
+    if (!piece.parts.length) piece.parts = [makePart({ taiko: piece.taiko })];
+    piece._normaliseParts();
+    piece._touch();
     piece._resetTransientState();
   },
 
@@ -480,13 +691,14 @@ export const piece = {
     const prevLines = piece.lines;
     applyPersistedFields(state);
     piece.lines = state.lines;
+    piece._touch();
     anim.sync(piece.lines, { animate: true }); // animate undo/redo add/remove
     piece._resetTransientState();
-    // Follow the change: select the sound line the undo/redo altered.
-    const changed = changedSoundLineId(prevLines, state.lines);
+    // Follow the change: select the lane the undo/redo altered.
+    const changed = changedLaneId(prevLines, state.lines);
     if (changed) piece.selectedLineId = changed;
-    if (!piece.lines.find((l) => l.id === piece.selectedLineId)) {
-      piece.selectedLineId = piece.lines.find(isSoundLine)?.id ?? null;
+    if (!findLane(piece.lines, piece.selectedLineId)) {
+      piece.selectedLineId = firstLaneId(piece.lines);
     }
   },
 
@@ -511,10 +723,14 @@ export const piece = {
    * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number, author?: string, icon?: string|null }} opts
    */
   reset(opts = {}) {
-    const line = makeLine();
     piece.id = null;
     piece.title = 'Untitled';
+    piece.format = FORMAT;
     piece.taiko = opts.taiko ?? _defaultTaiko;
+    // A new score is solo; further parts are added in Score settings → Parts.
+    piece.parts = [makePart({ taiko: piece.taiko })];
+    piece.sets = [];
+    const line = makeSystem(piece.partIds());
     piece.jiuchi = opts.jiuchi ?? _defaultJiuchi;
     piece.beatsPerLine = opts.beatsPerLine ?? 8;
     piece.bpm = opts.bpm ?? 120;
@@ -529,7 +745,8 @@ export const piece = {
     piece.metronomeShime = false;
     piece.metronomeVolume = 1;
     piece.lines = [line];
-    piece.selectedLineId = line.id;
+    piece.selectedLineId = line.lanes[0].id;
+    piece._touch();
     piece._resetTransientState();
     anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
@@ -537,9 +754,9 @@ export const piece = {
   },
 
   clearLines() {
-    const line = makeLine();
+    const line = makeSystem(piece.partIds());
     piece.lines = [line];
-    piece.selectedLineId = line.id;
+    piece.selectedLineId = line.lanes[0].id;
     piece._resetTransientState();
     piece._commit({ animate: false }); // wholesale reset — don't flash every old tile out
   },
@@ -548,8 +765,10 @@ export const piece = {
     piece.title = v;
     piece._commit();
   },
+  /** Sets the score's (part 0's) taiko, keeping the taiko/parts[0] invariant. */
   setTaiko(v) {
     piece.taiko = v;
+    if (piece.parts[0]) piece.parts[0].taiko = v;
     piece._commit();
   },
   setJiuchi(v) {
@@ -631,7 +850,7 @@ export const piece = {
    * @param {string} soundId
    */
   toggleSoundSelection(lineId, soundId) {
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
     const idx = line.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
@@ -679,7 +898,7 @@ export const piece = {
   deleteSelectedSounds() {
     const { lineId, soundIds } = piece.selection;
     if (!lineId || soundIds.length === 0) return;
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
     const selSet = new Set(soundIds);
     line.sounds = line.sounds.filter((s) => !selSet.has(s.id));
@@ -720,10 +939,12 @@ export const piece = {
 
   // ── Lines ─────────────────────────────────────────────────────────────────
 
+  /** Adds a system (one lane per part) after the selection, staying in the same part. */
   addLine() {
-    const line = makeLine();
+    const partId = piece.selectedPartId;
+    const line = makeSystem(piece.partIds());
     insertAfterSelected(line);
-    piece.selectedLineId = line.id;
+    piece.selectedLineId = (laneFor(line, partId) ?? line.lanes[0]).id;
     piece._commit();
   },
 
@@ -819,27 +1040,32 @@ export const piece = {
   },
 
   /**
-   * Removes the line. Selects the nearest remaining line when the removed line
-   * was selected. Always ensures at least one line exists.
-   * @param {string} lineId
+   * Removes a whole system (every part's lane on that row). Selects the same
+   * part's lane in the nearest remaining system when the selection went with it.
+   * Always ensures at least one system exists.
+   * @param {string} id - A system id, or any lane id within it.
    */
-  removeLine(lineId) {
-    const idx = piece.lines.findIndex((l) => l.id === lineId);
-    piece.lines = piece.lines.filter((l) => l.id !== lineId);
-    // Prune lineId from block-repeat markers; drop markers that become empty
+  removeLine(id) {
+    const found = findLane(piece.lines, id);
+    const sysId = found ? found.system.id : id;
+    const partId = piece.selectedPartId;
+    const idx = piece.lines.findIndex((l) => l.id === sysId);
+    piece.lines = piece.lines.filter((l) => l.id !== sysId);
+    // Prune the system from block-repeat markers; drop markers that become empty
     piece.lines = piece.lines.filter((item) => {
       if (item.type !== 'block-repeat') return true;
-      item.lineIds = item.lineIds.filter((id) => id !== lineId);
+      item.lineIds = item.lineIds.filter((lid) => lid !== sysId);
       return item.lineIds.length > 0;
     });
-    const realLines = piece.lines.filter(isSoundLine);
-    if (realLines.length === 0) {
-      const line = makeLine();
+    const systems = piece.lines.filter(isSoundLine);
+    if (systems.length === 0) {
+      const line = makeSystem(piece.partIds());
       piece.lines.push(line);
-      piece.selectedLineId = line.id;
-    } else if (piece.selectedLineId === lineId) {
-      const nearIdx = Math.min(idx, realLines.length - 1);
-      piece.selectedLineId = realLines[nearIdx >= 0 ? nearIdx : 0].id;
+      piece.selectedLineId = line.lanes[0].id;
+    } else if (!findLane(piece.lines, piece.selectedLineId)) {
+      const nearIdx = Math.min(Math.max(idx, 0), systems.length - 1);
+      const near = systems[nearIdx];
+      piece.selectedLineId = (laneFor(near, partId) ?? lanesOf(near)[0]).id;
     }
     piece._commit();
   },
@@ -858,7 +1084,11 @@ export const piece = {
     if (item.type === 'block-repeat') return { ...item, id: uid() };
     return {
       id: uid(),
-      sounds: item.sounds.map((s) => ({ ...s, id: uid() })),
+      lanes: lanesOf(item).map((lane) => ({
+        id: uid(),
+        partId: lane.partId,
+        sounds: lane.sounds.map((s) => ({ ...s, id: uid() })),
+      })),
     };
   },
 
@@ -884,13 +1114,17 @@ export const piece = {
    * @param {string} id
    */
   duplicateLine(id) {
-    const idx = piece.lines.findIndex((l) => l.id === id);
+    const sysId = findLane(piece.lines, id)?.system.id ?? id;
+    const idx = piece.lines.findIndex((l) => l.id === sysId);
     if (idx === -1) return;
     const item = piece.lines[idx];
     if (item.type === 'block-repeat' || item.type === 'jiuchi-section') return;
+    const partId = piece.selectedPartId;
     const clone = piece._cloneItem(item);
     piece.lines.splice(idx + 1, 0, clone);
-    if (isSoundLine(clone)) piece.selectedLineId = clone.id;
+    if (isSoundLine(clone)) {
+      piece.selectedLineId = (laneFor(clone, partId) ?? lanesOf(clone)[0]).id;
+    }
     piece._commit();
   },
 
@@ -909,11 +1143,12 @@ export const piece = {
       return item.lineIds.length > 0;
     });
     piece.lineSelection = [];
-    const realLines = piece.lines.filter(isSoundLine);
-    if (realLines.length === 0) {
-      const line = makeLine();
+    if (!piece.lines.some(isSoundLine)) {
+      const line = makeSystem(piece.partIds());
       piece.lines.push(line);
-      piece.selectedLineId = line.id;
+      piece.selectedLineId = line.lanes[0].id;
+    } else if (!findLane(piece.lines, piece.selectedLineId)) {
+      piece.selectedLineId = firstLaneId(piece.lines);
     }
     piece._commit();
   },
@@ -972,9 +1207,10 @@ export const piece = {
    * base rhythm plays; this is a default, not a lock — the user can change it back.
    */
   addJiuchiSection() {
-    const line = makeLine();
+    // A base rhythm is one drum's, so a definition row is a single part-less lane.
+    const line = makeSystem([null]);
     insertAfterSelected(makeJiuchiSection(piece.taiko), line, makeDivider());
-    piece.selectedLineId = line.id;
+    piece.selectedLineId = line.lanes[0].id;
     piece.metronomeJiuchi = 'inline'; // captured by the _commit snapshot below
     piece._commit();
   },
@@ -1005,37 +1241,34 @@ export const piece = {
   // ── Sounds ────────────────────────────────────────────────────────────────
 
   /**
-   * Adds a sound to the line. If the line is full (beatsPerLine), overflows to the
-   * next line with space, creating one if needed.
-   * @param {string} lineId
+   * Adds a sound to the lane. If the lane is full (beatsPerLine), overflows to the
+   * same part's lane in the next system with space, creating one if needed.
+   * @param {string} lineId - Lane id.
    * @param {{ name: string, hand: string, duration: number }} symbol
-   * @param {number} [atIndex] - Insert position within the line; appends if omitted.
+   * @param {number} [atIndex] - Insert position within the lane; appends if omitted.
    */
   addSound(lineId, symbol, atIndex) {
-    const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
-    if (fromIdx === -1) return;
     const s = makeSound(symbol);
-    const tIdx = targetLineIdx(fromIdx, s.duration);
-    const target = piece.lines[tIdx];
-    const insertAt = tIdx === fromIdx && atIndex != null ? atIndex : target.sounds.length;
-    if (tIdx === fromIdx && atIndex != null) target.sounds.splice(atIndex, 0, s);
+    const target = targetLane(lineId, s.duration);
+    if (!target) return;
+    if (target.id === lineId && atIndex != null) target.sounds.splice(atIndex, 0, s);
     else target.sounds.push(s);
     piece.selectedLineId = target.id;
     piece._commit();
   },
 
   /**
-   * Moves a sound within or between lines. Rejects cross-line moves that would
-   * overflow the target line's beat budget and calls m.redraw() to revert the
+   * Moves a sound within or between lanes. Rejects cross-lane moves that would
+   * overflow the target lane's beat budget and calls m.redraw() to revert the
    * SortableJS DOM change in that case.
-   * @param {string} fromLineId
+   * @param {string} fromLineId - Source lane id.
    * @param {string} soundId
-   * @param {string} toLineId
+   * @param {string} toLineId - Target lane id.
    * @param {number} toIndex
    */
   moveSound(fromLineId, soundId, toLineId, toIndex) {
-    const fromLine = piece.lines.find((l) => l.id === fromLineId);
-    const toLine = piece.lines.find((l) => l.id === toLineId);
+    const fromLine = findLane(piece.lines, fromLineId)?.lane;
+    const toLine = findLane(piece.lines, toLineId)?.lane;
     if (!fromLine || !toLine) return;
     const idx = fromLine.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
@@ -1043,7 +1276,7 @@ export const piece = {
     if (
       fromLineId !== toLineId &&
       piece.beatsPerLine > 0 &&
-      lineDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
+      laneDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
     ) {
       // Overflow: reject the move. The dragged node was already reverted in the
       // Sortable onEnd handler, so a redraw repaints the unchanged line.
@@ -1057,22 +1290,22 @@ export const piece = {
   },
 
   /**
-   * Moves multiple sounds as a contiguous unit within or between lines.
-   * @param {string} fromLineId
+   * Moves multiple sounds as a contiguous unit within or between lanes.
+   * @param {string} fromLineId - Source lane id.
    * @param {string[]} soundIds - Must all exist in fromLine; their relative order is preserved.
-   * @param {string} toLineId
-   * @param {number} toIndex - Insertion point in the target line's data array.
+   * @param {string} toLineId - Target lane id.
+   * @param {number} toIndex - Insertion point in the target lane's data array.
    */
   moveSounds(fromLineId, soundIds, toLineId, toIndex) {
-    const fromLine = piece.lines.find((l) => l.id === fromLineId);
-    const toLine = piece.lines.find((l) => l.id === toLineId);
+    const fromLine = findLane(piece.lines, fromLineId)?.lane;
+    const toLine = findLane(piece.lines, toLineId)?.lane;
     if (!fromLine || !toLine) return;
     const idSet = new Set(soundIds);
     const sounds = fromLine.sounds.filter((s) => idSet.has(s.id));
     if (sounds.length !== soundIds.length) return;
     if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
       const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
-      if (lineDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
+      if (laneDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
         // Overflow: reject the move. The dragged node was already reverted in the
         // Sortable onEnd handler, so a redraw repaints the unchanged line.
         m.redraw();
@@ -1086,7 +1319,7 @@ export const piece = {
   },
 
   removeSound(lineId, soundId) {
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
     line.sounds = line.sounds.filter((s) => s.id !== soundId);
     piece.selectedLineId = lineId;
@@ -1095,12 +1328,12 @@ export const piece = {
 
   /**
    * Merges patch properties onto the matching sound object.
-   * @param {string} lineId
+   * @param {string} lineId - Lane id.
    * @param {string} soundId
    * @param {Partial<{ hand: string, instruction: string }>} patch
    */
   updateSound(lineId, soundId, patch) {
-    const line = piece.lines.find((l) => l.id === lineId);
+    const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
     const s = line.sounds.find((s) => s.id === soundId);
     if (!s) return;
@@ -1115,25 +1348,190 @@ export const piece = {
 
   /**
    * Expands a pattern and adds its individual sounds to the score, distributing
-   * them across lines from lineId when beatsPerLine is set.
-   * @param {string} lineId
+   * them across the part's lanes from lineId when beatsPerLine is set.
+   * @param {string} lineId - Lane id.
    * @param {{ sounds: Array<{ duration: number }> }} pattern
    */
   addGroup(lineId, pattern, atIndex) {
-    const fromIdx = piece.lines.findIndex((l) => l.id === lineId);
-    if (fromIdx === -1) return;
-    let lineIdx = fromIdx;
+    let lane = findLane(piece.lines, lineId)?.lane;
+    if (!lane) return;
     let insertAt = atIndex;
     for (const s of pattern.sounds) {
-      lineIdx = targetLineIdx(lineIdx, s.duration);
-      if (lineIdx === fromIdx && insertAt != null) {
-        piece.lines[lineIdx].sounds.splice(insertAt, 0, { ...s, id: uid() });
+      lane = targetLane(lane.id, s.duration);
+      if (lane.id === lineId && insertAt != null) {
+        lane.sounds.splice(insertAt, 0, { ...s, id: uid() });
         insertAt++;
       } else {
-        piece.lines[lineIdx].sounds.push({ ...s, id: uid() });
+        lane.sounds.push({ ...s, id: uid() });
       }
     }
-    piece.selectedLineId = piece.lines[lineIdx].id;
+    piece.selectedLineId = lane.id;
+    piece._commit();
+  },
+
+  // ── Parts and sets ────────────────────────────────────────────────────────
+
+  /**
+   * Repairs the part list invariants: at least one part, `piece.taiko` mirrors
+   * part 0's drum, and no set survives with no members.
+   */
+  _normaliseParts() {
+    if (!piece.parts.length) piece.parts = [makePart({ taiko: piece.taiko })];
+    piece.taiko = piece.parts[0].taiko;
+    const used = new Set(piece.parts.map((p) => p.setId).filter(Boolean));
+    piece.sets = piece.sets.filter((s) => used.has(s.id));
+    for (const p of piece.parts) {
+      if (p.setId && !piece.sets.some((s) => s.id === p.setId)) p.setId = null;
+    }
+  },
+
+  /**
+   * Repairs the one-lane-per-part invariant across every system: lanes in
+   * `piece.parts` order, missing ones added empty, orphaned ones dropped. A
+   * jiuchi-section definition row is exempt — it stays a single part-less lane.
+   */
+  _normaliseSystems() {
+    const jiuchi = jiuchiLineMap(piece.lines);
+    for (const row of piece.lines) {
+      if (!isSoundLine(row) || jiuchi.has(row.id)) continue;
+      const existing = lanesOf(row);
+      row.lanes = piece.parts.map((p) => existing.find((l) => l.partId === p.id) ?? makeLane(p.id));
+    }
+  },
+
+  /**
+   * Appends a part and gives it an empty lane in every system. The new part's
+   * lane in the selected system becomes the selection, so the user can play
+   * straight into it.
+   * @param {{ name?: string, taiko?: string, setId?: string|null }} [opts]
+   */
+  addPart(opts = {}) {
+    const part = makePart({ taiko: opts.taiko ?? piece.taiko, ...opts });
+    piece.parts.push(part);
+    piece._normaliseParts();
+    piece._normaliseSystems();
+    const system = piece.selectedSystem ?? piece.lines.find(isSoundLine);
+    const lane = system ? laneFor(system, part.id) : null;
+    if (lane) piece.selectedLineId = lane.id;
+    piece._commit();
+    return part;
+  },
+
+  /**
+   * Removes a part and its lane (with its music) from every system. Refuses to
+   * remove the last part — a score always has one. Undoable via history.
+   * @param {string} partId
+   */
+  removePart(partId) {
+    if (piece.parts.length < 2) return;
+    const idx = piece.parts.findIndex((p) => p.id === partId);
+    if (idx === -1) return;
+    piece.parts.splice(idx, 1);
+    piece._normaliseParts();
+    piece._normaliseSystems();
+    if (!findLane(piece.lines, piece.selectedLineId)) {
+      const system = piece.lines.find(isSoundLine);
+      const near = piece.parts[Math.min(idx, piece.parts.length - 1)];
+      piece.selectedLineId = system ? (laneFor(system, near.id) ?? lanesOf(system)[0]).id : null;
+    }
+    piece._commit();
+  },
+
+  /**
+   * Moves a part to a new position, reordering every system's lanes to match so
+   * the lane order always mirrors `piece.parts`.
+   * @param {number} fromIndex
+   * @param {number} toIndex
+   */
+  reorderPart(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= piece.parts.length) return;
+    const [moved] = piece.parts.splice(fromIndex, 1);
+    piece.parts.splice(Math.max(0, Math.min(toIndex, piece.parts.length)), 0, moved);
+    piece._normaliseParts();
+    piece._normaliseSystems();
+    piece._commit();
+  },
+
+  /**
+   * Changes a part's drum. Part 0 mirrors to `piece.taiko`, which also moves the
+   * score's symbol set.
+   * @param {string} partId
+   * @param {string} taiko
+   */
+  setPartTaiko(partId, taiko) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.taiko = taiko;
+    piece._normaliseParts();
+    piece._commit();
+  },
+
+  setPartName(partId, name) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.name = name;
+    piece._commit();
+  },
+
+  setPartVolume(partId, v) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.volume = Number(v);
+    piece._commit();
+  },
+
+  /** Live (non-committing) part-volume update for slider drags; commit via setPartVolume. */
+  setPartVolumeLive(partId, v) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.volume = Number(v);
+    m.redraw();
+  },
+
+  togglePartMute(partId) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.muted = !part.muted;
+    piece._commit();
+  },
+
+  /**
+   * Puts a part in a taiko set (one player, several drums) or takes it out.
+   * Sets left with no members are pruned.
+   * @param {string} partId
+   * @param {string|null} setId
+   */
+  assignPartToSet(partId, setId) {
+    const part = piece.partById(partId);
+    if (!part) return;
+    part.setId = setId ?? null;
+    piece._normaliseParts();
+    piece._commit();
+  },
+
+  /**
+   * Creates a named taiko set and returns it. A set only persists while a part
+   * references it (see _normaliseParts), so assign a part in the same gesture.
+   * @param {string} name
+   */
+  addSet(name) {
+    const set = makeSet(name);
+    piece.sets.push(set);
+    return set;
+  },
+
+  setSetName(id, name) {
+    const set = piece.sets.find((s) => s.id === id);
+    if (!set) return;
+    set.name = name;
+    piece._commit();
+  },
+
+  /** Removes a set and unlinks its parts. */
+  removeSet(id) {
+    piece.sets = piece.sets.filter((s) => s.id !== id);
+    for (const p of piece.parts) if (p.setId === id) p.setId = null;
     piece._commit();
   },
 };

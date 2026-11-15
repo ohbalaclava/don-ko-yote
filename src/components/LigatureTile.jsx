@@ -14,7 +14,7 @@ export function LigatureTile() {
       const time = piece.time;
       let subPos = startPos;
       const anySelected = selectionIds && sounds.some((s) => selectionIds.has(s.id));
-      const anyPlaying = sounds.some((s) => player.currentSoundId === s.id);
+      const anyPlaying = sounds.some((s) => player.isSounding(s.id));
       // Sub-tiles carry individual tints, so the shared border can't hue-match;
       // a darker neutral keeps the tile edge visible over the colour fills.
       const anyTinted =
@@ -41,7 +41,7 @@ export function LigatureTile() {
           const isEditing =
             !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
           const isSelected = selectionIds ? selectionIds.has(sound.id) : false;
-          const isPlaying = player.currentSoundId === sound.id;
+          const isPlaying = player.isSounding(sound.id);
 
           const edgePad = idx === 0 ? 'pl-1' : idx === sounds.length - 1 ? 'pr-1' : '';
           const subBg = isPlaying

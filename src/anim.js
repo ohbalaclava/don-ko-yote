@@ -19,8 +19,8 @@ const added = new Set();
 const removed = new Set();
 
 /**
- * Collects every animatable id in a lines array: each row/item id plus each
- * contained sound id.
+ * Collects every animatable id in a lines array: each row/item id, each lane id
+ * within a system, and each contained sound id.
  * @param {Array<object>} lines
  * @returns {Set<string>}
  */
@@ -28,6 +28,10 @@ function collectIds(lines) {
   const ids = new Set();
   for (const item of lines) {
     ids.add(item.id);
+    for (const lane of item.lanes ?? []) {
+      ids.add(lane.id);
+      for (const s of lane.sounds) ids.add(s.id);
+    }
     if (item.sounds) for (const s of item.sounds) ids.add(s.id);
   }
   return ids;

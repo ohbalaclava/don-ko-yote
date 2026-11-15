@@ -17,7 +17,7 @@ import { Toast, showToast } from './components/Toast.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
-import { piece, isSoundLine } from './data/piece.js';
+import { piece, isSoundLine, findLane, laneFor, lanesOf } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { player } from './audio/player.js';
 import { feedbackSound, feedbackClick } from './audio/feedback.js';
@@ -179,9 +179,11 @@ function App() {
     if (e.key === ' ') {
       e.preventDefault(); // stop the page scrolling
       if (e.shiftKey) {
-        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
-        if (line && isSoundLine(line)) {
-          player.toggleScope(piece, [line], { type: 'line', id: line.id });
+        const found = findLane(piece.lines, piece.selectedLineId);
+        if (found) {
+          // A one-lane system, so only the selected part's lane sounds.
+          const solo = { id: found.system.id, lanes: [found.lane] };
+          player.toggleScope(piece, [solo], { type: 'line', id: found.lane.id });
         }
       } else if (player.playing) {
         player.stop(); // Space stops whatever is playing, scoped previews included
@@ -199,16 +201,36 @@ function App() {
       if (piece.selectMode && piece.selection.soundIds.length > 0) {
         piece.deleteSelectedSounds();
       } else if (!piece.selectMode && !piece.lineSelectMode) {
-        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
-        const last = line?.sounds.at(-1);
-        if (last) piece.removeSound(line.id, last.id);
+        const lane = findLane(piece.lines, piece.selectedLineId)?.lane;
+        const last = lane?.sounds.at(-1);
+        if (last) piece.removeSound(lane.id, last.id);
       }
       return;
     }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault(); // stop the page scrolling
-      const soundLines = piece.lines.filter(isSoundLine);
+      // Alt+Up/Down steps across the parts of one system — the same beats on the
+      // drum above or below — leaving the row alone.
+      if (e.altKey) {
+        const found = findLane(piece.lines, piece.selectedLineId);
+        if (!found) return;
+        const lanes = lanesOf(found.system);
+        const next = found.laneIdx + (e.key === 'ArrowUp' ? -1 : 1);
+        if (next < 0 || next >= lanes.length) return;
+        piece.selectLine(lanes[next].id);
+        document
+          .querySelector(`[data-line-id="${lanes[next].id}"]`)
+          ?.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      // Up/Down walks systems within the selected part, so the cursor stays on one
+      // drum; a part-less jiuchi definition row contributes its single lane.
+      const partId = piece.selectedPartId;
+      const soundLines = piece.lines
+        .filter(isSoundLine)
+        .map((row) => laneFor(row, partId) ?? lanesOf(row)[0])
+        .filter(Boolean);
       if (soundLines.length === 0) return;
       const idx = soundLines.findIndex((l) => l.id === piece.selectedLineId);
       const next =

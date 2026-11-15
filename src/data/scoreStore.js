@@ -1,49 +1,26 @@
 import m from 'mithril';
 import { db } from '../db.js';
-import { piece, isSoundLine } from './piece.js';
+import { piece, lastLaneId, FORMAT } from './piece.js';
+import { migrateScore, legacyMirror } from './migrate.js';
 import { history } from './history.js';
 import { anim } from '../anim.js';
 import { patternStore } from './patterns.js';
 import { player } from '../audio/player.js';
 import { VERSION } from '../version.js';
-import { uid } from '../uid.js';
 
 /**
- * Returns the id of the last sound line in `lines` (skipping headings, notes,
- * dividers, and block-repeat markers). Falls back to the very last item if no
- * sound line exists, or null for an empty array.
- * @param {Array} lines
- * @returns {string | null}
+ * Applies a loaded score's parts, sets and lines to the piece, migrating any
+ * pre-3.0 shape on the way in (see migrateScore). The caller has already applied
+ * the scalar fields via piece.loadFromData.
+ * @param {object} score
  */
-function lastSoundLineId(lines) {
-  for (let i = lines.length - 1; i >= 0; i--) {
-    if (isSoundLine(lines[i])) return lines[i].id;
-  }
-  return lines[lines.length - 1]?.id ?? null;
-}
-
-/**
- * Expands any legacy group tiles in a lines array into their constituent sounds.
- * Group tiles were removed from the data model; scores saved before this change
- * may still contain them and must be migrated on load.
- * @param {Array} lines
- * @returns {Array} Lines with no group-type sounds.
- */
-function expandGroupsInLines(lines) {
-  return lines.map((line) => {
-    if (!line.sounds) return line;
-    const expanded = [];
-    for (const s of line.sounds) {
-      if (s.type === 'group') {
-        for (const gs of s.sounds) {
-          expanded.push({ ...gs, id: uid() });
-        }
-      } else {
-        expanded.push(s);
-      }
-    }
-    return { ...line, sounds: expanded };
-  });
+function applyScoreContent(score) {
+  const { parts, sets, lines } = migrateScore(score);
+  piece.parts = parts;
+  piece.sets = sets;
+  piece.lines = lines;
+  piece._touch();
+  piece.selectedLineId = lastLaneId(piece.lines);
 }
 
 let autosaveTimer = null;
@@ -146,8 +123,7 @@ export const scoreStore = {
     player.stop();
     piece.id = score.id ?? null;
     piece.loadFromData(score);
-    piece.lines = expandGroupsInLines(score.lines ?? []);
-    piece.selectedLineId = lastSoundLineId(piece.lines);
+    applyScoreContent(score);
     patternStore.setItems(score.patterns ?? []);
     anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
@@ -176,8 +152,7 @@ export const scoreStore = {
     if (!score) return;
     piece.id = score.id;
     piece.loadFromData(score);
-    piece.lines = expandGroupsInLines(score.lines);
-    piece.selectedLineId = lastSoundLineId(piece.lines);
+    applyScoreContent(score);
     patternStore.setItems(score.patterns ?? []);
     anim.sync(piece.lines, { animate: false });
     history.reset(piece._snapshot());
@@ -218,9 +193,15 @@ export const scoreStore = {
     m.redraw();
   },
 
-  /** Downloads the current score as a JSON file, stripping the internal database id. */
+  /**
+   * Downloads the current score as a JSON file, stripping the internal database
+   * id. Each system also carries part 0's sounds as a legacy `sounds` array
+   * (see legacyMirror) so a pre-3.0 app can still read the primary part.
+   */
   exportJson() {
     const { id: _id, ...data } = snapshot();
+    data.format = FORMAT;
+    data.lines = legacyMirror(data.lines);
     const blob = new Blob([JSON.stringify({ appVersion: VERSION, ...data }, null, 2)], {
       type: 'application/json',
     });
@@ -244,8 +225,12 @@ export const scoreStore = {
     piece.id = null;
     piece.loadFromData(data);
     if (Array.isArray(data.lines) && data.lines.length) {
-      piece.lines = expandGroupsInLines(data.lines);
-      piece.selectedLineId = lastSoundLineId(piece.lines);
+      applyScoreContent(data);
+    } else {
+      // Nothing to import: the current lines stay, but must be re-laned for the
+      // imported part list.
+      piece._normaliseSystems();
+      piece._touch();
     }
     patternStore.setItems(data.patterns ?? []);
     anim.sync(piece.lines, { animate: false });
