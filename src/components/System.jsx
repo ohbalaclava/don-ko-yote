@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { piece, lanesOf } from '../data/piece.js';
+import { taikoGroupsForTime } from '../data/symbolSets.js';
 import { AddRowActions } from './AddRowActions.jsx';
 import { Lane, laneBeatLabel } from './Lane.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
@@ -47,6 +48,40 @@ function setRun(idx) {
     first: piece.parts[idx - 1]?.setId !== part.setId,
     last: piece.parts[idx + 1]?.setId !== part.setId,
   };
+}
+
+/**
+ * The per-part drum picker in the ensemble gutter. A native `select`, so a tap
+ * gets the platform picker rather than a menu that would not fit the narrow
+ * part label; choices are constrained to the score's straight/swing time
+ * (`taikoGroupsForTime`), the same ones `PartsSection` offers. Part 0's drum
+ * mirrors to `piece.taiko`, so changing it moves the score's symbol set.
+ * @param {{ id: string, taiko: string }} part
+ * @param {boolean} isSel - This part's lane is the selected one.
+ */
+function taikoSelect(part, isSel) {
+  return m(
+    'select',
+    {
+      class: `w-full min-w-0 bg-transparent text-[10px] rounded border border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-indigo-400 cursor-pointer ${
+        isSel
+          ? 'text-indigo-600 dark:text-indigo-300 font-bold'
+          : 'text-gray-500 dark:text-gray-400'
+      }`,
+      value: part.taiko,
+      title: 'Drum for this part',
+      // The lane row selects the lane on click; a tap on the picker must not.
+      onclick: (e) => e.stopPropagation(),
+      onchange: (e) => piece.setPartTaiko(part.id, e.target.value),
+    },
+    taikoGroupsForTime(piece.time).map((group) =>
+      m(
+        'optgroup',
+        { key: group.label, label: group.label },
+        group.taikos.map((t) => m('option', { key: t.name, value: t.name }, t.name))
+      )
+    )
+  );
 }
 
 /**
@@ -279,13 +314,19 @@ export function System() {
                       },
                       [
                         m('div', { class: 'min-w-0 flex-1 pt-1' }, [
-                          m(
-                            'div',
-                            {
-                              class: `text-xs truncate ${isSel ? 'text-indigo-600 dark:text-indigo-300 font-bold' : 'text-gray-600 dark:text-gray-300 font-semibold'}`,
-                            },
-                            part ? part.name || part.taiko : 'Jiuchi'
-                          ),
+                          // A named part shows its name here and its drum in the
+                          // picker below; an unnamed one is identified by the
+                          // picker alone, so the name line is dropped.
+                          !part || part.name
+                            ? m(
+                                'div',
+                                {
+                                  class: `text-xs truncate ${isSel ? 'text-indigo-600 dark:text-indigo-300 font-bold' : 'text-gray-600 dark:text-gray-300 font-semibold'}`,
+                                },
+                                part ? part.name : 'Jiuchi'
+                              )
+                            : null,
+                          part ? taikoSelect(part, isSel) : null,
                           // The set name goes on the first lane of a player's run,
                           // beside the bracket that links their drums.
                           run?.first && run.set.name
