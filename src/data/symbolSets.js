@@ -124,10 +124,13 @@ export function primaryStrike(taiko, time) {
   return symbolSetForTaiko(taiko, time)?.symbols[0] ?? null;
 }
 
-/** Taikos grouped by drum family (High vs Low), for picker UI. Omits `hidden` taikos. */
+/** Taikos grouped by drum family, for picker UI. Omits `hidden` taikos. The
+ *  labels name each family's headline syllables, since choosing the taiko is
+ *  what swaps the whole symbol vocabulary. Display only — unlike the labels
+ *  from `taikoGroupsForTime`, nothing matches a family against these. */
 export const TAIKO_GROUPS = [
-  { label: 'High', taikos: HIGH_STRAIGHT.taiko.filter((t) => !t.hidden) },
-  { label: 'Low', taikos: LOW_STRAIGHT.taiko.filter((t) => !t.hidden) },
+  { label: 'High (TEN / KEN)', taikos: HIGH_STRAIGHT.taiko.filter((t) => !t.hidden) },
+  { label: 'Low (DON / KON)', taikos: LOW_STRAIGHT.taiko.filter((t) => !t.hidden) },
 ];
 
 /**
