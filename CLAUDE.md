@@ -42,7 +42,7 @@ Two invariants:
 
 Helpers (all exported from `piece.js`, reused by `sequence.js`, `pdf.js`, `player.js` and the components): `lanesOf(row)` (tolerates a legacy `{ id, sounds }` row, which is what makes migration and the older test fixtures forgiving), `findLane(lines, laneId)` → `{ system, lane, systemIdx, laneIdx }`, `laneFor(system, partId)`, `laneDur(lane)`, `systemSpan(system)`. Drum resolution is `piece.taikoForLane(laneId)`: a jiuchi definition lane takes the section taiko, otherwise its part's.
 
-Part mutators: `addPart`, `removePart` (refuses the last part), `reorderPart`, `setPartTaiko`, `setPartName`, `setPartVolume` / `setPartVolumeLive`, `togglePartMute`, `assignPartToSet`, `addSet`, `setSetName`, `removeSet`. A new score starts solo; a second part is added here or from `+ part` at the foot of the score.
+Part mutators: `addPart`, `removePart` (refuses the last part), `reorderPart`, `setPartTaiko`, `setPartName`, `setPartVolume` / `setPartVolumeLive`, `togglePartMute`, `assignPartToSet`, `addSet`, `setSetName`, `removeSet`. A new score is solo or an ensemble of N identical parts (the Solo / Ensemble choice in `NewScoreSheet`, via `piece.reset({ parts })`); further parts are added here or from `+ part` at the foot of the score.
 
 ### Data layer (`src/data/`)
 
@@ -72,7 +72,7 @@ Part mutators: `addPart`, `removePart` (refuses the last part), `reorderPart`, `
 - `MetronomeSettingsModal.jsx` — bottom sheet for the playback metronome (on/off, count-in, head-beat-only, emphasise head, jiuchi, use-Shime, volume). These read/write the **per-score** `piece.metronome*` fields via `piece.setMetronome` (not global settings), except the count-in toggle, which is the app-level `settings.countIn`. Opened from the ▲ button in `Header`. A `Play custom jiuchi` toggle switches `metronomeJiuchi` between `'auto'` (tick the score's jiuchi) and `'inline'` (loop the score's jiuchi sections as drum rhythms); it is disabled only when the score has no jiuchi section _and_ the toggle is off, so a stale `'inline'` stays switchable. Head-only / emphasise / use-Shime grey out while inline is selected (it plays the authored drum rhythm, not ticks). `piece.addJiuchiSection` auto-selects inline (a default, not a lock). Also hosts the standalone practice loop in its own card (session-only source/BPM on the player): one `Source` dropdown offers a tick, drum strikes on any taiko, or — in a `Custom jiuchi` optgroup — any of the score's jiuchi sections plus an `All sections` entry (shown with two or more), since a section brings its own taiko and so replaces the voice choice rather than combining with it.
 - `JiuchiSectionRow.jsx` — the inline `jiuchi-section` marker row: green-styled, with a compact taiko picker constrained to the score's straight/swing time (`taikoGroupsForTime`) and a remove button. Calls `piece.setJiuchiSectionTaiko` / `piece.removeJiuchiSection`.
 - `MenuSheet.jsx` — bottom sheet with New, Save, Load, Export/Import score, Export PDF, Clear, Help actions.
-- `NewScoreSheet.jsx` — bottom sheet for creating a new score (taiko, jiuchi, BPM and beats per line). It does **not** ask for a part count: a new score is always solo, and parts are added afterwards in `PartsSection`.
+- `NewScoreSheet.jsx` — bottom sheet for creating a new score (taiko, jiuchi, BPM and beats per line). It opens with a **Solo / Ensemble** choice; Ensemble reveals a part count (2-`MAX_NEW_PARTS`) and every part starts on the chosen taiko, so drums, names and sets are refined afterwards in `PartsSection`.
 - `LoadScoreSheet.jsx` — bottom sheet listing saved scores sorted by recency; supports load and delete.
 - `HelpSheet.jsx` — bottom sheet with brief usage documentation.
 
@@ -167,7 +167,7 @@ Format is `major.minor`:
 - Increment **minor** for normal changes (new features, fixes, UI updates).
 - Increment **major** (and reset minor to 0) only for breaking changes — anything that makes existing saved data unreadable or incompatible (e.g. data format changes in IndexedDB schemas or exported JSON).
 
-Current version: `3.6`.
+Current version: `3.7`.
 
 ## Adding a new symbol
 

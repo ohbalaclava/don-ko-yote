@@ -10,6 +10,9 @@ import { uid } from '../uid.js';
  */
 export const FORMAT = 2;
 
+/** Upper bound on the part count a new ensemble score can be created with. */
+export const MAX_NEW_PARTS = 8;
+
 /** Item `type` values that are not sound lines (structural rows / markers). */
 const NON_SOUND_TYPES = new Set(['heading', 'note', 'divider', 'block-repeat', 'jiuchi-section']);
 
@@ -720,15 +723,18 @@ export const piece = {
 
   /**
    * Resets the piece for a brand-new score.
-   * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number, author?: string, icon?: string|null }} opts
+   * @param {{ taiko?: string, jiuchi?: string, bpm?: number, beatsPerLine?: number, author?: string, icon?: string|null, parts?: number }} opts
+   *   `parts` is the part count (clamped to 1-`MAX_NEW_PARTS`, default 1 — a
+   *   solo score). Every part starts on `taiko`; drums, names and sets are
+   *   refined afterwards in Score settings → Parts.
    */
   reset(opts = {}) {
     piece.id = null;
     piece.title = 'Untitled';
     piece.format = FORMAT;
     piece.taiko = opts.taiko ?? _defaultTaiko;
-    // A new score is solo; further parts are added in Score settings → Parts.
-    piece.parts = [makePart({ taiko: piece.taiko })];
+    const partCount = Math.max(1, Math.min(Math.round(Number(opts.parts) || 1), MAX_NEW_PARTS));
+    piece.parts = Array.from({ length: partCount }, () => makePart({ taiko: piece.taiko }));
     piece.sets = [];
     const line = makeSystem(piece.partIds());
     piece.jiuchi = opts.jiuchi ?? _defaultJiuchi;

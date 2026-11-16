@@ -13,6 +13,7 @@ import {
   findLane,
   laneDur,
   systemSpan,
+  MAX_NEW_PARTS,
 } from '../src/data/piece.js';
 
 function sym(name = 'Don', hand = 'R', duration = 4) {
@@ -395,5 +396,32 @@ describe('a new score', () => {
     expect(piece.parts[0].taiko).toBe('Nagado');
     expect(laneCounts()).toEqual([1]);
     expect(piece.selectedLineId).toBe(lane(0, 0).id);
+  });
+});
+
+// ── New score part count ──────────────────────────────────────────────────────
+
+describe('reset with a part count', () => {
+  it('creates that many parts, all on the chosen taiko', () => {
+    piece.reset({ taiko: 'Nagado', jiuchi: 'Gobu Gobu', parts: 3 });
+    expect(piece.parts).toHaveLength(3);
+    expect(piece.parts.map((p) => p.taiko)).toEqual(['Nagado', 'Nagado', 'Nagado']);
+    expect(piece.parts.map((p) => p.id)).toEqual([...new Set(piece.parts.map((p) => p.id))]);
+  });
+
+  it('gives the first system one lane per part, in part order', () => {
+    piece.reset({ taiko: 'Nagado', jiuchi: 'Gobu Gobu', parts: 3 });
+    expect(laneCounts()).toEqual([3]);
+    expect(lanesOf(piece.lines[0]).map((l) => l.partId)).toEqual(piece.parts.map((p) => p.id));
+    expect(piece.selectedLineId).toBe(lane().id);
+  });
+
+  it('defaults to solo and clamps out-of-range counts', () => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu' });
+    expect(piece.parts).toHaveLength(1);
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', parts: 0 });
+    expect(piece.parts).toHaveLength(1);
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', parts: 99 });
+    expect(piece.parts).toHaveLength(MAX_NEW_PARTS);
   });
 });
