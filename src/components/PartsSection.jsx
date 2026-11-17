@@ -24,8 +24,14 @@ function chooseSet(part, value) {
   piece.assignPartToSet(part.id, value || null);
 }
 
-/** One part: name, drum, set, volume, mute, reorder and remove. */
-function partRow(part, idx) {
+/**
+ * One part: name, drum, set, volume, mute, reorder and remove. Exported because
+ * `PartSheet` renders the same editor for a single part, so the controls the
+ * ensemble gutter no longer carries have exactly one implementation.
+ * @param {object} part - A `piece.parts` entry.
+ * @param {number} idx - Its index in `piece.parts`.
+ */
+export function partRow(part, idx) {
   const last = idx === piece.parts.length - 1;
   return m('div', { key: part.id, class: 'py-3 border-b border-gray-200 dark:border-gray-700' }, [
     m('div', { class: 'flex items-center gap-2' }, [

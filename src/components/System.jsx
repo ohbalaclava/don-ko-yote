@@ -1,7 +1,7 @@
 import m from 'mithril';
 import { piece, lanesOf } from '../data/piece.js';
-import { taikoGroupsForTime } from '../data/symbolSets.js';
 import { AddRowActions } from './AddRowActions.jsx';
+import { openPartSheet } from './PartSheet.jsx';
 import { Lane, laneBeatLabel } from './Lane.jsx';
 import { repeatDecoration, repeatBarsWidth } from './repeatDecoration.js';
 import { player } from '../audio/player.js';
@@ -51,37 +51,20 @@ function setRun(idx) {
 }
 
 /**
- * The per-part drum picker in the ensemble gutter. A native `select`, so a tap
- * gets the platform picker rather than a menu that would not fit the narrow
- * part label; choices are constrained to the score's straight/swing time
- * (`taikoGroupsForTime`), the same ones `PartsSection` offers. Part 0's drum
- * mirrors to `piece.taiko`, so changing it moves the score's symbol set.
- * @param {{ id: string, taiko: string }} part
- * @param {boolean} isSel - This part's lane is the selected one.
+ * Two characters identifying a part in the ensemble gutter. The gutter is
+ * repeated on every lane of every system, so it is width that the music cannot
+ * have: a named part gets its initials (one word → its first two letters), an
+ * unnamed one the first two letters of its drum, which are unique across the
+ * taiko list.
+ * @param {{ name?: string, taiko: string }|null} part
+ * @returns {string}
  */
-function taikoSelect(part, isSel) {
-  return m(
-    'select',
-    {
-      class: `w-full min-w-0 bg-transparent text-[10px] rounded border border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-indigo-400 cursor-pointer ${
-        isSel
-          ? 'text-indigo-600 dark:text-indigo-300 font-bold'
-          : 'text-gray-500 dark:text-gray-400'
-      }`,
-      value: part.taiko,
-      title: 'Drum for this part',
-      // The lane row selects the lane on click; a tap on the picker must not.
-      onclick: (e) => e.stopPropagation(),
-      onchange: (e) => piece.setPartTaiko(part.id, e.target.value),
-    },
-    taikoGroupsForTime(piece.time).map((group) =>
-      m(
-        'optgroup',
-        { key: group.label, label: group.label },
-        group.taikos.map((t) => m('option', { key: t.name, value: t.name }, t.name))
-      )
-    )
-  );
+function partBadgeLabel(part) {
+  if (!part) return 'Ji';
+  const words = (part.name || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  const source = words[0] || part.taiko;
+  return source.slice(0, 2).replace(/^./, (c) => c.toUpperCase());
 }
 
 /**
@@ -121,9 +104,15 @@ export function System() {
         isJiuchi,
         showRepeatBars,
       });
-      // The sticky gutter needs something opaque behind it; an untinted row has no
-      // background of its own, so fall back to the page colour.
-      const gutterBg = bg || 'bg-white dark:bg-gray-900';
+      // A sticky gutter cell has the scrolled tiles passing underneath it, so it
+      // must be fully opaque. The row tint alone is not: every dark-mode tint is
+      // translucent (`dark:bg-indigo-800/40` and friends), which let the tiles read
+      // straight through. So a gutter cell paints the page colour and the tint over
+      // it as two layers, `gutterTint` filling `gutterBase`. Rebuilding the tint
+      // this way rather than picking an opaque equivalent keeps the cell exactly
+      // the colour the rest of the row composites to.
+      const gutterBase = 'bg-white dark:bg-gray-900';
+      const gutterTint = bg;
       const decoration = showRepeatBars ? repeatDecoration(repeatDepth) : null;
       // When a repeat-block row is selected/highlighted, decoration is suppressed.
       // Use the same left padding the decoration would have used so content doesn't
@@ -167,11 +156,11 @@ export function System() {
           '✕'
         );
 
-      const playButton = (lane) =>
+      const playButton = (lane, size = 'w-8 h-8') =>
         m(
           'button',
           {
-            class: `w-8 h-8 flex items-center justify-center rounded text-sm leading-none ${player.isScope('line', lane.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}`,
+            class: `${size} flex items-center justify-center rounded text-sm leading-none ${player.isScope('line', lane.id) ? 'text-green-600 dark:text-green-400' : 'text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'}`,
             onclick: (e) => {
               e.stopPropagation();
               // A one-lane system: this lane only, with the row's id kept so the
@@ -184,27 +173,42 @@ export function System() {
           player.isScope('line', lane.id) ? '⏹' : '▶'
         );
 
-      // Mute lives on the part (it is part of the arrangement and is saved); solo
-      // is session-only state on the player. Both apply from the next play.
-      const miniButton = (label, on, onclick, title) =>
-        m(
+      // The part's identity and its editor in one 1.5rem-square control. Everything
+      // the gutter used to carry inline — name, drum, set, volume, mute, solo —
+      // lives in the sheet, because the gutter repeats on every lane of every
+      // system and that chrome crowded the music off a phone screen. Mute lives on
+      // the part (arrangement state, saved) and solo on the player (session only),
+      // so both only show here as badge tints.
+      const partBadge = (part, lane, isSel) => {
+        const muted = part?.muted;
+        const soloed = part && player.soloPartId === part.id;
+        const tint = muted
+          ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 line-through'
+          : soloed
+            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+            : isSel
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
+        const detail = part
+          ? [part.name || null, part.taiko, muted ? 'muted' : null, soloed ? 'solo' : null]
+              .filter(Boolean)
+              .join(' · ')
+          : 'Jiuchi';
+        return m(
           'button',
           {
-            class: `w-4 h-4 shrink-0 flex items-center justify-center rounded text-[8px] font-bold leading-none ${
-              on
-                ? label === 'M'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-green-600 text-white'
-                : 'text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`,
+            class: `w-6 h-6 shrink-0 flex items-center justify-center rounded text-[10px] font-bold leading-none ${tint} ${part ? '' : 'pointer-events-none'}`,
+            title: part ? `${detail} — tap to edit this part` : detail,
             onclick: (e) => {
               e.stopPropagation();
-              onclick();
+              if (!part) return;
+              piece.selectLine(lane.id);
+              openPartSheet(part.id);
             },
-            title,
           },
-          label
+          partBadgeLabel(part)
         );
+      };
 
       const onRowClick = () => {
         if (piece.lineSelectMode) piece.toggleLineSelection(system.id);
@@ -259,7 +263,9 @@ export function System() {
       // `.lines-container` is the single horizontal scroller for the whole score,
       // so every system shares one scrollLeft and the beat columns stay aligned
       // down the page for free. The gutter cells are sticky, which keeps the part
-      // labels and controls on screen however far right the music is scrolled.
+      // badges on screen however far right the music is scrolled; they are kept
+      // narrow (handle + badge ≈ 3.5rem all told) because every lane of every
+      // system pays for them out of the width the music has on a phone.
       return m('div', { class: 'line-block min-w-max' }, [
         m(
           'div',
@@ -269,23 +275,31 @@ export function System() {
             onclick: onRowClick,
           },
           [
-            m('div', { class: `sticky left-0 z-20 shrink-0 flex flex-col ${gutterBg}` }, [
-              handle('w-6'),
-              isJiuchi
-                ? m(
-                    'span',
-                    {
-                      class:
-                        'text-[9px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 select-none text-center',
-                    },
-                    'Ji'
-                  )
-                : null,
-              removeButton('mt-1'),
-            ]),
             m(
               'div',
-              { class: 'flex flex-col gap-1 min-w-max' },
+              // `self-stretch` on both gutter columns, and no gap between the lane
+              // rows: a sticky cell only as tall as its own content leaves strips
+              // the scrolled tiles show through, so the two columns have to tile
+              // the row's full height between them.
+              { class: `sticky left-0 z-20 shrink-0 self-stretch ${gutterBase}` },
+              m('div', { class: `h-full flex flex-col ${gutterTint}` }, [
+                handle('w-6'),
+                isJiuchi
+                  ? m(
+                      'span',
+                      {
+                        class:
+                          'text-[9px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 select-none text-center',
+                      },
+                      'Ji'
+                    )
+                  : null,
+                removeButton('mt-1'),
+              ])
+            ),
+            m(
+              'div',
+              { class: 'flex flex-col min-w-max' },
               lanes.map((lane, laneIdx) => {
                 const part = piece.partById(lane.partId);
                 const run = setRun(laneIdx);
@@ -305,68 +319,31 @@ export function System() {
                     m(
                       'div',
                       {
-                        class: `part-label sticky left-6 z-10 shrink-0 w-20 sm:w-32 pl-1 pr-1 flex items-start gap-1 ${gutterBg} ${
+                        // 1.75rem of gutter: the badge, the lane's beat count, and
+                        // the play button on the selected lane, stacked so the
+                        // column's width never grows. The set bracket is a border,
+                        // so linking a player's drums costs no width either; the
+                        // player's name lives in the part sheet with the rest.
+                        // `left-8` clears the 1.5rem handle column plus the row's
+                        // 0.5rem gap, so the two sticky columns sit side by side.
+                        // The right-hand edge of the sticky gutter, so it carries the
+                        // shadow that makes a tile sliding under it read as intended
+                        // rather than as a clipping bug.
+                        class: `part-label sticky left-8 z-10 shrink-0 self-stretch w-7 ${gutterBase} shadow-[3px_0_5px_-2px_rgba(0,0,0,0.2)] ${
                           run
                             ? `border-l-2 border-l-purple-400 dark:border-l-purple-500 ${run.first ? 'rounded-tl' : ''} ${run.last ? 'rounded-bl' : ''}`
                             : 'border-l-2 border-l-transparent'
                         }`,
-                        title: part ? `${part.name || part.taiko} — ${part.taiko}` : 'Jiuchi',
                       },
-                      [
-                        m('div', { class: 'min-w-0 flex-1 pt-1' }, [
-                          // A named part shows its name here and its drum in the
-                          // picker below; an unnamed one is identified by the
-                          // picker alone, so the name line is dropped.
-                          !part || part.name
-                            ? m(
-                                'div',
-                                {
-                                  class: `text-xs truncate ${isSel ? 'text-indigo-600 dark:text-indigo-300 font-bold' : 'text-gray-600 dark:text-gray-300 font-semibold'}`,
-                                },
-                                part ? part.name : 'Jiuchi'
-                              )
-                            : null,
-                          part ? taikoSelect(part, isSel) : null,
-                          // The set name goes on the first lane of a player's run,
-                          // beside the bracket that links their drums.
-                          run?.first && run.set.name
-                            ? m(
-                                'div',
-                                {
-                                  class:
-                                    'text-[10px] truncate text-purple-600 dark:text-purple-300',
-                                },
-                                run.set.name
-                              )
-                            : null,
-                          m('div', { class: 'flex items-center gap-1' }, [
-                            m(
-                              'span',
-                              { class: 'text-[10px] text-gray-400 dark:text-gray-500' },
-                              `${laneBeatLabel(lane)}b`
-                            ),
-                            part
-                              ? [
-                                  miniButton(
-                                    'M',
-                                    part.muted,
-                                    () => piece.togglePartMute(part.id),
-                                    part.muted ? 'Unmute this part' : 'Mute this part'
-                                  ),
-                                  miniButton(
-                                    'S',
-                                    player.soloPartId === part.id,
-                                    () => player.togglePartSolo(part.id),
-                                    player.soloPartId === part.id
-                                      ? 'Unsolo'
-                                      : 'Solo this part (this session only)'
-                                  ),
-                                ]
-                              : null,
-                          ]),
-                        ]),
-                        isSel ? playButton(lane) : null,
-                      ]
+                      m('div', { class: `h-full flex flex-col items-center ${gutterTint}` }, [
+                        m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
+                        m(
+                          'span',
+                          { class: 'text-[9px] leading-tight text-gray-400 dark:text-gray-500' },
+                          `${laneBeatLabel(lane)}b`
+                        ),
+                        isSel ? playButton(lane, 'w-6 h-6') : null,
+                      ])
                     ),
                     m(Lane, {
                       lane,

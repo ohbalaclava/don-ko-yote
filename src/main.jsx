@@ -15,6 +15,7 @@ import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
 import { Toast, showToast } from './components/Toast.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
+import { PartSheet, isPartSheetOpen, closePartSheet } from './components/PartSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
 import { piece, isSoundLine, findLane, laneFor, lanesOf } from './data/piece.js';
@@ -89,13 +90,17 @@ function App() {
       newScoreOpen ||
       loadScoreOpen ||
       helpOpen ||
-      jiuchiPatternsOpen
+      jiuchiPatternsOpen ||
+      // Opened from a part badge in the score, so its flag lives in the sheet's
+      // own module rather than here.
+      isPartSheetOpen()
     );
   }
 
   /** Closes the topmost open sheet. Returns true when one was closed. */
   function closeTopSheet() {
-    if (jiuchiPatternsOpen) jiuchiPatternsOpen = false;
+    if (isPartSheetOpen()) closePartSheet();
+    else if (jiuchiPatternsOpen) jiuchiPatternsOpen = false;
     else if (helpOpen) helpOpen = false;
     else if (loadScoreOpen) loadScoreOpen = false;
     else if (newScoreOpen) newScoreOpen = false;
@@ -591,6 +596,7 @@ function App() {
               },
             })
           : null,
+        m(PartSheet),
         m(Toast),
       ]);
     },

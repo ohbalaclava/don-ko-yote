@@ -191,8 +191,12 @@ export function HelpSheet() {
                   desc: 'Score settings ♩ → Parts. Each part is one drum and gets its own lane in every row, with beats aligned across the parts.',
                 }),
                 m(Row, {
+                  label: 'Part badges',
+                  desc: 'In an ensemble each lane is labelled with a two-letter badge — the part name’s initials, or its drum. Tap one to edit that part: name, drum, player, volume, mute, solo, order and remove. A muted part is struck through in amber, a soloed one is green.',
+                }),
+                m(Row, {
                   label: 'Player (taiko set)',
-                  desc: 'Give two or more parts the same player to mark a taiko set — one person on several drums. Their lanes are linked by a bracket carrying the player name.',
+                  desc: 'Give two or more parts the same player to mark a taiko set — one person on several drums. Their lanes are linked by a purple bracket in the gutter; the player’s name is in each part’s badge sheet and on the printed score.',
                 }),
                 m(Row, {
                   label: 'Set lanes are sparse',
