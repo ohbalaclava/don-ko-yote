@@ -308,7 +308,10 @@ export function System() {
                   'div',
                   {
                     key: lane.id,
-                    class: 'lane-row flex items-start gap-2 min-w-max',
+                    // The air between parts is the lane row's own padding, not a gap
+                    // on the container: a gap is a strip no sticky cell can cover,
+                    // so the scrolled tiles would show through it.
+                    class: 'lane-row flex items-start gap-2 min-w-max py-1',
                     onclick: (e) => {
                       if (piece.lineSelectMode) return;
                       e.stopPropagation();
@@ -328,14 +331,20 @@ export function System() {
                         // 0.5rem gap, so the two sticky columns sit side by side.
                         // The right-hand edge of the sticky gutter, so it carries the
                         // shadow that makes a tile sliding under it read as intended
-                        // rather than as a clipping bug.
-                        class: `part-label sticky left-8 z-10 shrink-0 self-stretch w-7 ${gutterBase} shadow-[3px_0_5px_-2px_rgba(0,0,0,0.2)] ${
+                        // rather than as a clipping bug. `-my-1` bleeds the cell back
+                        // over the lane row's padding, so consecutive cells still
+                        // abut: the opaque backdrop stays unbroken and a set's
+                        // bracket draws as one line down its run.
+                        class: `part-label sticky left-8 z-10 shrink-0 self-stretch -my-1 w-7 ${gutterBase} shadow-[3px_0_5px_-2px_rgba(0,0,0,0.2)] ${
                           run
                             ? `border-l-2 border-l-purple-400 dark:border-l-purple-500 ${run.first ? 'rounded-tl' : ''} ${run.last ? 'rounded-bl' : ''}`
                             : 'border-l-2 border-l-transparent'
                         }`,
                       },
-                      m('div', { class: `h-full flex flex-col items-center ${gutterTint}` }, [
+                      // `py-1` puts back what the cell's `-my-1` bleed took off, so
+                      // the badge still lines up with its lane's tiles while the
+                      // backdrop keeps covering the padding.
+                      m('div', { class: `h-full flex flex-col items-center py-1 ${gutterTint}` }, [
                         m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
                         m(
                           'span',
