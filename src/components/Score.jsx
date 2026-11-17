@@ -426,22 +426,6 @@ export function Score() {
             })()
           ),
 
-          // Adding a part in-score: the foot of the part gutter, sticky to the left
-          // edge so it stays reachable however far right the music is scrolled. Shown
-          // on a solo score too — it is how a one-part score grows into an ensemble.
-          m('div', { class: 'sticky left-0 w-max px-3 py-2' }, [
-            m(
-              'button',
-              {
-                class:
-                  'text-xs font-semibold rounded px-2 py-1 border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20',
-                onclick: () => piece.addPart(),
-                title: 'Add a part to every row',
-              },
-              '+ part'
-            ),
-          ]),
-
           showFallbackActions ? m(AddRowActions) : null,
         ]),
       ]);
