@@ -3,7 +3,7 @@ import Sortable from 'sortablejs';
 import { piece, laneDur } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
-import { SoundTile } from './SoundTile.jsx';
+import { SoundTile, SUBDIV_WIDTH_REM } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { feedbackClick } from '../audio/feedback.js';
@@ -102,7 +102,7 @@ const DEFAULT_ROW_GAP = 16; // matches former gap-y-4 (1rem)
  */
 function computeLaneHash(lane) {
   return lane.sounds
-    .map((s) => `${s.id}:${s.duration}:${s.type ?? ''}:${s.instruction ?? ''}`)
+    .map((s) => `${s.id}:${s.gap ?? 0}:${s.duration}:${s.type ?? ''}:${s.instruction ?? ''}`)
     .join('|');
 }
 
@@ -299,7 +299,7 @@ export function Lane() {
     sortableGroup = group;
     sortable = Sortable.create(container, {
       group,
-      filter: '.beat-marker-divider, .repeat-counter',
+      filter: '.beat-marker-divider, .repeat-counter, .lane-gap',
       animation: 150,
       ghostClass: 'opacity-30',
       ...touchDragDelay,
@@ -436,6 +436,23 @@ export function Lane() {
                         }),
                         m('span', { class: 'w-px h-full bg-gray-300 dark:bg-gray-600' }),
                       ]
+                    );
+                  }
+                  if (item.type === 'gap') {
+                    // Blank space in a taiko set's lane: this drum is silent while
+                    // the player works on another of their drums. Not a sound, so it
+                    // carries no data-sound-id and `domIndexToDataIndex` skips it.
+                    return m(
+                      'span',
+                      {
+                        key: 'gap-' + item.startPos,
+                        class:
+                          'lane-gap self-stretch flex items-center pointer-events-none select-none',
+                        style: `width:${item.divs * SUBDIV_WIDTH_REM}rem`,
+                      },
+                      m('span', {
+                        class: 'w-full border-t border-dotted border-gray-300 dark:border-gray-600',
+                      })
                     );
                   }
                   if (item.sounds) {

@@ -201,7 +201,7 @@ export const scoreStore = {
   exportJson() {
     const { id: _id, ...data } = snapshot();
     data.format = FORMAT;
-    data.lines = legacyMirror(data.lines);
+    data.lines = legacyMirror(data.lines, piece.symbolSet);
     const blob = new Blob([JSON.stringify({ appVersion: VERSION, ...data }, null, 2)], {
       type: 'application/json',
     });

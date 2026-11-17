@@ -228,6 +228,13 @@ describe('splitIntoRows', () => {
     expect(rows.map((r) => r.length)).toEqual([8, 1]);
   });
 
+  it('counts a gap towards the row, so a gapped line still wraps at 8 beats', () => {
+    // 1 beat, then 6 beats of blank before a beat that lands on beat 8; the next
+    // beat has to wrap.
+    const rows = splitIntoRows([beat(), { duration: 4, gap: 24 }, beat()], 4);
+    expect(rows.map((r) => r.length)).toEqual([2, 1]);
+  });
+
   it('never splits a single oversized sound across rows', () => {
     const rows = splitIntoRows([beat(10)], 4); // 10 beats > 8
     expect(rows).toHaveLength(1);
@@ -341,6 +348,49 @@ describe('exportPdf — ensemble', () => {
     });
   });
 
+  describe('beat ruler', () => {
+    /** Beat dots (the only circles drawn), grouped by sub-row y. */
+    function dotRows() {
+      const rows = new Map();
+      for (const [x, cy, r, style] of mockDoc.circle.mock.calls) {
+        if (!rows.has(cy)) rows.set(cy, []);
+        rows.get(cy).push({ x, filled: style === 'F', r });
+      }
+      return [...rows.values()];
+    }
+
+    it('rules a lane that is blank under the other part’s notes', async () => {
+      // One player's set: part 0 plays beat 1, part 1 beat 2. Part 1's first beat
+      // is blank, and must still show its beats.
+      mockPiece.lines = [
+        makeSystem('s1', [
+          [makeSound({ name: 'Don', duration: 4 })],
+          [{ ...makeSound({ name: 'Ten', duration: 4 }), gap: 4 }],
+        ]),
+      ];
+      await exportPdf();
+      const rows = dotRows();
+      expect(rows).toHaveLength(2);
+      for (const dots of rows) {
+        expect(dots).toHaveLength(8); // both beats, on both sub-rows
+        expect(dots.filter((d) => d.filled)).toHaveLength(2);
+        expect(dots[0].x).toBeCloseTo(PART_TILES_X + PART_BEAT_W / 8, 10);
+        expect(dots[0].filled).toBe(true);
+      }
+    });
+
+    it('never rules past the music', async () => {
+      mockPiece.lines = [
+        makeSystem('s1', [
+          [makeSound({ name: 'Don', duration: 4 })],
+          [makeSound({ name: 'Ten', duration: 4 })],
+        ]),
+      ];
+      await exportPdf();
+      for (const dots of dotRows()) expect(dots).toHaveLength(4);
+    });
+  });
+
   describe('part labels', () => {
     it('names each part beside its sub-row', async () => {
       mockPiece.lines = [
@@ -449,6 +499,18 @@ describe('splitSystemIntoChunks', () => {
     const chunks = splitSystemIntoChunks([{ sounds: [s(28), s(8)] }], 4);
     expect(chunks).toHaveLength(1);
     expect(chunks[0][0]).toHaveLength(2);
+  });
+
+  it('places a sound after a gap at its gapped start division', () => {
+    const chunks = splitSystemIntoChunks([{ sounds: [s(4), { duration: 4, gap: 4 }] }], 4);
+    expect(chunks[0][0].map((c) => c.startDiv)).toEqual([0, 8]);
+  });
+
+  it('puts a sound whose gap pushes it over the row limit in the next chunk', () => {
+    const chunks = splitSystemIntoChunks([{ sounds: [s(4), { duration: 4, gap: 28 }] }], 4);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0][0]).toHaveLength(1);
+    expect(chunks[1][0][0].startDiv).toBe(32); // 1 beat played, 7 blank
   });
 
   it('returns one empty chunk per lane for an empty system', () => {

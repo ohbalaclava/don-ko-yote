@@ -7,7 +7,7 @@ import { isIntegerBeat, effectiveVolume } from '../util.js';
 import { tileTintCss, tileBorderCss } from '../tileColor.js';
 import { feedbackClick } from '../audio/feedback.js';
 
-const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
+export const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
 
 const STEP_BTN =
@@ -48,11 +48,16 @@ export function SoundTile() {
       const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
       const isPlaying = player.isSounding(sound.id);
+      // A taiko set is one player with two hands: this strike is one of three at
+      // once, or wants a hand that is already busy. A warning, never a block.
+      const conflict = !isPlaying && piece.setConflictIds.has(sound.id);
       const borderClass = isPlaying
         ? 'border-green-500 bg-green-100 dark:border-green-400 dark:bg-green-900/40 ring-2 ring-green-400'
         : isSelected
-          ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
-          : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
+          ? `border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40${conflict ? ' ring-2 ring-red-500' : ''}`
+          : conflict
+            ? 'border-red-400 bg-white dark:border-red-500 dark:bg-gray-800 ring-2 ring-red-500'
+            : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = prop ? `width: ${(sound.duration / time) * beatWidthRem}rem` : undefined;
 
@@ -78,6 +83,7 @@ export function SoundTile() {
         {
           class: `sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`,
           style,
+          title: conflict ? 'One player, two hands: this strike clashes' : undefined,
           'data-sound-id': sound.id,
           onpointerup: (e) => {
             if (!piece.selectMode) return;
@@ -224,11 +230,17 @@ export function SoundEditor() {
             if (prev && prev.type !== 'group') {
               showLigature = true;
               const sameDur = time % 2 !== 0 || prev.duration === sound.duration;
-              const prevStart = lane.sounds.slice(0, idx - 1).reduce((s, x) => s + x.duration, 0);
+              const prevStart =
+                lane.sounds.slice(0, idx).reduce((s, x) => s + (x.gap ?? 0) + x.duration, 0) -
+                prev.duration;
               const sameBeat =
                 Math.floor(prevStart / time) === Math.floor((prevStart + prev.duration) / time);
               const autoWouldJoin =
-                sameDur && sameBeat && prev.duration < time && prev.hand !== sound.hand;
+                sameDur &&
+                sameBeat &&
+                prev.duration < time &&
+                prev.hand !== sound.hand &&
+                !sound.gap; // silence between them: they cannot share a tile
               isLigated = sound.ligature === true || (autoWouldJoin && sound.ligature !== false);
             }
           }

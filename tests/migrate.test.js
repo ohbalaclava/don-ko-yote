@@ -279,6 +279,43 @@ describe('legacyMirror', () => {
     expect(lines[0].lanes).toHaveLength(2);
   });
 
+  it('materialises a sparse set lane’s blanks as rests for the legacy array', () => {
+    const symbolSet = {
+      time: 4,
+      sounds: [
+        { name: 'SU', duration: 2 },
+        { name: "s'", duration: 1 },
+      ],
+    };
+    const lines = legacyMirror(
+      [
+        {
+          id: 'l1',
+          lanes: [
+            {
+              id: 'a',
+              partId: 'p1',
+              sounds: [sym('Don', 'x'), { ...sym('Ka', 'y'), gap: 8 }],
+            },
+          ],
+        },
+      ],
+      symbolSet
+    );
+    expect(lines[0].sounds.map((s) => s.name)).toEqual(['Don', '2', '3', 'Ka']);
+    expect(lines[0].sounds.some((s) => s.gap)).toBe(false);
+    expect(lines[0].sounds.reduce((d, s) => d + s.duration, 0)).toBe(16);
+    // The lanes keep their gaps: only the legacy mirror is contiguous.
+    expect(lines[0].lanes[0].sounds[1].gap).toBe(8);
+  });
+
+  it('mirrors gaps untouched when no symbol set is given', () => {
+    const lines = legacyMirror([
+      { id: 'l1', lanes: [{ id: 'a', partId: 'p1', sounds: [{ ...sym('Ka', 'y'), gap: 4 }] }] },
+    ]);
+    expect(lines[0].sounds[0].gap).toBe(4);
+  });
+
   it('leaves structural rows alone', () => {
     const heading = { id: 'h', type: 'heading', text: 'A' };
     expect(legacyMirror([heading])[0]).toBe(heading);

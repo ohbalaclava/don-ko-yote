@@ -2,6 +2,13 @@ import m from 'mithril';
 import { history } from './history.js';
 import { anim } from '../anim.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
+import {
+  setConflicts,
+  setCursor,
+  setLanes,
+  restsForGap,
+  setIdForLane as laneSetId,
+} from './sets.js';
 import { uid } from '../uid.js';
 
 /**
@@ -185,9 +192,13 @@ export function findLane(lines, laneId) {
   return null;
 }
 
-/** Total duration of a lane's sounds, in divisions. */
+/**
+ * Total extent of a lane's sounds, in divisions: every sound's own duration plus
+ * the leading silence (`gap`) in front of it. A sparse set lane therefore reports
+ * the position its last sound ends at, not just the sound it holds.
+ */
 export function laneDur(lane) {
-  return lane.sounds.reduce((sum, s) => sum + s.duration, 0);
+  return lane.sounds.reduce((sum, s) => sum + (s.gap ?? 0) + s.duration, 0);
 }
 
 /**
@@ -247,29 +258,197 @@ function insertAfterSelected(...items) {
   else piece.lines.push(...items);
 }
 
+/** The set a lane belongs to, or null. Sparse lanes — silence as `gap` rather than
+ *  as typed rests — are a set-lane behaviour; an independent part edits as it always
+ *  has, which is why every mutator below branches on this and no reader does. */
+function laneSet(lane) {
+  return laneSetId(piece.parts, lane);
+}
+
+/**
+ * Leading silence a sound appended to a lane needs so it lands on its set's shared
+ * cursor — the end of the set's combined timeline, since one player plays all the
+ * drums of the set. 0 for an independent part, and 0 when the lane is already the
+ * longest of its set.
+ * @param {object} lane
+ * @returns {number} Divisions.
+ */
+function appendGap(lane) {
+  const setId = laneSet(lane);
+  if (!setId) return 0;
+  const found = findLane(piece.lines, lane.id);
+  if (!found) return 0;
+  return Math.max(0, setCursor(found.system, piece.parts, setId) - laneDur(lane));
+}
+
 /**
  * Returns the first lane that can fit `duration` divisions: the lane itself, else
  * the same part's lane in a later system, else a lane in a system appended to the
  * end. Overflow always stays within one part. When beatsPerLine is 0 (unlimited)
  * or the item is too large to fit anywhere, returns the starting lane.
+ *
+ * The gap is recomputed **per candidate system**, because a set's cursor and the
+ * lane's own extent both differ from system to system — a single precomputed
+ * `duration + gap` budget would only be valid for the starting one.
  * @param {string} fromLaneId
  * @param {number} duration - Duration to accommodate, in divisions.
- * @returns {object|null} The target lane, or null when fromLaneId is unknown.
+ * @returns {{ lane: object, gap: number }|null} Target lane and the leading silence
+ *   an appended sound needs there, or null when fromLaneId is unknown.
  */
 function targetLane(fromLaneId, duration) {
   const from = findLane(piece.lines, fromLaneId);
   if (!from) return null;
+  const setId = laneSet(from.lane);
+  const gapIn = (row, lane) =>
+    setId ? Math.max(0, setCursor(row, piece.parts, setId) - laneDur(lane)) : 0;
   const max = piece.beatsPerLine * piece.time;
-  if (!piece.beatsPerLine || duration > max) return from.lane;
+  if (!piece.beatsPerLine || duration > max) {
+    return { lane: from.lane, gap: gapIn(piece.lines[from.systemIdx], from.lane) };
+  }
   for (let i = from.systemIdx; i < piece.lines.length; i++) {
     const row = piece.lines[i];
     if (!isSoundLine(row)) continue;
     const lane = i === from.systemIdx ? from.lane : laneFor(row, from.lane.partId);
-    if (lane && laneDur(lane) + duration <= max) return lane;
+    if (!lane) continue;
+    const gap = gapIn(row, lane);
+    if (laneDur(lane) + gap + duration <= max) return { lane, gap };
   }
   const system = makeSystem(piece.partIds());
   piece.lines.push(system);
-  return laneFor(system, from.lane.partId) ?? system.lanes[0];
+  return { lane: laneFor(system, from.lane.partId) ?? system.lanes[0], gap: 0 };
+}
+
+/**
+ * Opens `divs` divisions of silence at `div` in every lane of a set, so that an
+ * insert which does not fit the blank space already there moves the whole set's
+ * later music together and the lanes stay mutually aligned. A sound straddling
+ * `div` is not split — the sound after it takes the shift.
+ * @param {object} system
+ * @param {string} setId
+ * @param {number} div - Division at which the silence opens.
+ * @param {number} divs
+ * @param {string} [exceptLaneId] - Lane the caller is shifting itself.
+ */
+function openSetTime(system, setId, div, divs, exceptLaneId) {
+  if (divs <= 0) return;
+  for (const lane of setLanes(system, piece.parts, setId)) {
+    if (lane.id === exceptLaneId) continue;
+    let pos = 0;
+    for (const s of lane.sounds) {
+      const start = pos + (s.gap ?? 0);
+      if (start >= div) {
+        s.gap = start - pos + divs;
+        break;
+      }
+      pos = start + s.duration;
+    }
+    // A lane whose music all precedes `div` has nothing to push: trailing silence
+    // needs no representation, since the set cursor is derived from the last sound.
+  }
+}
+
+/**
+ * Inserts a run of sounds into a lane at a data index, taking the run's position
+ * from the lane rather than from the run (its leading `gap` is always dropped).
+ *
+ * On a set lane, an insert where the lane is blank consumes that silence; where the
+ * lane is occupied it opens the same silence across every lane of the set, so the
+ * set stays mutually aligned. An independent part keeps today's behaviour, where
+ * the insert simply ripples what follows along.
+ * @param {object} lane
+ * @param {Array<object>} sounds - At least one; mutated (leading `gap` stripped).
+ * @param {number} atIndex - Data index; at or past the end means append.
+ */
+function insertIntoLane(lane, sounds, atIndex) {
+  delete sounds[0].gap;
+  const setId = laneSet(lane);
+  if (atIndex == null || atIndex >= lane.sounds.length) {
+    const gap = appendGap(lane);
+    if (gap) sounds[0].gap = gap;
+    lane.sounds.push(...sounds);
+    return;
+  }
+  if (!setId) {
+    lane.sounds.splice(atIndex, 0, ...sounds);
+    return;
+  }
+  const span = sounds.reduce((t, s) => t + (s.gap ?? 0) + s.duration, 0);
+  const before = lane.sounds.slice(0, atIndex).reduce((t, s) => t + (s.gap ?? 0) + s.duration, 0);
+  const next = lane.sounds[atIndex];
+  const blank = next.gap ?? 0;
+  const found = findLane(piece.lines, lane.id);
+  if (span > blank && found)
+    openSetTime(found.system, setId, before + blank, span - blank, lane.id);
+  if (blank > span) next.gap = blank - span;
+  else delete next.gap;
+  lane.sounds.splice(atIndex, 0, ...sounds);
+}
+
+/**
+ * Removes sounds from a lane. On a set lane the removed span becomes leading
+ * silence on the next surviving sound, so everything after keeps its absolute
+ * position — deleting a strike out of a set's playing path must not re-time the
+ * other drums. An independent part keeps today's rippling. Deleting the tail has
+ * nothing to absorb into and legitimately moves the set cursor back.
+ * @param {object} lane
+ * @param {Set<string>} idSet - Sound ids to remove.
+ */
+function removeFromLane(lane, idSet) {
+  if (laneSet(lane)) {
+    let span = 0;
+    for (const s of lane.sounds) {
+      if (idSet.has(s.id)) {
+        span += (s.gap ?? 0) + s.duration;
+      } else if (span) {
+        s.gap = (s.gap ?? 0) + span;
+        span = 0;
+      }
+    }
+  }
+  lane.sounds = lane.sounds.filter((s) => !idSet.has(s.id));
+}
+
+/**
+ * Turns a part's blank space into real rests, so its lanes become ordinary
+ * contiguous ones with identical timing. Run when a part leaves its set: a `gap` is
+ * a set-lane idea, and one left behind on an independent part would be silence the
+ * author could never select or edit. The only place rests are synthesised rather
+ * than authored — acceptable precisely because the author never typed them.
+ * @param {string} partId
+ */
+function materialiseGaps(partId) {
+  for (const row of piece.lines) {
+    if (!isSoundLine(row)) continue;
+    const lane = laneFor(row, partId);
+    if (!lane?.sounds.some((s) => s.gap)) continue;
+    const symbolSet = piece.symbolSetForLane(lane.id);
+    const out = [];
+    let pos = 0;
+    for (const s of lane.sounds) {
+      const gap = s.gap ?? 0;
+      if (gap) {
+        for (const r of restsForGap(symbolSet, pos, gap, piece.time)) out.push(makeSound(r));
+        delete s.gap;
+      }
+      out.push(s);
+      pos += gap + s.duration;
+    }
+    lane.sounds = out;
+  }
+}
+
+/** Reorders `piece.parts` so each set's members are consecutive — what makes the
+ *  display bracket (a run of adjacent parts) agree with set membership. Order is
+ *  otherwise untouched: a part belonging to an already-placed set slides in behind
+ *  that set's last member, so part 0 never moves. */
+function groupSetsContiguous() {
+  const out = [];
+  for (const p of piece.parts) {
+    const last = p.setId ? out.map((x) => x.setId).lastIndexOf(p.setId) : -1;
+    if (last !== -1) out.splice(last + 1, 0, p);
+    else out.push(p);
+  }
+  piece.parts = out;
 }
 
 /** True for the structural rows that are skipped when computing line adjacency. */
@@ -507,6 +686,8 @@ export const piece = {
   _rev: 0,
   _jiuchiMap: null,
   _jiuchiMapRev: -1,
+  _conflictIds: null,
+  _conflictIdsRev: -1,
 
   /** Memoised jiuchiLineMap over the current lines: system id → section taiko. */
   get jiuchiMap() {
@@ -515,6 +696,28 @@ export const piece = {
       this._jiuchiMapRev = this._rev;
     }
     return this._jiuchiMap;
+  },
+
+  /**
+   * Sound ids involved in a two-hand violation: a set asking its one player for
+   * three sticks at once, or for the same hand twice (`setConflicts`). Memoised
+   * on `_rev` and whole-score, because `SoundTile` asks once per tile per redraw
+   * and the playhead redraws at 60 fps.
+   * @returns {Set<string>} Empty for a score with no taiko sets.
+   */
+  get setConflictIds() {
+    if (this._conflictIdsRev !== this._rev) {
+      const ids = new Set();
+      if (this.parts.some((p) => p.setId)) {
+        for (const row of this.lines) {
+          if (!isSoundLine(row)) continue;
+          for (const c of setConflicts(row, this.parts)) for (const id of c.soundIds) ids.add(id);
+        }
+      }
+      this._conflictIds = ids;
+      this._conflictIdsRev = this._rev;
+    }
+    return this._conflictIds;
   },
 
   /** Active symbol set, resolved lazily from (taiko, jiuchi). */
@@ -602,6 +805,18 @@ export const piece = {
     return (
       this.jiuchiMap.get(found.system.id) ?? this.partById(found.lane.partId)?.taiko ?? this.taiko
     );
+  },
+
+  /**
+   * The taiko set a lane belongs to — the player whose drums it is one of. Null for
+   * an independent part and for a jiuchi definition lane. Set lanes are the sparse
+   * ones: silence in them is a `gap`, not typed rests.
+   * @param {string} laneId
+   * @returns {string|null}
+   */
+  setIdForLane(laneId) {
+    const found = findLane(this.lines, laneId);
+    return found ? laneSetId(this.parts, found.lane) : null;
   },
 
   /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
@@ -906,8 +1121,7 @@ export const piece = {
     if (!lineId || soundIds.length === 0) return;
     const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
-    const selSet = new Set(soundIds);
-    line.sounds = line.sounds.filter((s) => !selSet.has(s.id));
+    removeFromLane(line, new Set(soundIds));
     piece.selection = { lineId: null, anchorId: null, soundIds: [] };
     piece.selectedLineId = lineId;
     piece._commit();
@@ -1257,9 +1471,14 @@ export const piece = {
     const s = makeSound(symbol);
     const target = targetLane(lineId, s.duration);
     if (!target) return;
-    if (target.id === lineId && atIndex != null) target.sounds.splice(atIndex, 0, s);
-    else target.sounds.push(s);
-    piece.selectedLineId = target.id;
+    const { lane, gap } = target;
+    if (lane.id === lineId && atIndex != null && atIndex < lane.sounds.length) {
+      insertIntoLane(lane, [s], atIndex);
+    } else {
+      if (gap) s.gap = gap;
+      lane.sounds.push(s);
+    }
+    piece.selectedLineId = lane.id;
     piece._commit();
   },
 
@@ -1279,18 +1498,19 @@ export const piece = {
     const idx = fromLine.sounds.findIndex((s) => s.id === soundId);
     if (idx === -1) return;
     const sound = fromLine.sounds[idx];
-    if (
-      fromLineId !== toLineId &&
-      piece.beatsPerLine > 0 &&
-      laneDur(toLine) + sound.duration > piece.beatsPerLine * piece.time
-    ) {
-      // Overflow: reject the move. The dragged node was already reverted in the
-      // Sortable onEnd handler, so a redraw repaints the unchanged line.
-      m.redraw();
-      return;
+    if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
+      const gap = toIndex >= toLine.sounds.length ? appendGap(toLine) : 0;
+      if (laneDur(toLine) + gap + sound.duration > piece.beatsPerLine * piece.time) {
+        // Overflow: reject the move. The dragged node was already reverted in the
+        // Sortable onEnd handler, so a redraw repaints the unchanged line.
+        m.redraw();
+        return;
+      }
     }
-    fromLine.sounds.splice(idx, 1);
-    toLine.sounds.splice(toIndex, 0, sound);
+    removeFromLane(fromLine, new Set([sound.id]));
+    // The move's position is re-derived at the destination; carrying the sound's
+    // old leading silence there would inject a gap it never had.
+    insertIntoLane(toLine, [sound], toIndex);
     piece.selectedLineId = toLineId;
     piece._commit();
   },
@@ -1310,16 +1530,19 @@ export const piece = {
     const sounds = fromLine.sounds.filter((s) => idSet.has(s.id));
     if (sounds.length !== soundIds.length) return;
     if (fromLineId !== toLineId && piece.beatsPerLine > 0) {
-      const totalDur = sounds.reduce((sum, s) => sum + s.duration, 0);
-      if (laneDur(toLine) + totalDur > piece.beatsPerLine * piece.time) {
+      // The run's own leading silence is dropped on insert, but silence *between*
+      // its members travels with it: it is part of the rhythm being moved.
+      const totalDur = sounds.reduce((sum, s, i) => sum + (i ? (s.gap ?? 0) : 0) + s.duration, 0);
+      const gap = toIndex >= toLine.sounds.length ? appendGap(toLine) : 0;
+      if (laneDur(toLine) + gap + totalDur > piece.beatsPerLine * piece.time) {
         // Overflow: reject the move. The dragged node was already reverted in the
         // Sortable onEnd handler, so a redraw repaints the unchanged line.
         m.redraw();
         return;
       }
     }
-    fromLine.sounds = fromLine.sounds.filter((s) => !idSet.has(s.id));
-    toLine.sounds.splice(toIndex, 0, ...sounds);
+    removeFromLane(fromLine, idSet);
+    insertIntoLane(toLine, sounds, toIndex);
     piece.selectedLineId = toLineId;
     piece._commit();
   },
@@ -1327,7 +1550,7 @@ export const piece = {
   removeSound(lineId, soundId) {
     const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
-    line.sounds = line.sounds.filter((s) => s.id !== soundId);
+    removeFromLane(line, new Set([soundId]));
     piece.selectedLineId = lineId;
     piece._commit();
   },
@@ -1341,11 +1564,22 @@ export const piece = {
   updateSound(lineId, soundId, patch) {
     const line = findLane(piece.lines, lineId)?.lane;
     if (!line) return;
-    const s = line.sounds.find((s) => s.id === soundId);
-    if (!s) return;
+    const idx = line.sounds.findIndex((s) => s.id === soundId);
+    if (idx === -1) return;
+    const s = line.sounds[idx];
+    const wasDur = s.duration;
     Object.assign(s, patch);
     for (const key of Object.keys(patch)) {
       if (patch[key] === undefined) delete s[key];
+    }
+    // On a set lane a duration change trades with the blank space after it — a
+    // shrink donates the difference, a grow consumes it (and ripples once the
+    // blank runs out) — so the rest of the set's playing path stays put.
+    const next = line.sounds[idx + 1];
+    if (next && laneSet(line) && s.duration !== wasDur) {
+      const gap = (next.gap ?? 0) - (s.duration - wasDur);
+      if (gap > 0) next.gap = gap;
+      else delete next.gap;
     }
     piece._commit();
   },
@@ -1363,12 +1597,18 @@ export const piece = {
     if (!lane) return;
     let insertAt = atIndex;
     for (const s of pattern.sounds) {
-      lane = targetLane(lane.id, s.duration);
-      if (lane.id === lineId && insertAt != null) {
-        lane.sounds.splice(insertAt, 0, { ...s, id: uid() });
+      const target = targetLane(lane.id, s.duration);
+      lane = target.lane;
+      // A pattern is a rhythm, not a position: a `gap` captured in one set lane
+      // would inject silence wherever the pattern is reused.
+      const sound = { ...s, id: uid() };
+      delete sound.gap;
+      if (lane.id === lineId && insertAt != null && insertAt < lane.sounds.length) {
+        insertIntoLane(lane, [sound], insertAt);
         insertAt++;
       } else {
-        lane.sounds.push({ ...s, id: uid() });
+        if (target.gap) sound.gap = target.gap;
+        lane.sounds.push(sound);
       }
     }
     piece.selectedLineId = lane.id;
@@ -1454,6 +1694,7 @@ export const piece = {
     if (fromIndex < 0 || fromIndex >= piece.parts.length) return;
     const [moved] = piece.parts.splice(fromIndex, 1);
     piece.parts.splice(Math.max(0, Math.min(toIndex, piece.parts.length)), 0, moved);
+    groupSetsContiguous();
     piece._normaliseParts();
     piece._normaliseSystems();
     piece._commit();
@@ -1504,15 +1745,21 @@ export const piece = {
 
   /**
    * Puts a part in a taiko set (one player, several drums) or takes it out.
-   * Sets left with no members are pruned.
+   * Sets left with no members are pruned, and the parts are regrouped so the set's
+   * members stay adjacent. A part leaving a set has its blank space materialised as
+   * real rests, since sparse lanes are a set-lane behaviour.
    * @param {string} partId
    * @param {string|null} setId
    */
   assignPartToSet(partId, setId) {
     const part = piece.partById(partId);
     if (!part) return;
+    const left = part.setId && !setId;
     part.setId = setId ?? null;
+    if (left) materialiseGaps(partId);
+    groupSetsContiguous();
     piece._normaliseParts();
+    piece._normaliseSystems();
     piece._commit();
   },
 
@@ -1534,10 +1781,15 @@ export const piece = {
     piece._commit();
   },
 
-  /** Removes a set and unlinks its parts. */
+  /** Removes a set and unlinks its parts, materialising each one's blank space as
+   *  real rests so the music it held survives as an ordinary contiguous lane. */
   removeSet(id) {
     piece.sets = piece.sets.filter((s) => s.id !== id);
-    for (const p of piece.parts) if (p.setId === id) p.setId = null;
+    for (const p of piece.parts) {
+      if (p.setId !== id) continue;
+      p.setId = null;
+      materialiseGaps(p.id);
+    }
     piece._commit();
   },
 };

@@ -85,7 +85,10 @@ export function Score() {
     const selectedSet = new Set(piece.selection.soundIds);
     const sounds = found.lane.sounds
       .filter((s) => selectedSet.has(s.id))
-      .map(({ id: _id, ...rest }) => rest);
+      // `gap` goes too: a pattern is a rhythm, not a position. Kept, it would
+      // inject the set lane's blank space wherever the pattern is reused and skew
+      // the palette tile's beat label.
+      .map(({ id: _id, gap: _gap, ...rest }) => rest);
     const name = sounds.map((s) => s.name).join(' ');
     // Tag the pattern with the lane's own symbol set, not the score's primary one.
     await patternStore.save(name, sounds, piece.symbolSetForLane(piece.selection.lineId).id);

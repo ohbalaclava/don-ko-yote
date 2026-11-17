@@ -104,6 +104,7 @@ export function buildSequence(lines, time, partId) {
     const lane = partId === undefined ? lanesOf(system)[0] : laneFor(system, partId);
     let p = pos;
     for (const s of lane?.sounds ?? []) {
+      p += s.gap ?? 0; // leading silence: a sparse set lane's blank space
       const vol = s.silent ? null : isKakegoe(s.name) ? KAKEGOE_VOLUME : effectiveVolume(s);
       events.push({
         lineId: lane.id,

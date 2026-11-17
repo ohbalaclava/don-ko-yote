@@ -1,5 +1,6 @@
 import { uid } from '../uid.js';
 import { isSoundLine, jiuchiLineMap, lanesOf, makeLane, makePart } from './piece.js';
+import { restsForGap } from './sets.js';
 
 /**
  * Expands any legacy group tiles in a lines array into their constituent sounds.
@@ -92,17 +93,49 @@ export function migrateScore(source) {
 }
 
 /**
+ * Materialises a sparse set lane's `gap` silence as real rests, so the sounds
+ * array is contiguous and an app that knows nothing of `gap` still times it
+ * correctly. Same fill as unlinking a part from its set: numbered beat tiles plus
+ * the symbol set's own rests for a sub-beat remainder.
+ * @param {Array} sounds
+ * @param {object} symbolSet
+ * @returns {Array}
+ */
+function materialiseGaps(sounds, symbolSet) {
+  if (!sounds.some((s) => s.gap)) return sounds;
+  const out = [];
+  let pos = 0;
+  for (const s of sounds) {
+    const gap = s.gap ?? 0;
+    for (const r of restsForGap(symbolSet, pos, gap, symbolSet.time)) {
+      out.push({ ...r, id: uid() });
+    }
+    pos += gap;
+    const { gap: _gap, ...rest } = s;
+    out.push(rest);
+    pos += s.duration;
+  }
+  return out;
+}
+
+/**
  * Adds a pre-3.0 `sounds` array (part 0's lane) alongside each system's `lanes`,
  * for exported JSON only. A 2.x app reads `sounds` and renders the primary part
  * instead of crashing on a row with no sounds; a 3.x app sees `format: 2` and
  * reads `lanes`. The cost is that a new → old → new round-trip through an old app
  * silently drops the other parts, so this is never written to IndexedDB.
+ *
+ * With a `symbolSet` the mirror also materialises part 0's blank space as rests
+ * (`gap` is a 3.13 field, and an older app prefix-sums `duration` alone, so a
+ * mirrored gap would play early). The lanes themselves keep their gaps.
  * @param {Array} lines
+ * @param {object} [symbolSet] - Part 0's symbol set, for the rest fill.
  * @returns {Array}
  */
-export function legacyMirror(lines) {
+export function legacyMirror(lines, symbolSet) {
   return lines.map((row) => {
     if (!isSoundLine(row) || !row.lanes) return row;
-    return { ...row, sounds: lanesOf(row)[0]?.sounds ?? [] };
+    const sounds = lanesOf(row)[0]?.sounds ?? [];
+    return { ...row, sounds: symbolSet ? materialiseGaps(sounds, symbolSet) : sounds };
   });
 }

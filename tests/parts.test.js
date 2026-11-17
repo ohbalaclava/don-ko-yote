@@ -15,6 +15,7 @@ import {
   systemSpan,
   MAX_NEW_PARTS,
 } from '../src/data/piece.js';
+import { buildSequence } from '../src/data/sequence.js';
 
 function sym(name = 'Don', hand = 'R', duration = 4) {
   return { name, hand, duration };
@@ -423,5 +424,261 @@ describe('reset with a part count', () => {
     expect(piece.parts).toHaveLength(1);
     piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', parts: 99 });
     expect(piece.parts).toHaveLength(MAX_NEW_PARTS);
+  });
+});
+
+// ── Sparse set lanes ──────────────────────────────────────────────────────────
+//
+// Within a taiko set one player plays every drum, so the set's lanes are one
+// timeline: a new sound lands on the set's shared cursor and the lanes are simply
+// blank where that drum isn't playing (a `gap`), never padded with typed rests.
+
+/** Links the given part indices into one taiko set; returns the set id. */
+function linkSet(...idxs) {
+  const set = piece.addSet('Player');
+  for (const i of idxs) piece.assignPartToSet(piece.parts[i].id, set.id);
+  return set.id;
+}
+
+/** Start division of every sound in a lane, from its gaps and durations. */
+function starts(l) {
+  const out = [];
+  let pos = 0;
+  for (const s of l.sounds) {
+    pos += s.gap ?? 0;
+    out.push(pos);
+    pos += s.duration;
+  }
+  return out;
+}
+
+const TEN = () => sym('TEN', 'R', 4);
+const KEN = () => sym('KEN', 'L', 4);
+
+describe('authoring on a set lane', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 3 });
+  });
+
+  it('lands a sound on the set’s shared cursor, not the lane’s own end', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, KEN());
+    expect(lane(0, 1).sounds[0].gap).toBe(4);
+    expect(starts(lane(0, 1))).toEqual([4]);
+    expect(laneDur(lane(0, 1))).toBe(8);
+  });
+
+  it('reads as one linear path when authored alternately across the drums', () => {
+    linkSet(0, 1);
+    for (let i = 0; i < 4; i++) {
+      piece.addSound(lane(0, i % 2).id, i % 2 ? KEN() : TEN());
+    }
+    expect(starts(lane(0, 0))).toEqual([0, 8]);
+    expect(starts(lane(0, 1))).toEqual([4, 12]);
+  });
+
+  it('never writes a gap on an independent part', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 2).id, TEN());
+    expect(lane(0, 2).sounds[0].gap).toBeUndefined();
+    expect(laneDur(lane(0, 2))).toBe(4);
+  });
+
+  it('counts the gap against the lane’s beat budget and overflows to a new system', () => {
+    linkSet(0, 1);
+    for (let i = 0; i < 8; i++) piece.addSound(lane(0, 0).id, TEN());
+    expect(laneDur(lane(0, 0))).toBe(32);
+
+    piece.addSound(lane(0, 1).id, KEN());
+    expect(lane(0, 1).sounds).toHaveLength(0);
+    expect(piece.lines.filter(isSoundLine)).toHaveLength(2);
+    expect(lane(1, 1).sounds[0].gap).toBeUndefined();
+  });
+
+  it('fills existing blank space on a mid-stream insert', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, KEN()); // gap 4
+    piece.addSound(lane(0, 1).id, sym('TE', 'R', 2), 0);
+    expect(starts(lane(0, 1))).toEqual([0, 4]); // the KEN keeps its own beat
+    expect(laneDur(lane(0, 1))).toBe(8);
+    expect(laneDur(lane(0, 0))).toBe(4); // the other drum did not move
+  });
+
+  it('opens silence across every lane of the set when the spot is occupied', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, KEN()); // gap 8
+    piece.addSound(lane(0, 1).id, sym('TE', 'R', 2), 0);
+
+    expect(starts(lane(0, 1))).toEqual([0, 8]);
+    expect(starts(lane(0, 0))).toEqual([0, 4]); // all before the insert: unmoved
+
+    // Inserting where this lane is occupied pushes the rest of the set along.
+    piece.addSound(lane(0, 0).id, sym('TE', 'R', 2), 1);
+    expect(starts(lane(0, 0))).toEqual([0, 4, 6]);
+    expect(starts(lane(0, 1))).toEqual([0, 10]);
+  });
+
+  it('never carries a pattern’s gaps in', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addGroup(lane(0, 1).id, { sounds: [{ ...KEN(), gap: 12 }, TEN()] });
+    expect(starts(lane(0, 1))).toEqual([4, 8]);
+  });
+});
+
+describe('editing a set lane', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 2 });
+    linkSet(0, 1);
+    // One player alternating: lane 0 on beats 1 and 3, lane 1 on beats 2 and 4.
+    for (let i = 0; i < 4; i++) {
+      piece.addSound(lane(0, i % 2).id, i % 2 ? KEN() : TEN());
+    }
+  });
+
+  it('absorbs a deleted sound as silence so later notes keep their place', () => {
+    piece.removeSound(lane(0, 0).id, lane(0, 0).sounds[0].id);
+    expect(starts(lane(0, 0))).toEqual([8]);
+    expect(laneDur(lane(0, 0))).toBe(12);
+    expect(starts(lane(0, 1))).toEqual([4, 12]);
+  });
+
+  it('moves the set cursor back when the deleted sound is the lane’s tail', () => {
+    piece.removeSound(lane(0, 1).id, lane(0, 1).sounds[1].id);
+    expect(starts(lane(0, 1))).toEqual([4]);
+    expect(laneDur(lane(0, 1))).toBe(8);
+  });
+
+  it('absorbs a multi-sound deletion in one go', () => {
+    const l = lane(0, 0);
+    piece.selection = { lineId: l.id, anchorId: null, soundIds: [l.sounds[0].id] };
+    piece.deleteSelectedSounds();
+    expect(starts(lane(0, 0))).toEqual([8]);
+  });
+
+  it('trades a duration change with the blank space after it', () => {
+    const l = lane(0, 0);
+    piece.updateSound(l.id, l.sounds[0].id, { duration: 2 });
+    expect(starts(lane(0, 0))).toEqual([0, 8]); // shrink donated 2 divisions
+    piece.updateSound(l.id, lane(0, 0).sounds[0].id, { duration: 4 });
+    expect(starts(lane(0, 0))).toEqual([0, 8]); // grow consumed them again
+  });
+
+  it('carries no stale gap when a sound is moved to another system', () => {
+    piece.addLine();
+    const to = lane(1, 1);
+    const from = lane(0, 1);
+    piece.moveSound(from.id, from.sounds[1].id, to.id, 0);
+    expect(lane(1, 1).sounds[0].gap).toBeUndefined();
+    expect(starts(lane(0, 1))).toEqual([4]);
+  });
+
+  it('round-trips a gap edit through undo/redo', () => {
+    const before = starts(lane(0, 1));
+    piece.addSound(lane(0, 0).id, TEN());
+    const after = starts(lane(0, 1));
+    piece.undo();
+    expect(starts(lane(0, 1))).toEqual(before);
+    piece.redo();
+    expect(starts(lane(0, 1))).toEqual(after);
+  });
+
+  it('preserves gaps when a system is duplicated', () => {
+    piece.duplicateLine(piece.lines[0].id);
+    expect(starts(lane(1, 1))).toEqual([4, 12]);
+  });
+});
+
+describe('leaving a taiko set', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 2 });
+    linkSet(0, 1);
+    for (let i = 0; i < 4; i++) {
+      piece.addSound(lane(0, i % 2).id, i % 2 ? KEN() : TEN());
+    }
+  });
+
+  const seqStarts = (partId) =>
+    buildSequence(piece.lines, piece.time, partId).events.map((e) => e.startDiv);
+
+  it('materialises blanks as numbered tiles with the timing unchanged', () => {
+    const partId = piece.parts[1].id;
+    const dur = laneDur(lane(0, 1));
+    const sounded = seqStarts(partId);
+
+    piece.assignPartToSet(partId, null);
+
+    const l = lane(0, 1);
+    expect(l.sounds.map((s) => s.name)).toEqual(['1', 'KEN', '3', 'KEN']);
+    expect(l.sounds.filter((s) => s.implicit)).toHaveLength(2);
+    expect(l.sounds.some((s) => s.gap)).toBe(false);
+    expect(laneDur(l)).toBe(dur);
+    // The strikes still sound where they did; the materialised rests add silent
+    // events in between, which is what a contiguous lane looks like.
+    expect(seqStarts(partId)).toEqual([0, 4, 8, 12]);
+    expect(sounded).toEqual([4, 12]);
+  });
+
+  it('materialises every member when the whole set is removed', () => {
+    const setId = piece.parts[0].setId;
+    piece.removeSet(setId);
+    expect(piece.parts.every((p) => p.setId === null)).toBe(true);
+    expect(lanesOf(piece.lines[0]).every((l) => !l.sounds.some((s) => s.gap))).toBe(true);
+    expect(lane(0, 1).sounds.map((s) => s.name)).toEqual(['1', 'KEN', '3', 'KEN']);
+    expect(laneDur(lane(0, 1))).toBe(16);
+  });
+});
+
+describe('set membership and part order', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 3 });
+  });
+
+  it('pulls a newly linked part next to its set so the bracket can be drawn', () => {
+    const ids = piece.parts.map((p) => p.id);
+    linkSet(0, 2);
+    expect(piece.parts.map((p) => p.id)).toEqual([ids[0], ids[2], ids[1]]);
+    expect(lanesOf(piece.lines[0]).map((l) => l.partId)).toEqual(piece.parts.map((p) => p.id));
+  });
+
+  it('keeps a set’s members contiguous across a reorder', () => {
+    linkSet(0, 1);
+    piece.reorderPart(0, 2);
+    const setIds = piece.parts.map((p) => p.setId);
+    const first = setIds.findIndex(Boolean);
+    expect(setIds.slice(first, first + 2).every(Boolean)).toBe(true);
+  });
+});
+
+describe('two-hand conflicts', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 2 });
+  });
+
+  it('is empty while the set alternates hands', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, KEN());
+    expect(piece.setConflictIds.size).toBe(0);
+  });
+
+  it('flags both sounds when one hand is asked for twice at once', () => {
+    linkSet(0, 1);
+    piece.addSound(lane(0, 0).id, TEN());
+    const l = lane(0, 1);
+    piece.addSound(l.id, TEN());
+    piece.updateSound(l.id, lane(0, 1).sounds[0].id, { gap: undefined });
+    expect(piece.setConflictIds.size).toBe(2);
+  });
+
+  it('stays empty for a score with no sets, however the parts collide', () => {
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, TEN());
+    expect(piece.setConflictIds.size).toBe(0);
   });
 });

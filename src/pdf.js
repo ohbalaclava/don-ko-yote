@@ -87,7 +87,7 @@ export function splitIntoRows(flatSounds, time) {
   let curRow = [];
   let curBeats = 0;
   for (const s of flatSounds) {
-    const sb = s.duration / time;
+    const sb = ((s.gap ?? 0) + s.duration) / time;
     if (curRow.length > 0 && curBeats + sb > BEATS_PER_ROW) {
       rows.push(curRow);
       curRow = [s];
@@ -116,6 +116,7 @@ export function splitSystemIntoChunks(lanes, time) {
   lanes.forEach((lane, laneIdx) => {
     let pos = 0;
     for (const sound of lane.sounds ?? []) {
+      pos += sound.gap ?? 0; // leading silence: a sparse set lane's blank space
       const c = Math.floor(pos / chunkDiv);
       while (chunks.length <= c) chunks.push(blank());
       chunks[c][laneIdx].push({ sound, startDiv: pos });
@@ -386,27 +387,39 @@ export async function exportPdf() {
 
       const rowTops = [];
       let rowEndX = PART_TILES_X;
+      // Divisions this chunk occupies, over every lane: the beat ruler is drawn to
+      // this width on every sub-row, so a lane that is blank here still shows the
+      // beats (a set's lane is blank wherever that drum is resting) and the ruler
+      // never runs past the music.
+      const chunkEnd = chunk.reduce(
+        (end, cells) =>
+          cells.reduce(
+            (e, c) => Math.max(e, Math.min(chunkDiv, (c.startDiv % chunkDiv) + c.sound.duration)),
+            end
+          ),
+        0
+      );
 
       plans.forEach((plan, laneIdx) => {
         const rowY = y;
         rowTops.push(rowY);
 
+        for (let div = 0; div < chunkEnd; div++) {
+          const dotX = PART_TILES_X + (div / time) * PART_BEAT_W + subdivW / 2;
+          if (div % time === 0) {
+            doc.setFillColor(0);
+            doc.circle(dotX, rowY + 1.5, 0.8, 'F');
+          } else {
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.15);
+            doc.circle(dotX, rowY + 1.5, 0.55, 'S');
+          }
+        }
+
         for (const { sound, startDiv } of plan.cells) {
           const col = startDiv % chunkDiv;
           const x = PART_TILES_X + (col / time) * PART_BEAT_W;
           const tw = (sound.duration / time) * PART_BEAT_W;
-
-          for (let i = 0; i < sound.duration; i++) {
-            const dotX = x + subdivW * (i + 0.5);
-            if ((startDiv + i) % time === 0) {
-              doc.setFillColor(0);
-              doc.circle(dotX, rowY + 1.5, 0.8, 'F');
-            } else {
-              doc.setDrawColor(150, 150, 150);
-              doc.setLineWidth(0.15);
-              doc.circle(dotX, rowY + 1.5, 0.55, 'S');
-            }
-          }
 
           drawSoundCell(doc, sound, {
             rowY,
@@ -596,6 +609,14 @@ export async function exportPdf() {
         for (const item of ligItems) {
           const isSingle = 'sound' in item;
           const sounds = isSingle ? [item.sound] : item.sounds;
+          // Leading silence. A ligature never spans a gap, so it is the first
+          // member's. Widths here are token spacings rather than proportional, so
+          // this is the one place a gap's geometry is approximate.
+          const gapDivs = sounds[0].gap ?? 0;
+          if (gapDivs) {
+            xOff += (gapDivs / time) * BEAT_W;
+            cumDuration += gapDivs;
+          }
           const anchor = TILES_X + xOff + halfBeat / 2;
 
           let subPos = item.startPos;
@@ -627,6 +648,13 @@ export async function exportPdf() {
         }
       } else {
         for (const sound of rowSounds) {
+          // Leading silence, before any geometry: the dot parity below reads
+          // cumDuration, so the gap has to land first.
+          const gapDivs = sound.gap ?? 0;
+          if (gapDivs) {
+            xOff += (gapDivs / time) * BEAT_W;
+            cumDuration += gapDivs;
+          }
           const tw = (sound.duration / time) * BEAT_W;
           const textX = TILES_X + xOff + subdivW / 2;
           // Inset 0.3mm per side so adjacent proportional tiles keep a white gutter.

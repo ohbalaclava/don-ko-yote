@@ -113,6 +113,14 @@ export function HelpSheet() {
                   desc: 'Give two or more neighbouring parts the same player in Parts and a bracket links them — one person playing several drums.',
                 }),
                 m(Row, {
+                  label: 'A set is one path',
+                  desc: 'A new sound lands at the end of the whole set, whichever of the player’s drums you add it to, and the other lanes stay blank there — no rests to type, so the set reads as one line of playing moving across the drums.',
+                }),
+                m(Row, {
+                  label: 'Red ring',
+                  desc: 'Two hands only: a strike ringed in red asks the player for the same hand twice, or for a third stroke at once. A warning, not a block.',
+                }),
+                m(Row, {
                   label: 'Beats line up',
                   desc: 'Every part shares one tempo and beat grid, so beat 3 of one part sits above beat 3 of the next. Scroll sideways; the part names stay put.',
                 }),
@@ -185,6 +193,10 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Player (taiko set)',
                   desc: 'Give two or more parts the same player to mark a taiko set — one person on several drums. Their lanes are linked by a bracket carrying the player name.',
+                }),
+                m(Row, {
+                  label: 'Set lanes are sparse',
+                  desc: 'The drums of one set share a single cursor and are left blank where they are not played; unlinking a part fills its blanks back in as numbered rest tiles, so the timing is unchanged.',
                 }),
                 m(Row, {
                   label: 'Sideways scroll',

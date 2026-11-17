@@ -323,6 +323,60 @@ describe('buildSequence', () => {
 
 // ── sectionSlice ────────────────────────────────────────────────────────────
 
+// ── Sparse set lanes (gaps) ──────────────────────────────────────────────────
+
+describe('buildSequence — leading silence', () => {
+  it('shifts a sound by its gap and counts the gap in the total', () => {
+    const lines = [line('a', [sound('TEN', 'R', 4, { gap: 8 })])];
+    const { events, totalDiv } = buildSequence(lines, 4);
+    expect(events[0].startDiv).toBe(8);
+    expect(totalDiv).toBe(12);
+  });
+
+  it('is the typed-rest sequence minus the rest event', () => {
+    const gapped = buildSequence([line('a', [sound('TEN', 'R', 4, { gap: 4 })])], 4);
+    const rested = buildSequence([line('b', [rest(4), sound('TEN', 'R', 4)])], 4);
+    expect(gapped.totalDiv).toBe(rested.totalDiv);
+    expect(gapped.events).toHaveLength(1);
+    expect(gapped.events[0].startDiv).toBe(rested.events[1].startDiv);
+    expect(rested.events[0].volume).toBeNull(); // the only extra event
+  });
+
+  it('keeps a lane of nothing but blank space and one strike in step', () => {
+    // Two lanes of one set: whatever lane A plays, lane B's strike is at div 12.
+    const lines = [
+      {
+        id: 'l1',
+        lanes: [
+          {
+            id: 'a',
+            partId: 'p1',
+            sounds: [sound('TEN', 'R', 4), sound('te', 'R', 1, { gap: 2 })],
+          },
+          { id: 'b', partId: 'p2', sounds: [sound('KEN', 'L', 4, { gap: 12 })] },
+        ],
+      },
+    ];
+    const b = buildSequence(lines, 4, 'p2');
+    expect(b.events.map((e) => e.startDiv)).toEqual([12]);
+    expect(b.totalDiv).toBe(16); // the system spans the longer lane
+    expect(buildSequence(lines, 4, 'p1').events.map((e) => e.startDiv)).toEqual([0, 6]);
+  });
+
+  it('counts a gap in a jiuchi definition loop and in the region it underlays', () => {
+    const lines = [
+      jiuchiSection('j', 'Shime'),
+      line('d', [sound('TEN', 'R', 4), sound('TEN', 'R', 4, { gap: 4 })]), // 12-div loop
+      heading('h'),
+      line('a', [sound('TEN', 'R', 4, { gap: 4 })]),
+    ];
+    const regions = jiuchiRegions(lines, 4);
+    expect(regions).toHaveLength(1);
+    expect(regions[0]).toMatchObject({ startDiv: 0, endDiv: 8, lengthDiv: 12 });
+    expect(regions[0].events.map((e) => e.startDiv)).toEqual([0, 8]);
+  });
+});
+
 describe('sectionSlice', () => {
   it('returns the lines after a heading up to the next heading', () => {
     const lines = [heading('h1'), line('a'), line('b'), heading('h2'), line('c')];
