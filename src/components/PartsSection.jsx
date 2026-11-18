@@ -2,6 +2,7 @@ import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { taikoGroupsForTime } from '../data/symbolSets.js';
 import { player } from '../audio/player.js';
+import { showToast } from './Toast.jsx';
 
 /** Sentinel value for the "new player" option of a part's set dropdown. */
 const NEW_SET = '__new__';
@@ -12,16 +13,26 @@ const BTN =
 /**
  * Puts a part in a set, creating one when the user picks "New player". A set
  * only survives while a part references it, so both happen in one gesture.
+ *
+ * Linking announces any two-hand clashes it creates, because the gesture changes
+ * no notes: the same strikes are simply read as one player's two hands from now
+ * on, so the red rings `SoundTile` draws otherwise appear out of nowhere — and
+ * the tile's explanatory `title` never reaches a touch screen.
  * @param {object} part
  * @param {string} value - A set id, `NEW_SET`, or '' for no set.
  */
 function chooseSet(part, value) {
+  const before = piece.setConflictIds.size;
   if (value === NEW_SET) {
     const set = piece.addSet(`Player ${piece.sets.length + 1}`);
     piece.assignPartToSet(part.id, set.id);
-    return;
+  } else {
+    piece.assignPartToSet(part.id, value || null);
   }
-  piece.assignPartToSet(part.id, value || null);
+  const added = piece.setConflictIds.size - before;
+  if (added > 0) {
+    showToast(`${added} clash${added === 1 ? '' : 'es'} — one player, two hands`);
+  }
 }
 
 /**
