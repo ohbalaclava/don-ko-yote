@@ -16,7 +16,7 @@ const BTN =
  *
  * Linking announces any two-hand clashes it creates, because the gesture changes
  * no notes: the same strikes are simply read as one player's two hands from now
- * on, so the red rings `SoundTile` draws otherwise appear out of nowhere — and
+ * on, so the clash marks `SoundTile` draws otherwise appear out of nowhere — and
  * the tile's explanatory `title` never reaches a touch screen.
  * @param {object} part
  * @param {string} value - A set id, `NEW_SET`, or '' for no set.

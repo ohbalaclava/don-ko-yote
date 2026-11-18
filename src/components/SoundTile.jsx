@@ -49,15 +49,18 @@ export function SoundTile() {
 
       const isPlaying = player.isSounding(sound.id);
       // A taiko set is one player with two hands: this strike is one of three at
-      // once, or wants a hand that is already busy. A warning, never a block.
+      // once, or wants a hand that is already busy. A warning, never a block, and
+      // drawn as an amber bar along the tile's foot rather than as a border or ring
+      // colour: border, background and ring already carry the playing / selected /
+      // colour-coded states, so a clash marker that used any of them would either
+      // fight them or be hidden by them. Amber for advisory (it matches a muted
+      // part's badge), and the foot is the one edge nothing else paints.
       const conflict = !isPlaying && piece.setConflictIds.has(sound.id);
       const borderClass = isPlaying
         ? 'border-green-500 bg-green-100 dark:border-green-400 dark:bg-green-900/40 ring-2 ring-green-400'
         : isSelected
-          ? `border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40${conflict ? ' ring-2 ring-red-500' : ''}`
-          : conflict
-            ? 'border-red-400 bg-white dark:border-red-500 dark:bg-gray-800 ring-2 ring-red-500'
-            : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
+          ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
+          : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
       const widthStyle = prop ? `width: ${(sound.duration / time) * beatWidthRem}rem` : undefined;
 
@@ -149,6 +152,12 @@ export function SoundTile() {
                 : m('span', { class: `text-xs ${metaText} font-mono` }, sound.hand),
             ]
           ),
+          conflict
+            ? m('span', {
+                class:
+                  'clash-bar absolute left-0 right-0 bottom-0 h-0.5 rounded-b bg-amber-500 dark:bg-amber-400 pointer-events-none',
+              })
+            : null,
           isEditing ? m(SoundEditor, { lineId, sound, proportional: prop }) : null,
         ]
       );
