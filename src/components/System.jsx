@@ -266,7 +266,10 @@ export function System() {
       // badges on screen however far right the music is scrolled; they are kept
       // narrow (handle + badge ≈ 3.5rem all told) because every lane of every
       // system pays for them out of the width the music has on a phone.
-      return m('div', { class: 'line-block min-w-max' }, [
+      // `w-max min-w-full`: as wide as the music, but never narrower than the
+      // scroller, so the lane stripes run the full width of the screen instead of
+      // stopping at the longest lane's last tile.
+      return m('div', { class: 'line-block w-max min-w-full' }, [
         m(
           'div',
           {
@@ -299,7 +302,10 @@ export function System() {
             ),
             m(
               'div',
-              { class: 'flex flex-col min-w-max' },
+              // `flex-1` so the column takes the row's full width and each lane row
+              // stretches to it; without it every lane row would be its own
+              // max-content width and the stripes would end ragged.
+              { class: 'flex flex-col flex-1 min-w-max' },
               lanes.map((lane, laneIdx) => {
                 const part = piece.partById(lane.partId);
                 const run = setRun(laneIdx);
@@ -341,18 +347,35 @@ export function System() {
                             : 'border-l-2 border-l-transparent'
                         }`,
                       },
-                      // `py-1` puts back what the cell's `-my-1` bleed took off, so
-                      // the badge still lines up with its lane's tiles while the
-                      // backdrop keeps covering the padding.
-                      m('div', { class: `h-full flex flex-col items-center py-1 ${gutterTint}` }, [
-                        m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
+                      // Three stacked layers, because the cell has to end up the
+                      // exact colour the rest of its lane composites to: the opaque
+                      // page ground above, then the row tint, then the zebra stripe
+                      // (`app.css` paints `.part-label-stripe` from the same
+                      // :nth-child rule as the lane row itself). `py-1` puts back
+                      // what the cell's `-my-1` bleed took off, so the badge still
+                      // lines up with its lane's tiles while every layer keeps
+                      // covering the padding.
+                      m(
+                        'div',
+                        { class: `h-full ${gutterTint}` },
                         m(
-                          'span',
-                          { class: 'text-[9px] leading-tight text-gray-400 dark:text-gray-500' },
-                          `${laneBeatLabel(lane)}b`
-                        ),
-                        isSel ? playButton(lane, 'w-6 h-6') : null,
-                      ])
+                          'div',
+                          {
+                            class: 'part-label-stripe h-full flex flex-col items-center py-1',
+                          },
+                          [
+                            m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
+                            m(
+                              'span',
+                              {
+                                class: 'text-[9px] leading-tight text-gray-400 dark:text-gray-500',
+                              },
+                              `${laneBeatLabel(lane)}b`
+                            ),
+                            isSel ? playButton(lane, 'w-6 h-6') : null,
+                          ]
+                        )
+                      )
                     ),
                     m(Lane, {
                       lane,
