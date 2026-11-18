@@ -36,6 +36,20 @@ function chooseSet(part, value) {
 }
 
 /**
+ * Removes a part, reversible from a toast rather than guarded by a blocking
+ * confirm (the pattern already used for clearing a score and deleting a saved
+ * one). The button sits a thumb's width from the name field, so a mis-tap while
+ * naming a part is easy and takes that part's music with it — and nothing on
+ * screen said where it had gone or that undo would bring it back.
+ * @param {object} part
+ */
+function removePart(part) {
+  const label = part.name || part.taiko;
+  piece.removePart(part.id);
+  showToast(`Removed ${label}`, { actionLabel: 'Undo', onAction: () => piece.undo() });
+}
+
+/**
  * One part: name, drum, set, volume, mute, reorder and remove. Exported because
  * `PartSheet` renders the same editor for a single part, so the controls the
  * ensemble gutter no longer carries have exactly one implementation.
@@ -96,10 +110,12 @@ export function partRow(part, idx) {
       m(
         'button',
         {
+          // `ml-1.5` buys the one destructive control in the row some air, so a
+          // thumb aiming at Solo does not land on Remove.
           class:
-            'w-7 h-7 shrink-0 flex items-center justify-center rounded text-xs text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:pointer-events-none',
+            'w-7 h-7 ml-1.5 shrink-0 flex items-center justify-center rounded text-xs text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:pointer-events-none',
           disabled: piece.parts.length < 2,
-          onclick: () => piece.removePart(part.id),
+          onclick: () => removePart(part),
           title: piece.parts.length < 2 ? 'A score needs one part' : 'Remove part',
         },
         '✕'

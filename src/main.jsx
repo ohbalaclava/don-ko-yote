@@ -29,6 +29,30 @@ scoreStore.init();
 scoreStore.load();
 settings.load();
 
+// A thrown error used to be invisible on a phone: Mithril abandons the redraw, so
+// the symptom is a row that simply stops being drawn, with no console to say why.
+// Surface the message instead.
+//
+// Two constraints: the toast must not be raised from inside the throwing stack
+// (showToast redraws, and redrawing a broken view would throw again), hence the
+// setTimeout; and a view that throws on every redraw must not toast on every
+// redraw, hence the same-message cooldown.
+const ERROR_COOLDOWN_MS = 10000;
+let lastError = { message: null, at: 0 };
+
+/** @param {string} message */
+function reportError(message) {
+  const now = Date.now();
+  if (message === lastError.message && now - lastError.at < ERROR_COOLDOWN_MS) return;
+  lastError = { message, at: now };
+  setTimeout(() => showToast(`Error: ${message}`, { duration: ERROR_COOLDOWN_MS }), 0);
+}
+
+window.addEventListener('error', (e) => reportError(e.message || 'something broke'));
+window.addEventListener('unhandledrejection', (e) =>
+  reportError(e.reason?.message || String(e.reason ?? 'promise rejected'))
+);
+
 function App() {
   let scoreActive = false;
   let settingsOpen = false;
