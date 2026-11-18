@@ -1,6 +1,7 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece } from '../data/piece.js';
+import { piece, findLane, lanesOf } from '../data/piece.js';
+import { laneGroupName } from './Lane.jsx';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { ensureEditTargetVisible } from '../scroll.js';
@@ -11,25 +12,44 @@ import { feedbackSound, feedbackClick } from '../audio/feedback.js';
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
 /**
- * Turns a palette tile container into a SortableJS clone source in the shared
- * 'sounds' group. Dragging a `[data-palette-tile]` child clones it into a line's
- * sounds-container, which fires that line's `onAdd` (see Line.jsx) to commit the
- * insertion. Routing through SortableJS gives the same gap-opening animation and
- * any-row drop targeting as in-score reordering. `put: false` / `sort: false`
- * keep the palette itself from receiving or reordering tiles.
+ * The drop group a palette drag can land in: the selected lane's. In a solo score
+ * that is the single shared `'sounds'` group, so any line accepts the drag as
+ * before; in an ensemble it is the selected part's group, which keeps a palette
+ * tile from being dropped onto another part's drum.
+ * @returns {string}
+ */
+function paletteGroupName() {
+  return laneGroupName(piece.selectedLane);
+}
+
+/**
+ * Turns a palette tile container into a SortableJS clone source in the selected
+ * lane's drop group. Dragging a `[data-palette-tile]` child clones it into a
+ * lane's sounds-container, which fires that lane's `onAdd` (see Lane.jsx) to
+ * commit the insertion. Routing through SortableJS gives the same gap-opening
+ * animation and any-row drop targeting as in-score reordering. `put: false` /
+ * `sort: false` keep the palette itself from receiving or reordering tiles.
  * @param {HTMLElement} dom
  * @param {object} [extra] - extra Sortable options (e.g. `filter`)
  * @returns {Sortable}
  */
 function makeCloneSource(dom, extra = {}) {
   return Sortable.create(dom, {
-    group: { name: 'sounds', pull: 'clone', put: false },
+    group: { name: paletteGroupName(), pull: 'clone', put: false },
     sort: false,
     draggable: '[data-palette-tile]',
     ...touchDragDelay,
     onStart: () => feedbackClick('pickup'),
     ...extra,
   });
+}
+
+/** Re-points a clone source at the selected lane's group after a selection change. */
+function syncCloneGroup(sortable) {
+  if (!sortable) return;
+  const name = paletteGroupName();
+  if (sortable.option('group').name === name) return;
+  sortable.option('group', { name, pull: 'clone', put: false });
 }
 
 export function Palette() {
@@ -44,7 +64,10 @@ export function Palette() {
       // Retire the onboarding hint once ~20 sounds have been placed. settings.set
       // flips the in-memory flag synchronously, so this fires at most once.
       if (!settings.paletteHintSeen) {
-        const total = piece.lines.reduce((n, l) => n + (l.sounds?.length ?? 0), 0);
+        const total = piece.lines.reduce(
+          (n, l) => n + lanesOf(l).reduce((m2, lane) => m2 + lane.sounds.length, 0),
+          0
+        );
         if (total >= 20) settings.set('paletteHintSeen', true);
       }
       return m(
@@ -67,8 +90,7 @@ export function Palette() {
                 settings.paletteHintSeen ? 'Sounds' : 'Sounds — tap to add · drag to any line'
               ),
               (() => {
-                const selectedLine = piece.lines.find((l) => l.id === piece.selectedLineId);
-                const lastSound = selectedLine?.sounds.at(-1);
+                const lastSound = findLane(piece.lines, piece.selectedLineId)?.lane.sounds.at(-1);
                 return m(
                   'button',
                   {
@@ -90,6 +112,7 @@ export function Palette() {
                 oncreate: ({ dom }) => {
                   soundSortable = makeCloneSource(dom);
                 },
+                onupdate: () => syncCloneGroup(soundSortable),
                 onremove: () => {
                   soundSortable?.destroy();
                   soundSortable = null;
@@ -119,6 +142,7 @@ export function Palette() {
                         oncreate: ({ dom }) => {
                           patternSortable = makeCloneSource(dom, { filter: '.pattern-delete' });
                         },
+                        onupdate: () => syncCloneGroup(patternSortable),
                         onremove: () => {
                           patternSortable?.destroy();
                           patternSortable = null;

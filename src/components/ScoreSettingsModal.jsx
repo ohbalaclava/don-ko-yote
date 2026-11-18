@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
 import { Toggle } from './SettingsModal.jsx';
+import { PartsSection } from './PartsSection.jsx';
 
 function readImageFile(file, callback) {
   const reader = new FileReader();
@@ -39,17 +40,7 @@ export function ScoreSettingsModal() {
                 ),
               ]),
 
-              m(
-                'div',
-                {
-                  class:
-                    'flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700',
-                },
-                [
-                  m('div', { class: 'font-medium dark:text-white' }, 'Taiko'),
-                  m('div', { class: 'text-gray-600 dark:text-gray-400' }, piece.taiko),
-                ]
-              ),
+              m(PartsSection),
 
               m(
                 'div',

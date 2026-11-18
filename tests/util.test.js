@@ -9,6 +9,30 @@ import {
 /** Compact sound factory for grouping tests. */
 const snd = (name, hand, duration, extra = {}) => ({ name, hand, duration, ...extra });
 
+describe('groupSoundsForDisplay — blank space', () => {
+  it('emits a gap item before a gapped sound, with the right positions', () => {
+    const sounds = [snd('TEN', 'R', 4), snd('KEN', 'L', 4, { gap: 8 })];
+    expect(groupSoundsForDisplay(sounds, true, 4)).toEqual([
+      { sound: sounds[0], startPos: 0 },
+      { type: 'gap', divs: 8, startPos: 4 },
+      { sound: sounds[1], startPos: 12 },
+    ]);
+  });
+
+  it('emits it in non-proportional mode too, ahead of the group it belongs to', () => {
+    const sounds = [snd('te', 'R', 2, { gap: 4 }), snd('ke', 'L', 2)];
+    const items = groupSoundsForDisplay(sounds, false, 4);
+    expect(items[0]).toEqual({ type: 'gap', divs: 4, startPos: 0 });
+    expect(items[1].sounds).toEqual(sounds); // the pair still ligatures
+    expect(items[1].startPos).toBe(4);
+  });
+
+  it('emits nothing extra when no sound carries a gap', () => {
+    const sounds = [snd('TEN', 'R', 4)];
+    expect(groupSoundsForDisplay(sounds, true, 4)).toEqual([{ sound: sounds[0], startPos: 0 }]);
+  });
+});
+
 describe('formatBeats', () => {
   it('shows whole beats without a sub-beat suffix', () => {
     expect(formatBeats(32, 4)).toBe('8');
@@ -124,6 +148,12 @@ describe('groupIntoLigatures', () => {
     expect(result).toHaveLength(2);
     expect(result[0].startPos).toBe(3);
     expect(result[1].startPos).toBe(4);
+  });
+
+  it('never joins across leading silence, however well the sounds would pair', () => {
+    const items = groupIntoLigatures([snd('te', 'R', 2), snd('ke', 'L', 2, { gap: 2 })], 4);
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => i.startPos)).toEqual([0, 4]);
   });
 });
 

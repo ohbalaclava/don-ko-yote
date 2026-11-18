@@ -6,6 +6,8 @@ import { scrollToScoreBottom } from '../scroll.js';
  * The contextual "add row" toolbar. Rendered after the selected line (and as a
  * fallback at the foot of the score when no line is selected); each button adds
  * its row immediately after the selected line via the matching `piece` method.
+ * `+ Part` is the exception — it adds a lane to every system, which is how a
+ * one-part score grows into an ensemble.
  */
 export function AddRowActions() {
   return {
@@ -29,6 +31,18 @@ export function AddRowActions() {
               onclick: act(() => piece.addLine()),
             },
             '+ Line'
+          ),
+          m(
+            'button',
+            {
+              class:
+                'text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300',
+              // Adds a lane to every system, not a row after the selected one, so it
+              // skips the scroll-to-bottom the positional adds need.
+              onclick: () => piece.addPart(),
+              title: 'Add a part to every row',
+            },
+            '+ Part'
           ),
           m(
             'button',

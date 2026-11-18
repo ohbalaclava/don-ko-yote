@@ -15,9 +15,10 @@ import { LoadScoreSheet } from './components/LoadScoreSheet.jsx';
 import { HelpSheet } from './components/HelpSheet.jsx';
 import { Toast, showToast } from './components/Toast.jsx';
 import { JiuchiPatternsSheet } from './components/JiuchiPatternsSheet.jsx';
+import { PartSheet, isPartSheetOpen, closePartSheet } from './components/PartSheet.jsx';
 import { patternStore } from './data/patterns.js';
 import { scoreStore } from './data/scoreStore.js';
-import { piece, isSoundLine } from './data/piece.js';
+import { piece, isSoundLine, findLane, laneFor, lanesOf } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { player } from './audio/player.js';
 import { feedbackSound, feedbackClick } from './audio/feedback.js';
@@ -27,6 +28,30 @@ import { VERSION } from './version.js';
 scoreStore.init();
 scoreStore.load();
 settings.load();
+
+// A thrown error used to be invisible on a phone: Mithril abandons the redraw, so
+// the symptom is a row that simply stops being drawn, with no console to say why.
+// Surface the message instead.
+//
+// Two constraints: the toast must not be raised from inside the throwing stack
+// (showToast redraws, and redrawing a broken view would throw again), hence the
+// setTimeout; and a view that throws on every redraw must not toast on every
+// redraw, hence the same-message cooldown.
+const ERROR_COOLDOWN_MS = 10000;
+let lastError = { message: null, at: 0 };
+
+/** @param {string} message */
+function reportError(message) {
+  const now = Date.now();
+  if (message === lastError.message && now - lastError.at < ERROR_COOLDOWN_MS) return;
+  lastError = { message, at: now };
+  setTimeout(() => showToast(`Error: ${message}`, { duration: ERROR_COOLDOWN_MS }), 0);
+}
+
+window.addEventListener('error', (e) => reportError(e.message || 'something broke'));
+window.addEventListener('unhandledrejection', (e) =>
+  reportError(e.reason?.message || String(e.reason ?? 'promise rejected'))
+);
 
 function App() {
   let scoreActive = false;
@@ -89,13 +114,17 @@ function App() {
       newScoreOpen ||
       loadScoreOpen ||
       helpOpen ||
-      jiuchiPatternsOpen
+      jiuchiPatternsOpen ||
+      // Opened from a part badge in the score, so its flag lives in the sheet's
+      // own module rather than here.
+      isPartSheetOpen()
     );
   }
 
   /** Closes the topmost open sheet. Returns true when one was closed. */
   function closeTopSheet() {
-    if (jiuchiPatternsOpen) jiuchiPatternsOpen = false;
+    if (isPartSheetOpen()) closePartSheet();
+    else if (jiuchiPatternsOpen) jiuchiPatternsOpen = false;
     else if (helpOpen) helpOpen = false;
     else if (loadScoreOpen) loadScoreOpen = false;
     else if (newScoreOpen) newScoreOpen = false;
@@ -179,9 +208,11 @@ function App() {
     if (e.key === ' ') {
       e.preventDefault(); // stop the page scrolling
       if (e.shiftKey) {
-        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
-        if (line && isSoundLine(line)) {
-          player.toggleScope(piece, [line], { type: 'line', id: line.id });
+        const found = findLane(piece.lines, piece.selectedLineId);
+        if (found) {
+          // A one-lane system, so only the selected part's lane sounds.
+          const solo = { id: found.system.id, lanes: [found.lane] };
+          player.toggleScope(piece, [solo], { type: 'line', id: found.lane.id });
         }
       } else if (player.playing) {
         player.stop(); // Space stops whatever is playing, scoped previews included
@@ -199,16 +230,36 @@ function App() {
       if (piece.selectMode && piece.selection.soundIds.length > 0) {
         piece.deleteSelectedSounds();
       } else if (!piece.selectMode && !piece.lineSelectMode) {
-        const line = piece.lines.find((l) => l.id === piece.selectedLineId);
-        const last = line?.sounds.at(-1);
-        if (last) piece.removeSound(line.id, last.id);
+        const lane = findLane(piece.lines, piece.selectedLineId)?.lane;
+        const last = lane?.sounds.at(-1);
+        if (last) piece.removeSound(lane.id, last.id);
       }
       return;
     }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault(); // stop the page scrolling
-      const soundLines = piece.lines.filter(isSoundLine);
+      // Alt+Up/Down steps across the parts of one system — the same beats on the
+      // drum above or below — leaving the row alone.
+      if (e.altKey) {
+        const found = findLane(piece.lines, piece.selectedLineId);
+        if (!found) return;
+        const lanes = lanesOf(found.system);
+        const next = found.laneIdx + (e.key === 'ArrowUp' ? -1 : 1);
+        if (next < 0 || next >= lanes.length) return;
+        piece.selectLine(lanes[next].id);
+        document
+          .querySelector(`[data-line-id="${lanes[next].id}"]`)
+          ?.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      // Up/Down walks systems within the selected part, so the cursor stays on one
+      // drum; a part-less jiuchi definition row contributes its single lane.
+      const partId = piece.selectedPartId;
+      const soundLines = piece.lines
+        .filter(isSoundLine)
+        .map((row) => laneFor(row, partId) ?? lanesOf(row)[0])
+        .filter(Boolean);
       if (soundLines.length === 0) return;
       const idx = soundLines.findIndex((l) => l.id === piece.selectedLineId);
       const next =
@@ -569,6 +620,7 @@ function App() {
               },
             })
           : null,
+        m(PartSheet),
         m(Toast),
       ]);
     },

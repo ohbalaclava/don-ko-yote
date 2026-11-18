@@ -1,6 +1,6 @@
 import m from 'mithril';
 import {
-  buildSequence,
+  buildPartSequences,
   divToSeconds,
   excludeJiuchiSections,
   jiuchiRegions,
@@ -22,11 +22,24 @@ const LEAD_IN = 0.12; // small delay so the first note isn't scheduled in the pa
  * events a little ahead of now). A separate rAF loop tracks the playhead for the
  * tile highlight and auto-stops at the end.
  */
+/** True when two id sets hold the same members. */
+function sameIds(a, b) {
+  if (a.size !== b.size) return false;
+  for (const id of a) if (!b.has(id)) return false;
+  return true;
+}
+
 export const player = {
   playing: false,
-  currentSoundId: null,
+  // Ids of every sound under the playhead right now — one per sounding part, so
+  // an ensemble highlights all the simultaneous tiles.
+  currentSoundIds: new Set(),
+  // Session-only solo: while set, only this part sounds. Mute is the opposite
+  // kind of thing — a property of the arrangement — so it lives on the part and
+  // is saved with the score. Takes effect at the next play.
+  soloPartId: null,
   // What is currently playing, so scoped play buttons can show the right state:
-  // { type: 'all' | 'line' | 'section' | 'block' | 'metronome', id?: string }.
+  // { type: 'all' | 'line' | 'part' | 'section' | 'block' | 'jiuchi' | 'metronome', id?: string }.
   // Null when stopped.
   scope: null,
   // Session-only BPM for the standalone practice metronome. Null means "follow
@@ -50,7 +63,6 @@ export const player = {
   _metroStrikes: [], // { atSec, sound, taiko } looped drum strikes for inline jiuchi regions
   _metroShime: false, // per-score Shime-tick flag, captured at play time for _schedule
   _metroVolume: 1, // per-score metronome volume (gain trim), captured at play time for _schedule
-  _taiko: '',
   _startTime: 0, // AudioContext time at which the score's division 0 sounds
   _endTime: 0,
   _nextIdx: 0,
@@ -62,6 +74,33 @@ export const player = {
   // value before its `await` and bails if it changed, so a second tap or a stop
   // during the await can't start a stale loop.
   _epoch: 0,
+
+  /** True when a sound is under the playhead right now. */
+  isSounding(soundId) {
+    return this.currentSoundIds.has(soundId);
+  },
+
+  /**
+   * Toggles the session-only solo part. Soloing the soloed part clears it.
+   * Applies from the next play, like every other part of the event build.
+   * @param {string} partId
+   */
+  togglePartSolo(partId) {
+    this.soloPartId = this.soloPartId === partId ? null : partId;
+    m.redraw();
+  },
+
+  /**
+   * The parts that should sound: the soloed one if it still exists, else every
+   * unmuted part.
+   * @param {object} piece
+   * @returns {Array<object>}
+   */
+  _audibleParts(piece) {
+    const solo = piece.parts.filter((p) => p.id === this.soloPartId);
+    if (solo.length) return solo;
+    return piece.parts.filter((p) => !p.muted);
+  },
 
   /** True when the given scope descriptor matches what's currently playing. */
   isScope(type, id) {
@@ -163,7 +202,7 @@ export const player = {
 
     this.playing = true;
     this.scope = { type: 'metronome' };
-    this.currentSoundId = null;
+    this.currentSoundIds = new Set();
     const epoch = ++this._epoch;
     await resumeAudio();
     if (this._epoch !== epoch) return;
@@ -283,25 +322,62 @@ export const player = {
       scope.type === 'jiuchi' && scope.id
         ? (piece.lines.find((l) => l.id === scope.id)?.taiko ?? piece.taiko)
         : scope.type === 'line' && scope.id
-          ? piece.taikoForLine(scope.id)
+          ? piece.taikoForLane(scope.id)
           : piece.taiko;
     if (!(bpm > 0)) return; // 0 / blank / negative bpm would make every time Infinity
-    const { events, totalDiv } = buildSequence(lines, time);
-    if (!events.length) return;
+    // A per-lane or jiuchi preview is a single voice: it plays exactly the lanes
+    // handed in, with the taiko resolved above. Anything else is the score itself,
+    // so every audible part sounds together on the shared timeline.
+    const single = scope.type === 'line' || scope.type === 'jiuchi';
+    const parts = single
+      ? [null]
+      : scope.type === 'part'
+        ? piece.parts.filter((p) => p.id === scope.id)
+        : this._audibleParts(piece);
+    const { streams, totalDiv } = buildPartSequences(lines, parts, time);
+    // BASE_MASTER is tuned for one stream, so trim each part as more of them sound
+    // at once — otherwise the limiter pumps on every unison hit. Pan is not used
+    // for separation: it is the hand cue.
+    const spread = Math.sqrt(Math.max(1, streams.length));
+    const merged = streams
+      .flatMap((stream) => {
+        const part = piece.partById(stream.partId);
+        const voiceTaiko = (single ? null : stream.taiko) ?? taiko;
+        const gain = (part?.volume ?? 1) / spread;
+        return stream.events.map((e) => ({
+          sound: {
+            name: e.name,
+            hand: e.hand,
+            skin: e.skin,
+            volume: e.volume,
+            duration: e.durationDiv,
+          },
+          soundId: e.soundId,
+          taiko: voiceTaiko,
+          gain,
+          atSec: divToSeconds(e.startDiv, bpm, time),
+          endSec: divToSeconds(e.startDiv + e.durationDiv, bpm, time),
+          audible: e.volume != null,
+        }));
+      })
+      .sort((a, b) => a.atSec - b.atSec);
+    if (!merged.length) return;
 
     // Claim control synchronously so a second tap is rejected by the guard above
     // before this one's `await` resolves, and capture the epoch to detect a
     // stop that lands during the await.
     this.playing = true;
     this.scope = scope;
-    this.currentSoundId = null;
+    this.currentSoundIds = new Set();
     const epoch = ++this._epoch;
     await resumeAudio();
     if (this._epoch !== epoch) return;
-    // Decode any recorded samples for this taiko before scheduling, so the first
-    // hits aren't silent while decode is in flight. No-op for synth-only taikos.
-    await voice.preload(taiko);
-    if (this._epoch !== epoch) return;
+    // Decode any recorded samples for the taikos in play before scheduling, so the
+    // first hits aren't silent while decode is in flight. No-op for synth-only ones.
+    for (const t of new Set(merged.map((e) => e.taiko))) {
+      await voice.preload(t);
+      if (this._epoch !== epoch) return;
+    }
 
     // Inline jiuchi: each jiuchi section loops its own rhythm with its own taiko
     // under the part of the score it covers. Only for non-line scopes (a per-line
@@ -321,20 +397,7 @@ export const player = {
     }
     const c = getAudioContext();
 
-    this._events = events.map((e) => ({
-      sound: {
-        name: e.name,
-        hand: e.hand,
-        skin: e.skin,
-        volume: e.volume,
-        duration: e.durationDiv,
-      },
-      soundId: e.soundId,
-      atSec: divToSeconds(e.startDiv, bpm, time),
-      endSec: divToSeconds(e.startDiv + e.durationDiv, bpm, time),
-      audible: e.volume != null,
-    }));
-    this._taiko = taiko;
+    this._events = merged;
     // Captured for _schedule (which has no piece reference); metronome config is
     // read once at play time and doesn't change mid-playback.
     this._metroShime = piece.metronomeShime;
@@ -379,7 +442,7 @@ export const player = {
     const wasActive = this.playing;
     this.playing = false;
     this.scope = null;
-    this.currentSoundId = null;
+    this.currentSoundIds = new Set();
     if (wasActive) m.redraw();
   },
 
@@ -459,7 +522,7 @@ export const player = {
       const e = this._events[this._nextIdx];
       const when = this._startTime + e.atSec;
       if (when >= horizon) break;
-      if (e.audible) voice.strike(e.sound, when, this._taiko);
+      if (e.audible) voice.strike(e.sound, when, e.taiko, e.gain);
       this._nextIdx++;
     }
     // When _loopSec > 0 the metro arrays hold one cycle and the indices keep
@@ -499,18 +562,18 @@ export const player = {
       return;
     }
     const elapsed = c.currentTime - this._startTime;
-    let id = null;
+    const ids = new Set();
     if (elapsed >= 0) {
       for (const e of this._events) {
-        if (e.atSec <= elapsed && elapsed < e.endSec) {
-          id = e.soundId;
-          break;
-        }
+        if (e.atSec <= elapsed && elapsed < e.endSec) ids.add(e.soundId);
       }
     }
-    if (id !== this.currentSoundId) {
-      this.currentSoundId = id;
-      if (id != null) this._scrollIntoView(id);
+    if (!sameIds(ids, this.currentSoundIds)) {
+      const fresh = [...ids].filter((id) => !this.currentSoundIds.has(id));
+      this.currentSoundIds = ids;
+      // Any one of the simultaneous tiles will do: the parts share aligned beat
+      // columns, so every lane's tile for this beat sits in the same place.
+      if (fresh.length) this._scrollIntoView(fresh[0]);
       m.redraw();
     }
     this._raf = requestAnimationFrame(() => this._followPlayhead());

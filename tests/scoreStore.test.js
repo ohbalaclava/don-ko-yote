@@ -23,7 +23,13 @@ const fakeDb = vi.hoisted(() => ({
 }));
 vi.mock('../src/db.js', () => ({ db: fakeDb }));
 
-import { piece } from '../src/data/piece.js';
+import { piece, lanesOf } from '../src/data/piece.js';
+
+// A pre-3.0 row migrates to a one-lane system that keeps the row's id; the lane
+// gets a fresh id and belongs to the single migrated part.
+function laneIdOf(rowId) {
+  return lanesOf(piece.lines.find((l) => l.id === rowId))[0].id;
+}
 import { scoreStore } from '../src/data/scoreStore.js';
 import { patternStore } from '../src/data/patterns.js';
 
@@ -79,9 +85,12 @@ describe('importJson', () => {
     expect(piece.bpm).toBe(90);
     expect(piece.author).toBe('Me');
     expect(piece.icon).toBe('data:img');
-    expect(piece.lines).toEqual(data.lines);
+    expect(piece.lines).toHaveLength(1);
+    expect(piece.lines[0].id).toBe('l1');
+    expect(piece.lines[0].lanes).toHaveLength(1);
+    expect(piece.lines[0].lanes[0].partId).toBe(piece.parts[0].id);
     // Single-line score — l1 is both first and last.
-    expect(piece.selectedLineId).toBe('l1');
+    expect(piece.selectedLineId).toBe(laneIdOf('l1'));
   });
 
   it('selects the last sound line on import', () => {
@@ -94,7 +103,7 @@ describe('importJson', () => {
         ],
       })
     );
-    expect(piece.selectedLineId).toBe('l2');
+    expect(piece.selectedLineId).toBe(laneIdOf('l2'));
   });
 
   it('falls back to defaults for missing optional fields', () => {
@@ -210,9 +219,11 @@ describe('loadScore', () => {
     expect(piece.beatsPerLine).toBe(8);
     expect(piece.bpm).toBe(120);
     expect(piece.author).toBe('Author');
-    expect(piece.lines).toStrictEqual(record.lines);
+    expect(piece.lines).toHaveLength(1);
+    expect(piece.lines[0].id).toBe('l1');
+    expect(piece.lines[0].lanes[0].sounds).toEqual([]);
     // Single-line score — l1 is both first and last.
-    expect(piece.selectedLineId).toBe('l1');
+    expect(piece.selectedLineId).toBe(laneIdOf('l1'));
   });
 
   it('selects the last sound line, not the first', async () => {
@@ -225,7 +236,7 @@ describe('loadScore', () => {
       })
     );
     await scoreStore.loadScore('score-1');
-    expect(piece.selectedLineId).toBe('l2');
+    expect(piece.selectedLineId).toBe(laneIdOf('l2'));
   });
 
   it('skips trailing non-sound rows when selecting the last line', async () => {
@@ -239,7 +250,7 @@ describe('loadScore', () => {
       })
     );
     await scoreStore.loadScore('score-1');
-    expect(piece.selectedLineId).toBe('l2');
+    expect(piece.selectedLineId).toBe(laneIdOf('l2'));
   });
 
   it('restores patterns from the stored record', async () => {

@@ -1,4 +1,4 @@
-import { piece, isSoundLine } from './data/piece.js';
+import { piece, isSoundLine, findLane } from './data/piece.js';
 
 /** Scrolls the first match of `selector` into view, if present, by the minimum amount. */
 function scrollIntoViewIfPresent(selector) {
@@ -29,7 +29,8 @@ export function ensureEditTargetVisible() {
   requestAnimationFrame(() => {
     const lineId = piece.selectedLineId;
     if (!lineId) return;
-    const idx = piece.lines.findIndex((l) => l.id === lineId);
+    // selectedLineId names a lane, so the index comes from its system.
+    const idx = findLane(piece.lines, lineId)?.systemIdx ?? -1;
     const isLast = idx !== -1 && !piece.lines.slice(idx + 1).some(isSoundLine);
     if (isLast) scrollIntoViewIfPresent('.score-actions');
     else scrollIntoViewIfPresent(`[data-line-id="${lineId}"]`);

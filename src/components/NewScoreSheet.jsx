@@ -170,6 +170,9 @@ export function NewScoreSheet() {
                         author: settings.defaultAuthor,
                         icon: settings.defaultBackground,
                         showVolume: settings.defaultShowVolume,
+                        // A new score starts with one part; more are added from
+                        // `+ part` at the foot of the score, or Score settings → Parts.
+                        parts: 1,
                       });
                       patternStore.setItems([]);
                       scoreStore.markClean();

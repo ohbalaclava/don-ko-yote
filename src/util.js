@@ -62,6 +62,8 @@ export function effectiveVolume(sound) {
  * Groups of one are emitted as `{ sound, startPos }` single items.
  * @param {Array} sounds
  * @param {number} time - Divisions per beat.
+ * A sound carrying leading silence (`gap`) always starts a new group: a ligature
+ * draws its members as one seamless tile, which silence between them contradicts.
  * @param {number} [offset=0] - Absolute position of the first sound in the line,
  *   used for beat-boundary detection and returned in each item's `startPos`.
  * @returns {Array<{ sound: object, startPos: number } | { sounds: object[], startPos: number }>}
@@ -72,6 +74,7 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
   let i = 0;
   while (i < sounds.length) {
     const s = sounds[i];
+    pos += s.gap ?? 0;
     const startPos = pos;
     pos += s.duration;
     i++;
@@ -79,6 +82,7 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
     const dur = s.duration;
     while (i < sounds.length) {
       const next = sounds[i];
+      if (next.gap) break; // silence between the two: they cannot share a tile
       if (next.ligature === false) break;
       if (next.ligature === true) {
         group.push(next);
@@ -102,6 +106,11 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
 /**
  * Produces the per-line display items for rendering.
  *
+ * A sound carrying leading silence (`gap`) is preceded by a
+ * `{ type: 'gap', divs, startPos }` item so the lane can render blank space where
+ * that drum is not being played. Gaps never fall inside a ligature, which breaks
+ * on them, so a gap always belongs to a group's first member.
+ *
  * In proportional mode each sound is emitted as its own `{ sound, startPos }`
  * item (no ligature grouping, no beat markers — tiles carry their own dots).
  *
@@ -116,23 +125,37 @@ export function groupIntoLigatures(sounds, time, offset = 0) {
  * @param {number} time - Divisions per beat.
  * @returns {Array}
  */
-/** Total duration (in divisions) of a list of sounds. */
+/**
+ * Total duration (in divisions) of a list of sounds. Leading silence is excluded
+ * deliberately: this only ever sums a ligature's members, which cannot contain a
+ * gap (the grouping breaks on one), and the group's own leading gap is already
+ * past by the time its `startPos` is taken.
+ */
 function sumDuration(sounds) {
   return sounds.reduce((s, x) => s + x.duration, 0);
 }
 
 export function groupSoundsForDisplay(sounds, proportional, time) {
   if (proportional) {
+    const out = [];
     let pos = 0;
-    return sounds.map((s) => {
-      const startPos = pos;
+    for (const s of sounds) {
+      const divs = s.gap ?? 0;
+      if (divs > 0) {
+        out.push({ type: 'gap', divs, startPos: pos });
+        pos += divs;
+      }
+      out.push({ sound: s, startPos: pos });
       pos += s.duration;
-      return { sound: s, startPos };
-    });
+    }
+    return out;
   }
 
   const items = [];
   for (const item of groupIntoLigatures(sounds, time)) {
+    const first = 'sound' in item ? item.sound : item.sounds[0];
+    const divs = first.gap ?? 0;
+    if (divs > 0) items.push({ type: 'gap', divs, startPos: item.startPos - divs });
     items.push(item);
     // The trailing sound is the only one whose end coincides with the tile's right
     // edge, so a beat strictly inside it lands in the gap after the tile. For a

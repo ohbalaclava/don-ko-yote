@@ -33,6 +33,24 @@ body {
   background: #111827; /* gray-900 — keeps dark bg at body level so the watermark isn't painted over */
 }
 
+/* The parts of an ensemble system alternate a faint tint, so the eye can hold
+   one drum's lane while reading across a score wider than the screen. Two
+   details make this CSS rather than a class picked by lane index in System.jsx:
+   it must be a neutral overlay that composes with whatever row tint is beneath
+   (selected / jiuchi / repeat block) rather than a colour of its own, and the
+   sticky part-label cell has to repaint it, since its own opaque backdrop hides
+   the row's background. Keying both off one :nth-child rule is what stops the
+   gutter and its lane striping out of step. */
+.lane-row:nth-child(even),
+.lane-row:nth-child(even) .part-label-stripe {
+  background-color: rgb(0 0 0 / 0.035);
+}
+
+.dark .lane-row:nth-child(even),
+.dark .lane-row:nth-child(even) .part-label-stripe {
+  background-color: rgb(255 255 255 / 0.045);
+}
+
 .dark .watermark {
   color: white;
 }

@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { piece } from '../data/piece.js';
+import { piece, lanesOf } from '../data/piece.js';
 import { anim } from '../anim.js';
 import { repeatDecoration } from './repeatDecoration.js';
 import { familyForSounds, taikoGroupsForTime } from '../data/symbolSets.js';
@@ -34,7 +34,7 @@ export function JiuchiSectionRow() {
       // the wrong family (older scores) still offers the way back. An empty or
       // indecisive section picks freely.
       const names = jiuchiSectionSlice(piece.lines, section.id)
-        .flatMap((l) => l.sounds ?? [])
+        .flatMap((l) => lanesOf(l).flatMap((lane) => lane.sounds))
         .flatMap((s) => (s.type === 'group' ? s.sounds : [s]))
         .map((s) => s.name);
       const family = familyForSounds(names);

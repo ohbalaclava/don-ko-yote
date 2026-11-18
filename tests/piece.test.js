@@ -12,6 +12,7 @@ import {
   isSoundLine,
   singleLineRepeatMap,
   jiuchiSectionSpan,
+  lanesOf,
 } from '../src/data/piece.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -22,11 +23,16 @@ function sym(name = 'Don', hand = 'R', duration = 4) {
   return { name, hand, duration };
 }
 
-function line(idx = 0) {
+// `row` is the system (what piece.lines holds); `line` is its primary part's lane,
+// which is what the sound mutators address and what a one-part score's row is.
+function row(idx = 0) {
   return piece.lines[idx];
 }
+function line(idx = 0) {
+  return lanesOf(piece.lines[idx])[0];
+}
 function sounds(lineIdx = 0) {
-  return piece.lines[lineIdx].sounds;
+  return line(lineIdx).sounds;
 }
 
 beforeEach(() => {
@@ -64,8 +70,8 @@ describe('addSound', () => {
   it('creates a new line when all existing lines are full', () => {
     for (let i = 0; i < 8; i++) piece.addSound(line().id, sym());
     piece.addLine();
-    for (let i = 0; i < 8; i++) piece.addSound(piece.lines[1].id, sym());
-    piece.addSound(piece.lines[1].id, sym('New'));
+    for (let i = 0; i < 8; i++) piece.addSound(line(1).id, sym());
+    piece.addSound(line(1).id, sym('New'));
     expect(piece.lines).toHaveLength(3);
     expect(sounds(2)[0].name).toBe('New');
   });
@@ -94,11 +100,11 @@ describe('moveSound', () => {
   it('rejects a cross-line move that would overflow the target', () => {
     for (let i = 0; i < 8; i++) piece.addSound(line().id, sym());
     piece.addLine();
-    for (let i = 0; i < 8; i++) piece.addSound(piece.lines[1].id, sym());
-    const srcId = piece.lines[0].sounds[0].id;
-    piece.moveSound(piece.lines[0].id, srcId, piece.lines[1].id, 0);
-    expect(piece.lines[0].sounds).toHaveLength(8);
-    expect(piece.lines[1].sounds).toHaveLength(8);
+    for (let i = 0; i < 8; i++) piece.addSound(line(1).id, sym());
+    const srcId = sounds(0)[0].id;
+    piece.moveSound(line(0).id, srcId, line(1).id, 0);
+    expect(sounds(0)).toHaveLength(8);
+    expect(sounds(1)).toHaveLength(8);
   });
 
   it('is a no-op for an unknown soundId', () => {
@@ -136,11 +142,11 @@ describe('moveSounds', () => {
   it('rejects a cross-line move that would overflow', () => {
     for (let i = 0; i < 8; i++) piece.addSound(line().id, sym());
     piece.addLine();
-    for (let i = 0; i < 7; i++) piece.addSound(piece.lines[1].id, sym());
-    const ids = [piece.lines[0].sounds[0].id, piece.lines[0].sounds[1].id];
-    piece.moveSounds(piece.lines[0].id, ids, piece.lines[1].id, 0);
-    expect(piece.lines[0].sounds).toHaveLength(8);
-    expect(piece.lines[1].sounds).toHaveLength(7);
+    for (let i = 0; i < 7; i++) piece.addSound(line(1).id, sym());
+    const ids = [sounds(0)[0].id, sounds(0)[1].id];
+    piece.moveSounds(line(0).id, ids, line(1).id, 0);
+    expect(sounds(0)).toHaveLength(8);
+    expect(sounds(1)).toHaveLength(7);
   });
 });
 
@@ -219,10 +225,10 @@ describe('duplicateLine', () => {
     const originalId = line().id;
     piece.duplicateLine(originalId);
     expect(piece.lines).toHaveLength(2);
-    expect(piece.lines[1].id).not.toBe(originalId);
-    expect(piece.lines[1].sounds.map((s) => s.name)).toEqual(['A', 'B']);
-    expect(piece.lines[1].sounds[0].id).not.toBe(piece.lines[0].sounds[0].id);
-    expect(piece.selectedLineId).toBe(piece.lines[1].id);
+    expect(line(1).id).not.toBe(originalId);
+    expect(sounds(1).map((s) => s.name)).toEqual(['A', 'B']);
+    expect(sounds(1)[0].id).not.toBe(sounds(0)[0].id);
+    expect(piece.selectedLineId).toBe(line(1).id);
   });
 
   it('duplicates a heading without changing the selected line', () => {
@@ -240,7 +246,7 @@ describe('duplicateLine', () => {
   });
 
   it('is a no-op for a block-repeat marker', () => {
-    piece.lineSelection = [line().id];
+    piece.lineSelection = [row().id]; // block repeats address rows, not lanes
     piece.addBlockRepeat(2);
     const marker = piece.lines.find((l) => l.type === 'block-repeat');
     piece.duplicateLine(marker.id);
@@ -311,10 +317,15 @@ describe('addGroup', () => {
       ],
     };
     piece.addGroup(line().id, threeBeat);
-    const totalSounds = piece.lines.reduce((n, l) => n + l.sounds.length, 0);
+    const totalSounds = piece.lines.reduce(
+      (n, l) => n + lanesOf(l).reduce((m2, lane) => m2 + lane.sounds.length, 0),
+      0
+    );
     expect(totalSounds).toBe(3);
     expect(piece.lines.length).toBeGreaterThan(1);
-    piece.lines.forEach((l) => l.sounds.forEach((s) => expect(s.type).toBeUndefined()));
+    piece.lines.forEach((l) =>
+      lanesOf(l).forEach((lane) => lane.sounds.forEach((s) => expect(s.type).toBeUndefined()))
+    );
   });
 });
 
@@ -362,7 +373,7 @@ describe('toggleSoundSelection', () => {
   it('resets to a new anchor when tapping a sound on a different line', () => {
     piece.addSound(line().id, sym('A'));
     piece.addLine();
-    piece.addSound(piece.lines[1].id, sym('B'));
+    piece.addSound(line(1).id, sym('B'));
     piece.toggleSoundSelection(line(0).id, sounds(0)[0].id);
     piece.toggleSoundSelection(line(1).id, sounds(1)[0].id);
     expect(piece.selection.lineId).toBe(line(1).id);
@@ -390,7 +401,7 @@ describe('removeLine', () => {
   it('selects the nearest remaining line when the selected line is removed', () => {
     piece.addLine();
     piece.addLine();
-    const [id0, id1, id2] = piece.lines.map((l) => l.id);
+    const [id0, id1, id2] = piece.lines.map((l) => lanesOf(l)[0].id);
     piece.selectLine(id1);
     piece.removeLine(id1);
     expect([id0, id2]).toContain(piece.selectedLineId);
@@ -486,8 +497,8 @@ describe('add rows insert after the selected line', () => {
     piece.selectLine(id0);
     piece.addLine();
     expect(piece.lines).toHaveLength(4);
-    expect(piece.lines[1].id).toBe(piece.selectedLineId); // new line sits right after L0
-    expect(piece.lines[0].id).toBe(id0);
+    expect(line(1).id).toBe(piece.selectedLineId); // new line sits right after L0
+    expect(row(0).id).toBe(id0);
   });
 
   it('addHeading inserts after the selected line without changing selection', () => {
@@ -515,7 +526,7 @@ describe('add rows insert after the selected line', () => {
     expect(piece.lines[1].type).toBe('jiuchi-section');
     expect(isSoundLine(piece.lines[2])).toBe(true);
     expect(piece.lines[3].type).toBe('divider');
-    expect(piece.selectedLineId).toBe(piece.lines[2].id);
+    expect(piece.selectedLineId).toBe(line(2).id);
     // The divider keeps the following melody line out of the jiuchi definition.
     expect(piece.lines[4].id).not.toBe(undefined);
   });
@@ -570,7 +581,7 @@ describe('clearLines', () => {
     piece.addLine();
     piece.clearLines();
     expect(piece.lines).toHaveLength(1);
-    expect(piece.lines[0].sounds).toHaveLength(0);
+    expect(sounds(0)).toHaveLength(0);
   });
 });
 

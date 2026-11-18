@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { piece, singleLineRepeatMap, jiuchiLineMap } from './data/piece.js';
+import { piece, singleLineRepeatMap, jiuchiLineMap, lanesOf } from './data/piece.js';
 import { settings } from './data/settings.js';
 import { effectiveVolume, groupIntoLigatures, packIntoTracks } from './util.js';
 import { tileTintPdfRgb } from './tileColor.js';
@@ -19,6 +19,17 @@ const TILES_W = USABLE_W - LINE_NUM_W - REPEAT_ZONE; // 162 mm
 
 const BEATS_PER_ROW = 8;
 const BEAT_W = TILES_W / BEATS_PER_ROW; // 20.25 mm per beat
+
+// An ensemble score needs room for part names on the left, so its tile zone is
+// narrower. A one-part score keeps the constants above, which is what leaves its
+// output identical to the pre-ensemble app.
+const PART_LABEL_W = 24; // left zone for the ordinal, set bracket and part name
+const PART_TILES_X = MARGIN + PART_LABEL_W; // 38 mm
+const PART_TILES_W = USABLE_W - PART_LABEL_W - REPEAT_ZONE; // 148 mm
+const PART_BEAT_W = PART_TILES_W / BEATS_PER_ROW; // 18.5 mm per beat
+const BRACKET_X = MARGIN + 4.5; // set bracket, left of the names
+const PART_NAME_X = BRACKET_X + 1.5;
+const PART_NAME_W = PART_TILES_X - PART_NAME_X - 1.5; // mm available for a name
 
 const DOT_ZONE = 3; // mm above each tile row reserved for beat dots
 const TILE_H = 13; // mm of tile content (hand / name / instruction)
@@ -76,7 +87,7 @@ export function splitIntoRows(flatSounds, time) {
   let curRow = [];
   let curBeats = 0;
   for (const s of flatSounds) {
-    const sb = s.duration / time;
+    const sb = ((s.gap ?? 0) + s.duration) / time;
     if (curRow.length > 0 && curBeats + sb > BEATS_PER_ROW) {
       rows.push(curRow);
       curRow = [s];
@@ -88,6 +99,101 @@ export function splitIntoRows(flatSounds, time) {
   }
   if (curRow.length > 0) rows.push(curRow);
   return rows;
+}
+
+/**
+ * Splits every lane of a system at the same absolute beat boundaries, so the
+ * parts stay column-aligned when a system wraps onto a second row. A sound sits
+ * in the chunk its start falls in, even if it runs past the boundary.
+ * @param {Array<{ sounds: Array<{ duration: number }> }>} lanes
+ * @param {number} time - Divisions per beat.
+ * @returns {Array<Array<Array<{ sound: object, startDiv: number }>>>} chunk → lane → cells
+ */
+export function splitSystemIntoChunks(lanes, time) {
+  const chunkDiv = BEATS_PER_ROW * time;
+  const chunks = [];
+  const blank = () => lanes.map(() => []);
+  lanes.forEach((lane, laneIdx) => {
+    let pos = 0;
+    for (const sound of lane.sounds ?? []) {
+      pos += sound.gap ?? 0; // leading silence: a sparse set lane's blank space
+      const c = Math.floor(pos / chunkDiv);
+      while (chunks.length <= c) chunks.push(blank());
+      chunks[c][laneIdx].push({ sound, startDiv: pos });
+      pos += sound.duration;
+    }
+  });
+  if (!chunks.length) chunks.push(blank());
+  return chunks;
+}
+
+/**
+ * Runs of consecutive parts sharing a taiko set — the drums one person plays,
+ * linked by a bracket in the label zone.
+ * @param {Array<{ setId: string|null }>} parts
+ * @returns {Array<{ setId: string, from: number, to: number }>} Inclusive index runs.
+ */
+export function setRuns(parts) {
+  const runs = [];
+  parts.forEach((part, i) => {
+    if (!part.setId) return;
+    const last = runs[runs.length - 1];
+    if (last && last.setId === part.setId && last.to === i - 1) last.to = i;
+    else runs.push({ setId: part.setId, from: i, to: i });
+  });
+  return runs;
+}
+
+/**
+ * Draws one sound: an optional colour tint, the name (emphasis-underlined), and
+ * the hand with its volume. Shared by the solo and ensemble layouts.
+ * @param {import('jspdf').jsPDF} doc
+ * @param {object} sound
+ * @param {{ rowY: number, textX: number, tintX: number|null, tintW: number, showVolume: boolean }} geom
+ */
+function drawSoundCell(doc, sound, { rowY, textX, tintX, tintW, showVolume }) {
+  const tint = settings.colourTiles ? tileTintPdfRgb(sound) : null;
+  if (tint != null && tintX != null) {
+    doc.setFillColor(tint.r, tint.g, tint.b);
+    doc.roundedRect(tintX, rowY + DOT_ZONE + 0.5, tintW, 10, 1, 1, 'F');
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(0);
+  doc.text(sound.name, textX, rowY + DOT_ZONE + 5, { align: 'center' });
+
+  if (sound.emphasis) {
+    const nw = doc.getTextWidth(sound.name);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(0);
+  const vol = showVolume ? effectiveVolume(sound) : null;
+  if (vol != null) {
+    doc.text(sound.hand, textX - 0.5, rowY + DOT_ZONE + 9, { align: 'right' });
+    doc.text(String(vol), textX + 0.5, rowY + DOT_ZONE + 9, { align: 'left' });
+  } else {
+    doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
+  }
+}
+
+/**
+ * Truncates a label to fit a width, appending nothing — a clipped part name is
+ * better than one running into the music.
+ * @param {import('jspdf').jsPDF} doc
+ * @param {string} text
+ * @param {number} maxW - Millimetres.
+ * @returns {string}
+ */
+function fitText(doc, text, maxW) {
+  let out = text ?? '';
+  while (out.length > 1 && doc.getTextWidth(out) > maxW) out = out.slice(0, -1);
+  return out;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -153,15 +259,27 @@ export async function exportPdf() {
   doc.setTextColor(0);
   doc.text(piece.title || 'Untitled', PAGE_W / 2, headerY, { align: 'center' });
 
-  // Metadata (top-right, one field per line)
+  // Metadata (top-right, one field per line). An ensemble lists every part in
+  // place of the single drum; a one-part score prints exactly the three lines it
+  // always has.
+  // `parts` is tolerated as absent, the way `lanesOf` tolerates a legacy row.
+  const parts = piece.parts ?? [];
+  const ensemble = parts.length > 1;
+  const metaLines = [
+    ...(ensemble
+      ? parts.map((part) => (part.name ? `${part.name} — ${part.taiko}` : part.taiko))
+      : [piece.taiko ?? '']),
+    piece.jiuchi ?? '',
+    piece.bpm ? `${piece.bpm} BPM` : '',
+  ];
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(0);
-  doc.text(piece.taiko ?? '', PAGE_W - MARGIN, headerY, { align: 'right' });
-  doc.text(piece.jiuchi ?? '', PAGE_W - MARGIN, headerY + 4.5, { align: 'right' });
-  doc.text(piece.bpm ? `${piece.bpm} BPM` : '', PAGE_W - MARGIN, headerY + 9, { align: 'right' });
+  metaLines.forEach((text, i) => {
+    doc.text(text, PAGE_W - MARGIN, headerY + i * 4.5, { align: 'right' });
+  });
 
-  y += 15;
+  y += Math.max(15, (metaLines.length - 1) * 4.5 + 6);
 
   // ── Prep ─────────────────────────────────────────────────────────────────
 
@@ -182,6 +300,185 @@ export async function exportPdf() {
 
   let lineOrdinal = 0;
   const nonProp = !settings.proportionalWidth;
+
+  /**
+   * Draws the label-zone entry for one lane: the part name, its drum, and — on
+   * the first lane of a taiko set — the player's name beside the bracket.
+   * @param {object} lane
+   * @param {string} systemId
+   * @param {number} rowY
+   * @param {{ name: string }|null} setFirst - The set, when this lane opens its run.
+   */
+  function drawLaneLabel(lane, systemId, rowY, setFirst) {
+    const part = piece.partById(lane.partId);
+    const name = part ? part.name || part.taiko : 'Jiuchi';
+    const sub = part ? (part.name ? part.taiko : '') : (jiuchiMap.get(systemId) ?? '');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(0);
+    doc.text(fitText(doc, name, PART_NAME_W), PART_NAME_X, rowY + DOT_ZONE + 4);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    doc.setTextColor(130, 130, 130);
+    if (sub) doc.text(fitText(doc, sub, PART_NAME_W), PART_NAME_X, rowY + DOT_ZONE + 7);
+    if (setFirst?.name) {
+      doc.setTextColor(120, 90, 160);
+      doc.text(fitText(doc, setFirst.name, PART_NAME_W), PART_NAME_X, rowY + DOT_ZONE + 10);
+    }
+    doc.setTextColor(0);
+  }
+
+  /**
+   * Draws one ensemble system: every lane stacked over one shared beat ruler, so
+   * beat N of every part lands at the same x. Cells are always laid out
+   * proportionally (width = duration), which is what keeps the columns aligned —
+   * `settings.proportionalWidth` governs the solo layout only.
+   * @param {object} system
+   * @param {Array<object>} lanes
+   * @param {{ count: number }|null} singleRepeat
+   */
+  function drawEnsembleSystem(system, lanes, singleRepeat) {
+    const chunks = splitSystemIntoChunks(lanes, time);
+    const chunkDiv = BEATS_PER_ROW * time;
+    const subdivW = PART_BEAT_W / time;
+    // Lane index per part, so a set's bracket spans the right sub-rows.
+    const laneOfPart = new Map(lanes.map((lane, i) => [lane.partId, i]));
+    const runs = setRuns(parts)
+      .map((run) => ({
+        set: piece.sets.find((s) => s.id === run.setId) ?? null,
+        from: laneOfPart.get(parts[run.from].id),
+        to: laneOfPart.get(parts[run.to].id),
+      }))
+      .filter((run) => run.from != null && run.to != null);
+
+    let startY = null;
+    let startPage = null;
+
+    chunks.forEach((chunk, chunkIdx) => {
+      // Lay the whole chunk out before drawing any of it, so a system row is
+      // never split across a page break.
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(INSTR_FONT_PT);
+      const plans = chunk.map((cells) => {
+        const instrItems = cells
+          .filter((c) => c.sound.instruction)
+          .map((c) => ({
+            x: PART_TILES_X + ((c.startDiv % chunkDiv) / time) * PART_BEAT_W + 1,
+            text: c.sound.instruction,
+          }));
+        const packed = instrItems.length
+          ? packIntoTracks(
+              instrItems.map(({ x, text }) => ({ start: x, end: x + doc.getTextWidth(text) + 1 }))
+            )
+          : { tracks: [], trackCount: 0 };
+        const instrSpace = packed.trackCount
+          ? INSTR_TOP_OFFSET + packed.trackCount * INSTR_TRACK_H + 2
+          : 0;
+        return { cells, instrItems, tracks: packed.tracks, instrSpace };
+      });
+
+      ensureSpace(plans.reduce((h, plan) => h + ROW_H + plan.instrSpace, 0));
+      if (startY === null) {
+        startY = y;
+        startPage = currentPage;
+      }
+
+      const rowTops = [];
+      let rowEndX = PART_TILES_X;
+      // Divisions this chunk occupies, over every lane: the beat ruler is drawn to
+      // this width on every sub-row, so a lane that is blank here still shows the
+      // beats (a set's lane is blank wherever that drum is resting) and the ruler
+      // never runs past the music.
+      const chunkEnd = chunk.reduce(
+        (end, cells) =>
+          cells.reduce(
+            (e, c) => Math.max(e, Math.min(chunkDiv, (c.startDiv % chunkDiv) + c.sound.duration)),
+            end
+          ),
+        0
+      );
+
+      plans.forEach((plan, laneIdx) => {
+        const rowY = y;
+        rowTops.push(rowY);
+
+        for (let div = 0; div < chunkEnd; div++) {
+          const dotX = PART_TILES_X + (div / time) * PART_BEAT_W + subdivW / 2;
+          if (div % time === 0) {
+            doc.setFillColor(0);
+            doc.circle(dotX, rowY + 1.5, 0.8, 'F');
+          } else {
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.15);
+            doc.circle(dotX, rowY + 1.5, 0.55, 'S');
+          }
+        }
+
+        for (const { sound, startDiv } of plan.cells) {
+          const col = startDiv % chunkDiv;
+          const x = PART_TILES_X + (col / time) * PART_BEAT_W;
+          const tw = (sound.duration / time) * PART_BEAT_W;
+
+          drawSoundCell(doc, sound, {
+            rowY,
+            textX: x + subdivW / 2,
+            tintX: x + 0.3,
+            tintW: tw - 0.6,
+            showVolume: piece.showVolume,
+          });
+          rowEndX = Math.max(rowEndX, x + tw);
+        }
+
+        const opensRun = runs.find((run) => run.from === laneIdx);
+        drawLaneLabel(lanes[laneIdx], system.id, rowY, opensRun?.set ?? null);
+
+        if (plan.instrItems.length) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(INSTR_FONT_PT);
+          doc.setTextColor(0);
+          plan.instrItems.forEach(({ x, text }, i) => {
+            doc.text(text, x, rowY + ROW_H + INSTR_TOP_OFFSET + plan.tracks[i] * INSTR_TRACK_H);
+          });
+        }
+
+        y += ROW_H + plan.instrSpace;
+      });
+
+      // Taiko-set bracket: one vertical line down the label zone across the
+      // sub-rows of the drums one person plays.
+      doc.setDrawColor(150, 120, 190);
+      doc.setLineWidth(0.5);
+      for (const run of runs) {
+        doc.line(
+          BRACKET_X,
+          rowTops[run.from] + DOT_ZONE,
+          BRACKET_X,
+          rowTops[run.to] + DOT_ZONE + TILE_H
+        );
+      }
+
+      if (chunkIdx === 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(0);
+        doc.text(`${lineOrdinal}.`, MARGIN, rowTops[0] + DOT_ZONE + 4);
+      }
+
+      if (chunkIdx === chunks.length - 1 && singleRepeat) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(0);
+        doc.text(`×${singleRepeat.count}`, rowEndX + 2, rowTops[0] + DOT_ZONE + 7.5);
+      }
+
+      if (chunkIdx < chunks.length - 1) y += ROW_GAP;
+    });
+
+    lineYMap.set(system.id, { page: startPage, startY, endY: y });
+    y += LINE_GAP;
+  }
 
   // ── Main render loop ─────────────────────────────────────────────────────
 
@@ -241,12 +538,22 @@ export async function exportPdf() {
       continue;
     }
 
-    // Sound line
-    if (item.sounds.length === 0) continue;
+    // Sound line (a system): one lane per part. An ensemble takes the stacked
+    // layout — including a single-lane jiuchi definition row, so its beats stay in
+    // the same columns as the parts above it.
+    const lanes = lanesOf(item);
+    if (lanes.every((lane) => !lane.sounds?.length)) continue;
     lineOrdinal++;
 
     const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
-    const rows = splitIntoRows(item.sounds, time);
+
+    if (ensemble) {
+      drawEnsembleSystem(item, lanes, singleRepeat);
+      continue;
+    }
+
+    const laneSounds = lanes[0].sounds;
+    const rows = splitIntoRows(laneSounds, time);
 
     let lineStartY = null;
     let lineStartPage = null;
@@ -284,35 +591,13 @@ export async function exportPdf() {
        * the text — kept below the beat-dot zone so dots stay on white.
        */
       const drawSound = (sound, textX, tintX, tintW) => {
-        const tint = settings.colourTiles ? tileTintPdfRgb(sound) : null;
-        if (tint != null && tintX != null) {
-          doc.setFillColor(tint.r, tint.g, tint.b);
-          doc.roundedRect(tintX, rowY + DOT_ZONE + 0.5, tintW, 10, 1, 1, 'F');
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.setTextColor(0);
-        doc.text(sound.name, textX, rowY + DOT_ZONE + 5, { align: 'center' });
-
-        if (sound.emphasis) {
-          const nw = doc.getTextWidth(sound.name);
-          doc.setDrawColor(0);
-          doc.setLineWidth(0.3);
-          doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
-        }
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
-        doc.setTextColor(0);
-        const vol = piece.showVolume ? effectiveVolume(sound) : null;
-        if (vol != null) {
-          doc.text(sound.hand, textX - 0.5, rowY + DOT_ZONE + 9, { align: 'right' });
-          doc.text(String(vol), textX + 0.5, rowY + DOT_ZONE + 9, { align: 'left' });
-        } else {
-          doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
-        }
-
+        drawSoundCell(doc, sound, {
+          rowY,
+          textX,
+          tintX,
+          tintW,
+          showVolume: piece.showVolume,
+        });
         cumDuration += sound.duration;
       };
 
@@ -324,6 +609,14 @@ export async function exportPdf() {
         for (const item of ligItems) {
           const isSingle = 'sound' in item;
           const sounds = isSingle ? [item.sound] : item.sounds;
+          // Leading silence. A ligature never spans a gap, so it is the first
+          // member's. Widths here are token spacings rather than proportional, so
+          // this is the one place a gap's geometry is approximate.
+          const gapDivs = sounds[0].gap ?? 0;
+          if (gapDivs) {
+            xOff += (gapDivs / time) * BEAT_W;
+            cumDuration += gapDivs;
+          }
           const anchor = TILES_X + xOff + halfBeat / 2;
 
           let subPos = item.startPos;
@@ -355,6 +648,13 @@ export async function exportPdf() {
         }
       } else {
         for (const sound of rowSounds) {
+          // Leading silence, before any geometry: the dot parity below reads
+          // cumDuration, so the gap has to land first.
+          const gapDivs = sound.gap ?? 0;
+          if (gapDivs) {
+            xOff += (gapDivs / time) * BEAT_W;
+            cumDuration += gapDivs;
+          }
           const tw = (sound.duration / time) * BEAT_W;
           const textX = TILES_X + xOff + subdivW / 2;
           // Inset 0.3mm per side so adjacent proportional tiles keep a white gutter.

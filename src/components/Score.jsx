@@ -1,13 +1,13 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece, markerDepth, lineDepth, singleLineRepeatMap, isSoundLine } from '../data/piece.js';
+import { piece, markerDepth, lineDepth, singleLineRepeatMap, findLane } from '../data/piece.js';
 import { history } from '../data/history.js';
 import { player } from '../audio/player.js';
 import { voice } from '../audio/engine.js';
 import { feedbackClick } from '../audio/feedback.js';
 import { patternStore } from '../data/patterns.js';
 import { touchDragDelay } from '../drag.js';
-import { Line } from './Line.jsx';
+import { System } from './System.jsx';
 import { SectionHeading } from './SectionHeading.jsx';
 import { NoteRow } from './NoteRow.jsx';
 import { BlockRepeatRow } from './BlockRepeatRow.jsx';
@@ -80,14 +80,18 @@ export function Score() {
   }
 
   async function savePattern() {
-    const line = piece.lines.find((l) => l.id === piece.selection.lineId);
-    if (!line) return;
+    const found = findLane(piece.lines, piece.selection.lineId);
+    if (!found) return;
     const selectedSet = new Set(piece.selection.soundIds);
-    const sounds = line.sounds
+    const sounds = found.lane.sounds
       .filter((s) => selectedSet.has(s.id))
-      .map(({ id: _id, ...rest }) => rest);
+      // `gap` goes too: a pattern is a rhythm, not a position. Kept, it would
+      // inject the set lane's blank space wherever the pattern is reused and skew
+      // the palette tile's beat label.
+      .map(({ id: _id, gap: _gap, ...rest }) => rest);
     const name = sounds.map((s) => s.name).join(' ');
-    await patternStore.save(name, sounds, piece.symbolSet.id);
+    // Tag the pattern with the lane's own symbol set, not the score's primary one.
+    await patternStore.save(name, sounds, piece.symbolSetForLane(piece.selection.lineId).id);
     piece.clearSelection();
   }
 
@@ -152,15 +156,14 @@ export function Score() {
       const selecting = piece.selectMode || piece.lineSelectMode;
       // The add-row toolbar normally renders inside the selected line; show a
       // foot-of-score fallback only when no sound line is selected to host it.
-      const showFallbackActions =
-        !selecting && !piece.lines.some((l) => l.id === piece.selectedLineId && isSoundLine(l));
+      const showFallbackActions = !selecting && !findLane(piece.lines, piece.selectedLineId);
 
-      return m('div', { class: 'flex-1 overflow-y-auto flex flex-col scroll-pt-10' }, [
+      return m('div', { class: 'flex-1 min-h-0 flex flex-col' }, [
         m(
           'div',
           {
             class:
-              'sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0',
+              'z-30 flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 shrink-0',
           },
           [
             m('div', { class: 'flex flex-wrap items-center gap-2' }, [
@@ -361,67 +364,73 @@ export function Score() {
           ]
         ),
 
-        m(
-          'div',
-          { class: 'lines-container' },
-          (() => {
-            const markers = piece.lines.filter((item) => item.type === 'block-repeat');
-            // Single-line repeats render inline on the line, not as a separate row.
-            const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
-            let lineOrdinal = 0;
-            return piece.lines.map((item) => {
-              if (item.type === 'block-repeat') {
-                if (item.lineIds.length === 1) return m.fragment({ key: item.id });
-                return m(BlockRepeatRow, {
+        // The score body is the one scroller: vertical as before, and horizontal so
+        // an ensemble's lanes can run wider than the viewport while every system
+        // shares a single scrollLeft — which is what keeps the beat columns aligned
+        // down the page and lets the part gutter stick to the left edge.
+        m('div', { class: 'score-scroll flex-1 min-h-0 overflow-auto scroll-pt-10' }, [
+          m(
+            'div',
+            { class: 'lines-container' },
+            (() => {
+              const markers = piece.lines.filter((item) => item.type === 'block-repeat');
+              // Single-line repeats render inline on the line, not as a separate row.
+              const singleLineMarkerMap = singleLineRepeatMap(piece.lines);
+              let lineOrdinal = 0;
+              return piece.lines.map((item) => {
+                if (item.type === 'block-repeat') {
+                  if (item.lineIds.length === 1) return m.fragment({ key: item.id });
+                  return m(BlockRepeatRow, {
+                    key: item.id,
+                    item,
+                    depth: markerDepth(item, markers),
+                  });
+                }
+                if (item.type === 'heading') {
+                  return m(SectionHeading, {
+                    key: item.id,
+                    heading: item,
+                    repeatDepth: lineDepth(item.id, markers),
+                  });
+                }
+                if (item.type === 'note') {
+                  return m(NoteRow, {
+                    key: item.id,
+                    note: item,
+                    repeatDepth: lineDepth(item.id, markers),
+                  });
+                }
+                if (item.type === 'divider') {
+                  return m(DividerRow, {
+                    key: item.id,
+                    divider: item,
+                    repeatDepth: lineDepth(item.id, markers),
+                  });
+                }
+                if (item.type === 'jiuchi-section') {
+                  return m(JiuchiSectionRow, {
+                    key: item.id,
+                    section: item,
+                    repeatDepth: lineDepth(item.id, markers),
+                  });
+                }
+                lineOrdinal++;
+                const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
+                // Exclude the single-line marker from the bar depth (it's shown inline).
+                const repeatDepth = lineDepth(item.id, markers) - (singleRepeat ? 1 : 0);
+                return m(System, {
                   key: item.id,
-                  item,
-                  depth: markerDepth(item, markers),
+                  system: item,
+                  index: lineOrdinal - 1,
+                  repeatDepth,
+                  singleRepeat,
                 });
-              }
-              if (item.type === 'heading') {
-                return m(SectionHeading, {
-                  key: item.id,
-                  heading: item,
-                  repeatDepth: lineDepth(item.id, markers),
-                });
-              }
-              if (item.type === 'note') {
-                return m(NoteRow, {
-                  key: item.id,
-                  note: item,
-                  repeatDepth: lineDepth(item.id, markers),
-                });
-              }
-              if (item.type === 'divider') {
-                return m(DividerRow, {
-                  key: item.id,
-                  divider: item,
-                  repeatDepth: lineDepth(item.id, markers),
-                });
-              }
-              if (item.type === 'jiuchi-section') {
-                return m(JiuchiSectionRow, {
-                  key: item.id,
-                  section: item,
-                  repeatDepth: lineDepth(item.id, markers),
-                });
-              }
-              lineOrdinal++;
-              const singleRepeat = singleLineMarkerMap.get(item.id) ?? null;
-              // Exclude the single-line marker from the bar depth (it's shown inline).
-              const repeatDepth = lineDepth(item.id, markers) - (singleRepeat ? 1 : 0);
-              return m(Line, {
-                key: item.id,
-                line: item,
-                index: lineOrdinal - 1,
-                repeatDepth,
-                singleRepeat,
               });
-            });
-          })()
-        ),
+            })()
+          ),
 
-        showFallbackActions ? m(AddRowActions) : null,
+          showFallbackActions ? m(AddRowActions) : null,
+        ]),
       ]);
     },
   };

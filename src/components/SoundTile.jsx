@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { piece } from '../data/piece.js';
+import { piece, findLane } from '../data/piece.js';
 import { settings } from '../data/settings.js';
 import { player } from '../audio/player.js';
 import { anim } from '../anim.js';
@@ -7,7 +7,7 @@ import { isIntegerBeat, effectiveVolume } from '../util.js';
 import { tileTintCss, tileBorderCss } from '../tileColor.js';
 import { feedbackClick } from '../audio/feedback.js';
 
-const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
+export const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
 
 const STEP_BTN =
@@ -38,22 +38,31 @@ export function SoundTile() {
     onbeforeremove({ dom, attrs }) {
       if (anim.consumeRemoved(attrs.sound.id)) return anim.flashOut(dom);
     },
-    view({ attrs: { sound, lineId, startPos, isSelected } }) {
+    view({ attrs: { sound, lineId, startPos, isSelected, proportional } }) {
+      // An ensemble lane forces fixed-width tiles so its beat columns align with
+      // the other parts'; everywhere else the app preference decides.
+      const prop = proportional ?? settings.proportionalWidth;
       const et = piece.editingTile;
       const isEditing = !piece.selectMode && et && et.lineId === lineId && et.soundId === sound.id;
       const time = piece.time;
       const beatWidthRem = SUBDIV_WIDTH_REM * time; // one full beat ≡ `time` subdivisions wide
 
-      const isPlaying = player.currentSoundId === sound.id;
+      const isPlaying = player.isSounding(sound.id);
+      // A taiko set is one player with two hands: this strike is one of three at
+      // once, or wants a hand that is already busy. A warning, never a block, and
+      // drawn as an amber bar along the tile's foot rather than as a border or ring
+      // colour: border, background and ring already carry the playing / selected /
+      // colour-coded states, so a clash marker that used any of them would either
+      // fight them or be hidden by them. Amber for advisory (it matches a muted
+      // part's badge), and the foot is the one edge nothing else paints.
+      const conflict = !isPlaying && piece.setConflictIds.has(sound.id);
       const borderClass = isPlaying
         ? 'border-green-500 bg-green-100 dark:border-green-400 dark:bg-green-900/40 ring-2 ring-green-400'
         : isSelected
           ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-900/40'
           : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800';
 
-      const widthStyle = settings.proportionalWidth
-        ? `width: ${(sound.duration / time) * beatWidthRem}rem`
-        : undefined;
+      const widthStyle = prop ? `width: ${(sound.duration / time) * beatWidthRem}rem` : undefined;
 
       // Playing/selected state backgrounds take precedence over the colour-coding tint.
       const tint = settings.colourTiles && !isPlaying && !isSelected ? tileTintCss(sound) : null;
@@ -70,7 +79,6 @@ export function SoundTile() {
         ? 'text-gray-600 dark:text-gray-300'
         : 'text-gray-400 dark:text-gray-500';
 
-      const prop = settings.proportionalWidth;
       const propPad = prop && sound.duration > 1 ? PROP_PAD_REM : 0;
 
       return m(
@@ -78,6 +86,7 @@ export function SoundTile() {
         {
           class: `sound-tile relative flex flex-col ${prop ? 'items-start' : 'items-center'} border rounded shadow-sm ${prop ? `${propPad ? 'pl-1' : 'pl-0'} pr-0 py-1` : 'px-2 py-1'} cursor-grab select-none ${prop ? '' : 'min-w-[3rem]'} ${borderClass}`,
           style,
+          title: conflict ? 'One player, two hands: this strike clashes' : undefined,
           'data-sound-id': sound.id,
           onpointerup: (e) => {
             if (!piece.selectMode) return;
@@ -143,7 +152,13 @@ export function SoundTile() {
                 : m('span', { class: `text-xs ${metaText} font-mono` }, sound.hand),
             ]
           ),
-          isEditing ? m(SoundEditor, { lineId, sound }) : null,
+          conflict
+            ? m('span', {
+                class:
+                  'clash-bar absolute left-0 right-0 bottom-0 h-0.5 rounded-b bg-amber-500 dark:bg-amber-400 pointer-events-none',
+              })
+            : null,
+          isEditing ? m(SoundEditor, { lineId, sound, proportional: prop }) : null,
         ]
       );
     },
@@ -209,24 +224,32 @@ function positionEditor(vnode) {
 
 export function SoundEditor() {
   return {
-    view({ attrs: { lineId, sound } }) {
+    view({ attrs: { lineId, sound, proportional } }) {
       const time = piece.time;
       let showLigature = false;
       let isLigated = false;
-      if (!settings.proportionalWidth) {
-        const line = piece.lines.find((l) => l.id === lineId);
-        if (line) {
-          const idx = line.sounds.findIndex((s) => s.id === sound.id);
+      // Ligatures are a wrapping-layout device: proportional and ensemble lanes
+      // render every sound as its own tile, so there is nothing to join.
+      if (!(proportional ?? settings.proportionalWidth)) {
+        const lane = findLane(piece.lines, lineId)?.lane;
+        if (lane) {
+          const idx = lane.sounds.findIndex((s) => s.id === sound.id);
           if (idx >= 1) {
-            const prev = line.sounds[idx - 1];
+            const prev = lane.sounds[idx - 1];
             if (prev && prev.type !== 'group') {
               showLigature = true;
               const sameDur = time % 2 !== 0 || prev.duration === sound.duration;
-              const prevStart = line.sounds.slice(0, idx - 1).reduce((s, x) => s + x.duration, 0);
+              const prevStart =
+                lane.sounds.slice(0, idx).reduce((s, x) => s + (x.gap ?? 0) + x.duration, 0) -
+                prev.duration;
               const sameBeat =
                 Math.floor(prevStart / time) === Math.floor((prevStart + prev.duration) / time);
               const autoWouldJoin =
-                sameDur && sameBeat && prev.duration < time && prev.hand !== sound.hand;
+                sameDur &&
+                sameBeat &&
+                prev.duration < time &&
+                prev.hand !== sound.hand &&
+                !sound.gap; // silence between them: they cannot share a tile
               isLigated = sound.ligature === true || (autoWouldJoin && sound.ligature !== false);
             }
           }
@@ -235,7 +258,7 @@ export function SoundEditor() {
 
       const showHand =
         !!sound.alternatives || sound.hand === 'L' || sound.hand === 'R' || sound.hand === 'B';
-      const showSkin = piece.skins === 2 && !!sound.hand;
+      const showSkin = piece.skinsForLane(lineId) === 2 && !!sound.hand;
       const showDuration = !sound.implicit;
       const maxDuration = time;
 
