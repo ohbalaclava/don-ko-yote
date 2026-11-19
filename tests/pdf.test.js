@@ -57,7 +57,13 @@ vi.mock('../src/data/settings.js', () => ({
   settings: mockSettings,
 }));
 
-import { exportPdf, splitIntoRows, splitSystemIntoChunks, setRuns } from '../src/pdf.js';
+import {
+  exportPdf,
+  splitIntoRows,
+  splitSystemIntoChunks,
+  setRuns,
+  clampLabelX,
+} from '../src/pdf.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -251,6 +257,10 @@ const PART_BEAT_W = 18.5;
 const BRACKET_X = 18.5;
 const DOT_ZONE = 3;
 const ROW_H = 16;
+// A cell is tinted 0.3 mm inside each edge, the label box is 0.8 mm inside that,
+// and the mocked `getTextWidth` is 5 mm: a label clamped to a cell's left edge is
+// centred 3.6 mm into the cell.
+const CLAMPED_LABEL_X = 0.3 + 0.8 + 5 / 2;
 
 /** `[text, x, y]` for every drawn string, in draw order. */
 function textCalls() {
@@ -332,7 +342,9 @@ describe('exportPdf — ensemble', () => {
       ];
       await exportPdf();
       expect(soundX('Ka')).toBe(soundX('Su'));
-      expect(soundX('Ka')).toBeCloseTo(PART_TILES_X + PART_BEAT_W + PART_BEAT_W / 8, 10);
+      // A whole-beat tile: the onset centre would hang the name off its left edge,
+      // so the label sits clamped just inside it (both parts alike).
+      expect(soundX('Ka')).toBeCloseTo(PART_TILES_X + PART_BEAT_W + CLAMPED_LABEL_X, 10);
     });
 
     it('wraps every lane at the same beat boundary', async () => {
@@ -341,7 +353,7 @@ describe('exportPdf — ensemble', () => {
         Array.from({ length: 9 }, (_, i) => makeSound({ name: `${prefix}${i}`, duration: 4 }));
       mockPiece.lines = [makeSystem('s1', [beats('a'), beats('b')])];
       await exportPdf();
-      expect(soundX('a8')).toBeCloseTo(PART_TILES_X + PART_BEAT_W / 8, 10);
+      expect(soundX('a8')).toBeCloseTo(PART_TILES_X + CLAMPED_LABEL_X, 10);
       expect(soundX('b8')).toBe(soundX('a8'));
       // The wrapped row sits below the first row's two lanes.
       expect(soundY('a8')).toBeGreaterThan(soundY('b0'));
@@ -535,5 +547,32 @@ describe('setRuns', () => {
       { setId: 'b', from: 1, to: 1 },
       { setId: 'a', from: 2, to: 2 },
     ]);
+  });
+});
+
+describe('clampLabelX', () => {
+  // A cell from 10 to 20 mm, so its centre is 15.
+  const cell = [10, 10];
+
+  it('leaves a label that already fits where it is', () => {
+    expect(clampLabelX(15, 4, ...cell)).toBe(15);
+  });
+
+  it('slides a label off the left edge just inside it', () => {
+    // Onset-centred at 11 with a 6 mm name would start at 8, 2 mm outside.
+    expect(clampLabelX(11, 6, ...cell)).toBe(13);
+  });
+
+  it('slides a label off the right edge just inside it', () => {
+    expect(clampLabelX(19, 6, ...cell)).toBe(17);
+  });
+
+  it('centres a label wider than its cell, so it overflows evenly', () => {
+    expect(clampLabelX(11, 14, ...cell)).toBe(15);
+  });
+
+  it('leaves the label alone with no cell to stay inside', () => {
+    expect(clampLabelX(11, 6, null, 10)).toBe(11);
+    expect(clampLabelX(11, 6, 10, 0)).toBe(11);
   });
 });
