@@ -33,6 +33,9 @@ const PART_NAME_X = BRACKET_X + 1.5;
 const PART_NAME_W = PART_TILES_X - PART_NAME_X - 1.5; // mm available for a name
 
 const DOT_ZONE = 3; // mm above each tile row reserved for beat dots
+// Breathing room between a label clamped to its cell's edge and that edge, so a
+// slid label does not sit flush against the tint's border.
+const LABEL_PAD = 0.8;
 const TILE_H = 13; // mm of tile content (hand / name / instruction)
 const ROW_H = DOT_ZONE + TILE_H; // 16 mm per tile row
 
@@ -146,8 +149,34 @@ export function setRuns(parts) {
 }
 
 /**
+ * Centre at which to draw a centre-aligned label so it stays within its cell,
+ * moving it the least distance that achieves it. A label wider than the cell is
+ * centred on the cell, which overflows evenly rather than to one side.
+ * @param {number} centreX - Where the label wants to be centred.
+ * @param {number} labelW - Rendered label width, same units.
+ * @param {number|null} cellX - Cell's left edge; null means no cell to stay inside.
+ * @param {number} cellW - Cell width.
+ * @returns {number} Centre to draw at.
+ */
+export function clampLabelX(centreX, labelW, cellX, cellW) {
+  if (cellX == null || !(cellW > 0)) return centreX;
+  const lo = cellX + labelW / 2;
+  const hi = cellX + cellW - labelW / 2;
+  if (lo > hi) return cellX + cellW / 2;
+  return Math.min(Math.max(centreX, lo), hi);
+}
+
+/**
  * Draws one sound: an optional colour tint, the name (emphasis-underlined), and
  * the hand with its volume. Shared by the solo and ensemble layouts.
+ *
+ * `textX` is the sound's **onset** — the centre of its first subdivision, under
+ * the beat dot — which is where the label wants to sit. A name is wider than one
+ * subdivision at any realistic tempo (`DON` is 7 mm against a 5 mm subdivision at
+ * time 4), so on a tile longer than a subdivision that centring would hang the
+ * label off the cell's left edge. The label is therefore kept inside the cell box
+ * (`tintX` … `tintX + tintW`, the tinted tile), sliding right only as far as it
+ * must, and centred on the box when the name is wider than the box itself.
  * @param {import('jspdf').jsPDF} doc
  * @param {object} sound
  * @param {{ rowY: number, textX: number, tintX: number|null, tintW: number, showVolume: boolean }} geom
@@ -162,13 +191,22 @@ function drawSoundCell(doc, sound, { rowY, textX, tintX, tintW, showVolume }) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(0);
-  doc.text(sound.name, textX, rowY + DOT_ZONE + 5, { align: 'center' });
+  const nw = doc.getTextWidth(sound.name);
+  // The hand and volume ride the same anchor as the name, so the cell reads as
+  // one label however far it had to slide. The box it is held inside is the cell
+  // less `LABEL_PAD` at each edge, which is what keeps a slid label off the border.
+  const labelX = clampLabelX(
+    textX,
+    nw,
+    tintX == null ? null : tintX + LABEL_PAD,
+    tintW - 2 * LABEL_PAD
+  );
+  doc.text(sound.name, labelX, rowY + DOT_ZONE + 5, { align: 'center' });
 
   if (sound.emphasis) {
-    const nw = doc.getTextWidth(sound.name);
     doc.setDrawColor(0);
     doc.setLineWidth(0.3);
-    doc.line(textX - nw / 2, rowY + DOT_ZONE + 5.7, textX + nw / 2, rowY + DOT_ZONE + 5.7);
+    doc.line(labelX - nw / 2, rowY + DOT_ZONE + 5.7, labelX + nw / 2, rowY + DOT_ZONE + 5.7);
   }
 
   doc.setFont('helvetica', 'normal');
@@ -176,10 +214,10 @@ function drawSoundCell(doc, sound, { rowY, textX, tintX, tintW, showVolume }) {
   doc.setTextColor(0);
   const vol = showVolume ? effectiveVolume(sound) : null;
   if (vol != null) {
-    doc.text(sound.hand, textX - 0.5, rowY + DOT_ZONE + 9, { align: 'right' });
-    doc.text(String(vol), textX + 0.5, rowY + DOT_ZONE + 9, { align: 'left' });
+    doc.text(sound.hand, labelX - 0.5, rowY + DOT_ZONE + 9, { align: 'right' });
+    doc.text(String(vol), labelX + 0.5, rowY + DOT_ZONE + 9, { align: 'left' });
   } else {
-    doc.text(sound.hand ?? '', textX, rowY + DOT_ZONE + 9, { align: 'center' });
+    doc.text(sound.hand ?? '', labelX, rowY + DOT_ZONE + 9, { align: 'center' });
   }
 }
 
