@@ -19,6 +19,7 @@ const TILES_W = USABLE_W - LINE_NUM_W - REPEAT_ZONE; // 162 mm
 
 const BEATS_PER_ROW = 8;
 const BEAT_W = TILES_W / BEATS_PER_ROW; // 20.25 mm per beat
+const MIN_GAP_W = 1; // mm — a sub-beat blank still has to be visible
 
 // An ensemble score needs room for part names on the left, so its tile zone is
 // narrower. A one-part score keeps the constants above, which is what leaves its
@@ -605,16 +606,19 @@ export async function exportPdf() {
         const halfBeat = BEAT_W / 2;
         const ligW = BEAT_W / 4; // centre-to-centre spacing of ligated sub-sounds
         const eighthBeat = BEAT_W / 8; // trailing gap after each ligature group
+        const slotW = ligW + eighthBeat; // x advance of one non-ligated sound
         const ligItems = groupIntoLigatures(rowSounds, time, cumDuration);
         for (const item of ligItems) {
           const isSingle = 'sound' in item;
           const sounds = isSingle ? [item.sound] : item.sounds;
           // Leading silence. A ligature never spans a gap, so it is the first
-          // member's. Widths here are token spacings rather than proportional, so
-          // this is the one place a gap's geometry is approximate.
+          // member's. Widths here are token spacings, not proportional ones: a
+          // single sound advances x by `slotW` whatever its duration, so silence is
+          // measured in those slots — one per beat — rather than in BEAT_W, which
+          // would draw a blank beat nearly three times the width of a played one.
           const gapDivs = sounds[0].gap ?? 0;
           if (gapDivs) {
-            xOff += (gapDivs / time) * BEAT_W;
+            xOff += Math.max(MIN_GAP_W, (gapDivs / time) * slotW);
             cumDuration += gapDivs;
           }
           const anchor = TILES_X + xOff + halfBeat / 2;

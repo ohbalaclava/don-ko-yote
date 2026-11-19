@@ -3,7 +3,7 @@ import Sortable from 'sortablejs';
 import { piece, laneDur } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
-import { SoundTile, SUBDIV_WIDTH_REM } from './SoundTile.jsx';
+import { SoundTile, SUBDIV_WIDTH_REM, NONPROP_TILE_WIDTH_REM } from './SoundTile.jsx';
 import { LigatureTile } from './LigatureTile.jsx';
 import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { feedbackClick } from '../audio/feedback.js';
@@ -91,6 +91,27 @@ function handlePaletteDrop(evt) {
 const INSTR_LINE_HEIGHT = 18;
 
 const DEFAULT_ROW_GAP = 16; // matches former gap-y-4 (1rem)
+
+const MIN_GAP_WIDTH_REM = 0.5; // a sub-beat blank still has to be visible
+
+/**
+ * On-screen width of a lane's blank space, in rem.
+ *
+ * A proportional lane — and so every ensemble lane — is fixed-width-per-division,
+ * which makes silence measurable in the tiles' own currency. A non-proportional
+ * lane is not: its tiles are token-width (a `min-w-[3rem]` floor plus whatever the
+ * label needs) however long the sound, so a beat of four ligated 16ths takes about
+ * one tile slot and a proportional gap beside it reads several times longer than
+ * the notes it replaces. Measure it in tile slots instead — one per beat.
+ * @param {number} divs - Divisions of silence.
+ * @param {boolean} proportional
+ * @param {number} time - Divisions per beat.
+ * @returns {number} Width in rem.
+ */
+function gapWidthRem(divs, proportional, time) {
+  if (proportional) return divs * SUBDIV_WIDTH_REM;
+  return Math.max(MIN_GAP_WIDTH_REM, (divs / time) * NONPROP_TILE_WIDTH_REM);
+}
 
 /**
  * Computes a stable string representing the identity and instruction state of all
@@ -442,13 +463,15 @@ export function Lane() {
                     // Blank space in a taiko set's lane: this drum is silent while
                     // the player works on another of their drums. Not a sound, so it
                     // carries no data-sound-id and `domIndexToDataIndex` skips it.
+                    // Its width is in whichever currency the lane's tiles use — see
+                    // `gapWidthRem`.
                     return m(
                       'span',
                       {
                         key: 'gap-' + item.startPos,
                         class:
                           'lane-gap self-stretch flex items-center pointer-events-none select-none',
-                        style: `width:${item.divs * SUBDIV_WIDTH_REM}rem`,
+                        style: `width:${gapWidthRem(item.divs, proportional, time)}rem`,
                       },
                       m('span', {
                         class: 'w-full border-t border-dotted border-gray-300 dark:border-gray-600',

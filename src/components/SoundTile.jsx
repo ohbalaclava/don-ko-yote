@@ -8,6 +8,9 @@ import { tileTintCss, tileBorderCss } from '../tileColor.js';
 import { feedbackClick } from '../audio/feedback.js';
 
 export const SUBDIV_WIDTH_REM = 2; // single-division (smallest) tile width
+// A non-proportional tile is content-width over a 3rem floor (`min-w-[3rem]` below),
+// so one beat occupies roughly one tile slot whatever its subdivision.
+export const NONPROP_TILE_WIDTH_REM = 3;
 const PROP_PAD_REM = 0.25; // left padding in proportional mode for tiles wider than one division
 
 const STEP_BTN =
