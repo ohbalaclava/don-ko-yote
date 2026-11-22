@@ -885,6 +885,30 @@ export const piece = {
     return [...taikos];
   },
 
+  /**
+   * Every sound name authored in a part's lanes, group tiles expanded. The two
+   * drum families share no syllables (ten/ken vs don/kon), so this is what
+   * `familyForSounds` reads to decide whether a part's drum may still move
+   * between families. Jiuchi definition lanes (`partId == null`) are a section's
+   * music, not a part's, so they are excluded.
+   * @param {string} partId
+   * @returns {string[]}
+   */
+  partSoundNames(partId) {
+    const names = [];
+    for (const line of piece.lines) {
+      if (!isSoundLine(line)) continue;
+      for (const lane of lanesOf(line)) {
+        if (lane.partId !== partId) continue;
+        for (const s of lane.sounds) {
+          if (s.type === 'group') names.push(...s.sounds.map((g) => g.name));
+          else names.push(s.name);
+        }
+      }
+    }
+    return names;
+  },
+
   /** Part ids in score order — the lane template for a new system. */
   partIds() {
     return piece.parts.map((p) => p.id);

@@ -29,6 +29,7 @@ const PART_TILES_X = MARGIN + PART_LABEL_W; // 38 mm
 const PART_TILES_W = USABLE_W - PART_LABEL_W - REPEAT_ZONE; // 148 mm
 const PART_BEAT_W = PART_TILES_W / BEATS_PER_ROW; // 18.5 mm per beat
 const BRACKET_X = MARGIN + 4.5; // set bracket, left of the names
+const BRACKET_ARM = 1.2; // mm of horizontal arm at each end of a set bracket
 const PART_NAME_X = BRACKET_X + 1.5;
 const PART_NAME_W = PART_TILES_X - PART_NAME_X - 1.5; // mm available for a name
 
@@ -485,17 +486,17 @@ export async function exportPdf() {
         y += ROW_H + plan.instrSpace;
       });
 
-      // Taiko-set bracket: one vertical line down the label zone across the
-      // sub-rows of the drums one person plays.
+      // Taiko-set bracket: a `[` down the label zone across the sub-rows of the
+      // drums one person plays. The arms are what say where the run starts and
+      // stops — a bare vertical line reads as a margin rule.
       doc.setDrawColor(150, 120, 190);
       doc.setLineWidth(0.5);
       for (const run of runs) {
-        doc.line(
-          BRACKET_X,
-          rowTops[run.from] + DOT_ZONE,
-          BRACKET_X,
-          rowTops[run.to] + DOT_ZONE + TILE_H
-        );
+        const top = rowTops[run.from] + DOT_ZONE;
+        const bottom = rowTops[run.to] + DOT_ZONE + TILE_H;
+        doc.line(BRACKET_X, top, BRACKET_X, bottom);
+        doc.line(BRACKET_X, top, BRACKET_X + BRACKET_ARM, top);
+        doc.line(BRACKET_X, bottom, BRACKET_X + BRACKET_ARM, bottom);
       }
 
       if (chunkIdx === 0) {

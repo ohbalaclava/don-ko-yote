@@ -832,3 +832,30 @@ describe('two-hand conflicts', () => {
     expect(piece.setConflictIds.size).toBe(0);
   });
 });
+
+describe('partSoundNames', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 2 });
+  });
+
+  it('is empty for a part with no sounds', () => {
+    expect(piece.partSoundNames(piece.parts[0].id)).toEqual([]);
+  });
+
+  it('collects only that part’s names, across systems', () => {
+    piece.addSound(lane(0, 0).id, TEN());
+    piece.addSound(lane(0, 1).id, KEN());
+    piece.addLine();
+    piece.addSound(lane(1, 0).id, sym('SU', 'R', 4));
+    expect(piece.partSoundNames(piece.parts[0].id)).toEqual(['TEN', 'SU']);
+    expect(piece.partSoundNames(piece.parts[1].id)).toEqual(['KEN']);
+  });
+
+  it('ignores a jiuchi section’s definition lane', () => {
+    piece.addJiuchiSection();
+    const section = piece.lines.find((l) => l.type === 'jiuchi-section');
+    const defLane = lanesOf(piece.lines[piece.lines.indexOf(section) + 1])[0];
+    piece.addSound(defLane.id, TEN());
+    expect(piece.partSoundNames(piece.parts[0].id)).toEqual([]);
+  });
+});
