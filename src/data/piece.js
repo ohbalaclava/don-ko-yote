@@ -3,6 +3,8 @@ import { history } from './history.js';
 import { anim } from '../anim.js';
 import { getSymbolSet, symbolSetForTaiko, SYMBOL_SETS } from './symbolSets.js';
 import {
+  alignDiv,
+  setBlankSpans,
   setConflicts,
   setCursor,
   setLanes,
@@ -348,6 +350,57 @@ function openSetTime(system, setId, div, divs, exceptLaneId) {
 }
 
 /**
+ * Closes every hole in a set's combined timeline — the spans no lane of the set
+ * plays through (`setBlankSpans`) — by shifting each lane's later music back by the
+ * blank before it, so the set keeps its mutual alignment and stays one continuous
+ * playing path.
+ *
+ * Run after a **move**, the one edit that can vacate a span the whole set is silent
+ * through: the sound it took out of the player's path is put back somewhere else, so
+ * the span left behind is not silence anyone asked for. A delete deliberately keeps
+ * its span (`removeFromLane`) — re-timing the other drums is not what deleting one
+ * strike means.
+ * @param {object} system
+ * @param {string} setId
+ */
+function closeSetBlank(system, setId) {
+  const spans = setBlankSpans(system, piece.parts, setId);
+  if (!spans.length) return;
+  // Spans are maximal, so one starting before a division also ends at or before it.
+  const blankBefore = (div) => spans.reduce((t, s) => t + (s.startDiv < div ? s.divs : 0), 0);
+  for (const lane of setLanes(system, piece.parts, setId)) {
+    let pos = 0; // end of the previous sound, as written
+    let out = 0; // end of the previous sound, once shifted
+    for (const s of lane.sounds) {
+      const start = pos + (s.gap ?? 0);
+      const moved = start - blankBefore(start);
+      if (moved > out) s.gap = moved - out;
+      else delete s.gap;
+      pos = start + s.duration;
+      out = moved + s.duration;
+    }
+  }
+}
+
+/**
+ * Closes the set holes around the lanes a move touched — source and target, which may
+ * sit in different systems. A lane with no set, and a gapless set, are no-ops.
+ * @param {...string} laneIds
+ */
+function closeSetBlankFor(...laneIds) {
+  const done = new Set();
+  for (const id of laneIds) {
+    const found = findLane(piece.lines, id);
+    const setId = found ? laneSet(found.lane) : null;
+    if (!setId) continue;
+    const key = `${found.system.id}:${setId}`;
+    if (done.has(key)) continue;
+    done.add(key);
+    closeSetBlank(found.system, setId);
+  }
+}
+
+/**
  * Inserts a run of sounds into a lane at a data index, taking the run's position
  * from the lane rather than from the run (its leading `gap` is always dropped).
  *
@@ -382,6 +435,75 @@ function insertIntoLane(lane, sounds, atIndex) {
   if (blank > span) next.gap = blank - span;
   else delete next.gap;
   lane.sounds.splice(atIndex, 0, ...sounds);
+}
+
+/**
+ * Snaps a division to the nearest legal insert point in a lane, the way a drop
+ * between two tiles reads: a division inside blank space is taken as it is, one
+ * inside a sound rounds to that sound's nearer edge, and one past the lane's
+ * music becomes the end of it.
+ * @param {{ sounds: Array }} lane
+ * @param {number} div
+ * @returns {{ index: number, div: number }} Data index to insert at, and the
+ *   division the inserted run starts on.
+ */
+function snapToLane(lane, div) {
+  let prevEnd = 0;
+  for (const [i, s] of lane.sounds.entries()) {
+    const start = prevEnd + (s.gap ?? 0);
+    if (div <= start) return { index: i, div: Math.max(div, prevEnd) };
+    const end = start + s.duration;
+    if (div < end) {
+      return div - start < end - div ? { index: i, div: start } : { index: i + 1, div: end };
+    }
+    prevEnd = end;
+  }
+  return { index: lane.sounds.length, div: Math.max(div, prevEnd) };
+}
+
+/**
+ * Inserts a run of sounds at a **division** rather than at an index — where a
+ * drag was dropped, instead of at the set's shared cursor. The run takes the
+ * blank space it lands in as its leading `gap`; whatever no longer fits before
+ * the next sound moves the whole set along (`openSetTime`), so the player's other
+ * drums keep their alignment. A lane with no set has no blank to land in, so
+ * there the division only picks the index and the insert stays contiguous.
+ * @param {object} lane
+ * @param {Array<object>} sounds - At least one; mutated (leading `gap` rewritten).
+ * @param {number} div - Target division from the start of the system.
+ */
+function insertAtDiv(lane, sounds, div) {
+  const setId = laneSet(lane);
+  const { index, div: at } = snapToLane(lane, div);
+  const prevEnd = lane.sounds.slice(0, index).reduce((t, x) => t + (x.gap ?? 0) + x.duration, 0);
+  const leading = setId ? at - prevEnd : 0;
+  delete sounds[0].gap;
+  if (leading > 0) sounds[0].gap = leading;
+  const span = sounds.reduce((t, s, i) => t + (i ? (s.gap ?? 0) : 0) + s.duration, 0);
+  const next = lane.sounds[index];
+  if (next) {
+    const blank = next.gap ?? 0;
+    const after = blank - leading - span;
+    if (after > 0) next.gap = after;
+    else delete next.gap;
+    const found = after < 0 && setId ? findLane(piece.lines, lane.id) : null;
+    if (found) openSetTime(found.system, setId, prevEnd + blank, -after, lane.id);
+  }
+  lane.sounds.splice(index, 0, ...sounds);
+}
+
+/**
+ * Clamps a drop division so the landing run still fits inside `beatsPerLine`.
+ * A lane is only ever as wide as its system, so this is a guard rather than
+ * something a drag can normally reach.
+ * @param {number} div
+ * @param {number} duration - Divisions the dropped run needs.
+ * @returns {number}
+ */
+function clampDropDiv(div, duration) {
+  const max = piece.beatsPerLine * piece.time;
+  if (!max) return Math.max(0, div);
+  return Math.max(0, Math.min(div, max - duration));
 }
 
 /**
@@ -817,6 +939,21 @@ export const piece = {
   setIdForLane(laneId) {
     const found = findLane(this.lines, laneId);
     return found ? laneSetId(this.parts, found.lane) : null;
+  },
+
+  /**
+   * Divisions of blank space a set lane has after its last sound: the span of its
+   * system less its own music. A sparse lane's trailing silence has no `gap` to
+   * render it, so `Lane` asks for it to draw the guide — and to give a drag
+   * somewhere to land — under the drums the player is busy with. 0 for an
+   * independent part and for a jiuchi definition lane, which have no blank.
+   * @param {string} laneId
+   * @returns {number}
+   */
+  blankTailFor(laneId) {
+    const found = findLane(piece.lines, laneId);
+    if (!found || !laneSetId(piece.parts, found.lane)) return 0;
+    return Math.max(0, systemSpan(found.system) - laneDur(found.lane));
   },
 
   /** Number of beat divisions for the active symbol set (e.g. 4 straight, 3 swing). */
@@ -1483,6 +1620,26 @@ export const piece = {
   },
 
   /**
+   * Adds a sound at a division of the lane — where a drag was dropped, rather
+   * than at the set's shared cursor. The division is snapped to the nearest
+   * insert point (`snapToLane`), so dropping into blank space lands there and
+   * dropping on a tile lands against its nearer edge.
+   * @param {string} lineId - Lane id.
+   * @param {{ name: string, hand: string, duration: number }} symbol
+   * @param {number} div - Target division from the start of the system.
+   * @returns {boolean} False when the lane is unknown.
+   */
+  addSoundAtDiv(lineId, symbol, div) {
+    const lane = findLane(piece.lines, lineId)?.lane;
+    if (!lane) return false;
+    const s = makeSound(symbol);
+    insertAtDiv(lane, [s], clampDropDiv(div, s.duration));
+    piece.selectedLineId = lineId;
+    piece._commit();
+    return true;
+  },
+
+  /**
    * Moves a sound within or between lanes. Rejects cross-lane moves that would
    * overflow the target lane's beat budget and calls m.redraw() to revert the
    * SortableJS DOM change in that case.
@@ -1511,6 +1668,7 @@ export const piece = {
     // The move's position is re-derived at the destination; carrying the sound's
     // old leading silence there would inject a gap it never had.
     insertIntoLane(toLine, [sound], toIndex);
+    closeSetBlankFor(fromLineId, toLineId);
     piece.selectedLineId = toLineId;
     piece._commit();
   },
@@ -1543,8 +1701,34 @@ export const piece = {
     }
     removeFromLane(fromLine, idSet);
     insertIntoLane(toLine, sounds, toIndex);
+    closeSetBlankFor(fromLineId, toLineId);
     piece.selectedLineId = toLineId;
     piece._commit();
+  },
+
+  /**
+   * Moves a sound to a division of a lane — the drag-and-drop counterpart of
+   * `moveSound`, for a drop in a set lane where a bare index cannot say *when*
+   * the sound should play. The source lane absorbs the vacated span as usual, so
+   * the rest of the set stays put.
+   * @param {string} fromLineId - Source lane id.
+   * @param {string} soundId
+   * @param {string} toLineId - Target lane id.
+   * @param {number} div - Target division from the start of the system.
+   * @returns {boolean} False when a lane or the sound is unknown.
+   */
+  moveSoundToDiv(fromLineId, soundId, toLineId, div) {
+    const from = findLane(piece.lines, fromLineId)?.lane;
+    const to = findLane(piece.lines, toLineId)?.lane;
+    if (!from || !to) return false;
+    const sound = from.sounds.find((s) => s.id === soundId);
+    if (!sound) return false;
+    removeFromLane(from, new Set([soundId]));
+    insertAtDiv(to, [sound], clampDropDiv(div, sound.duration));
+    closeSetBlankFor(fromLineId, toLineId);
+    piece.selectedLineId = toLineId;
+    piece._commit();
+    return true;
   },
 
   removeSound(lineId, soundId) {
@@ -1584,6 +1768,53 @@ export const piece = {
     piece._commit();
   },
 
+  /**
+   * The division `alignSound` would move a sound back to, or null when it cannot
+   * be aligned — what the inline editor asks before offering the button.
+   * @param {string} lineId - Lane id.
+   * @param {string} soundId
+   * @returns {number|null}
+   */
+  alignTargetFor(lineId, soundId) {
+    const found = findLane(piece.lines, lineId);
+    return found ? alignDiv(found.system, piece.parts, lineId, soundId) : null;
+  },
+
+  /**
+   * Pulls a set lane's strike back onto the set's previous strike on another of
+   * the player's drums, so the two sound together. The shared cursor means an
+   * appended sound always lands *after* everything the set is already playing, so
+   * this is the only gesture that produces two drums struck at once (short of
+   * inserting in front of an existing sound).
+   *
+   * Only this sound moves: the silence it vacates is handed to the next sound's
+   * `gap`, so the rest of the lane — and every other lane of the set — keeps its
+   * absolute position. Two strikes on one division are legal when the hands
+   * differ; when they do not, `setConflicts` marks them as it does any clash.
+   * @param {string} lineId - Lane id.
+   * @param {string} soundId
+   * @returns {boolean} False when there was nothing to align to.
+   */
+  alignSound(lineId, soundId) {
+    const found = findLane(piece.lines, lineId);
+    if (!found) return false;
+    const div = alignDiv(found.system, piece.parts, lineId, soundId);
+    if (div == null) return false;
+    const { lane } = found;
+    const idx = lane.sounds.findIndex((s) => s.id === soundId);
+    const s = lane.sounds[idx];
+    const prevEnd = lane.sounds.slice(0, idx).reduce((t, x) => t + (x.gap ?? 0) + x.duration, 0);
+    const moved = prevEnd + (s.gap ?? 0) - div;
+    const gap = div - prevEnd;
+    if (gap > 0) s.gap = gap;
+    else delete s.gap;
+    const next = lane.sounds[idx + 1];
+    if (next) next.gap = (next.gap ?? 0) + moved;
+    piece.selectedLineId = lineId;
+    piece._commit();
+    return true;
+  },
+
   // ── Group tiles (pattern instances) ──────────────────────────────────────
 
   /**
@@ -1613,6 +1844,31 @@ export const piece = {
     }
     piece.selectedLineId = lane.id;
     piece._commit();
+  },
+
+  /**
+   * Drops a pattern at a division of the lane. The pattern's own rhythm is
+   * contiguous, so only its first sound takes the blank space it landed in; it
+   * never overflows to another system, since a drop names one spot in one lane.
+   * @param {string} lineId - Lane id.
+   * @param {{ sounds: Array<{ duration: number }> }} pattern
+   * @param {number} div - Target division from the start of the system.
+   * @returns {boolean} False when the lane is unknown or the pattern is empty.
+   */
+  addGroupAtDiv(lineId, pattern, div) {
+    const lane = findLane(piece.lines, lineId)?.lane;
+    if (!lane || !pattern.sounds?.length) return false;
+    // A pattern is a rhythm, not a position: any captured gap is dropped.
+    const sounds = pattern.sounds.map((s) => {
+      const sound = { ...s, id: uid() };
+      delete sound.gap;
+      return sound;
+    });
+    const span = sounds.reduce((t, s) => t + s.duration, 0);
+    insertAtDiv(lane, sounds, clampDropDiv(div, span));
+    piece.selectedLineId = lineId;
+    piece._commit();
+    return true;
   },
 
   // ── Parts and sets ────────────────────────────────────────────────────────

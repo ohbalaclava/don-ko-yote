@@ -1,7 +1,7 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
 import { piece, findLane, lanesOf } from '../data/piece.js';
-import { laneGroupName } from './Lane.jsx';
+import { PALETTE_GROUP } from './Lane.jsx';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { ensureEditTargetVisible } from '../scroll.js';
@@ -12,44 +12,32 @@ import { feedbackSound, feedbackClick } from '../audio/feedback.js';
 const SUBDIV_WIDTH_REM = 1.2; // one division = 1.2rem in the palette
 
 /**
- * The drop group a palette drag can land in: the selected lane's. In a solo score
- * that is the single shared `'sounds'` group, so any line accepts the drag as
- * before; in an ensemble it is the selected part's group, which keeps a palette
- * tile from being dropped onto another part's drum.
- * @returns {string}
- */
-function paletteGroupName() {
-  return laneGroupName(piece.selectedLane);
-}
-
-/**
- * Turns a palette tile container into a SortableJS clone source in the selected
- * lane's drop group. Dragging a `[data-palette-tile]` child clones it into a
- * lane's sounds-container, which fires that lane's `onAdd` (see Lane.jsx) to
- * commit the insertion. Routing through SortableJS gives the same gap-opening
- * animation and any-row drop targeting as in-score reordering. `put: false` /
- * `sort: false` keep the palette itself from receiving or reordering tiles.
+ * Turns a palette tile container into a SortableJS clone source. Dragging a
+ * `[data-palette-tile]` child clones it into a lane's sounds-container, which
+ * fires that lane's `onAdd` (see Lane.jsx) to commit the insertion. Routing
+ * through SortableJS gives the same gap-opening animation and any-row drop
+ * targeting as in-score reordering. `put: false` / `sort: false` keep the palette
+ * itself from receiving or reordering tiles.
+ *
+ * The group is the one static `PALETTE_GROUP`, which **every** lane accepts: a
+ * palette tile may be dropped on any drum of the score, not only the selected
+ * part's, and the landing lane's own symbol set resolves the symbol. Tapping
+ * (rather than dragging) still adds to the selected lane.
  * @param {HTMLElement} dom
  * @param {object} [extra] - extra Sortable options (e.g. `filter`)
  * @returns {Sortable}
  */
 function makeCloneSource(dom, extra = {}) {
   return Sortable.create(dom, {
-    group: { name: paletteGroupName(), pull: 'clone', put: false },
+    group: { name: PALETTE_GROUP, pull: 'clone', put: false },
     sort: false,
     draggable: '[data-palette-tile]',
+    // Same class the lanes use, so the tile parked in the lane reads as one indicator.
+    ghostClass: 'opacity-30',
     ...touchDragDelay,
     onStart: () => feedbackClick('pickup'),
     ...extra,
   });
-}
-
-/** Re-points a clone source at the selected lane's group after a selection change. */
-function syncCloneGroup(sortable) {
-  if (!sortable) return;
-  const name = paletteGroupName();
-  if (sortable.option('group').name === name) return;
-  sortable.option('group', { name, pull: 'clone', put: false });
 }
 
 export function Palette() {
@@ -112,7 +100,6 @@ export function Palette() {
                 oncreate: ({ dom }) => {
                   soundSortable = makeCloneSource(dom);
                 },
-                onupdate: () => syncCloneGroup(soundSortable),
                 onremove: () => {
                   soundSortable?.destroy();
                   soundSortable = null;
@@ -142,7 +129,6 @@ export function Palette() {
                         oncreate: ({ dom }) => {
                           patternSortable = makeCloneSource(dom, { filter: '.pattern-delete' });
                         },
-                        onupdate: () => syncCloneGroup(patternSortable),
                         onremove: () => {
                           patternSortable?.destroy();
                           patternSortable = null;

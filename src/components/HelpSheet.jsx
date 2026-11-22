@@ -88,7 +88,10 @@ export function HelpSheet() {
 
               m(Section, { title: 'Sounds palette' }, [
                 m(Row, { label: 'Tap a sound', desc: 'Adds it to the end of the selected line.' }),
-                m(Row, { label: 'Drag a sound', desc: 'Drop it onto any line to add it there.' }),
+                m(Row, {
+                  label: 'Drag a sound',
+                  desc: 'Drop it onto any line to add it there — any part’s line, not only the selected one. A drum whose vocabulary has no such sound says so instead of taking it.',
+                }),
                 m(Row, {
                   label: 'Tap a pattern',
                   desc: "Adds the pattern's tiles to the selected line.",
@@ -117,6 +120,18 @@ export function HelpSheet() {
                   desc: 'A new sound lands at the end of the whole set, whichever of the player’s drums you add it to, and the other lanes stay blank there — no rests to type, so the set reads as one line of playing moving across the drums.',
                 }),
                 m(Row, {
+                  label: 'Drop into a blank',
+                  desc: 'On a player’s drums, drag a sound in from the palette and it sounds at the beat you dropped it on rather than at the end of the set — the trailing space after the last strike included. Drop it on a tile instead and it lands beside that tile.',
+                }),
+                m(Row, {
+                  label: 'Moving closes the gap',
+                  desc: 'Moving a tile within a player’s drums never leaves silence behind: the set closes up, so there is no beat where none of the drums is played. For silence the player really waits through, place a rest.',
+                }),
+                m(Row, {
+                  label: '⇤ Align',
+                  desc: 'Two of the player’s drums struck at once: add the second strike as usual (it lands after the first), then tap it and ⇤ Align to pull it back onto the previous strike. Use different hands — the same hand twice is marked amber.',
+                }),
+                m(Row, {
                   label: 'Amber underline',
                   desc: 'Two hands only: a strike underlined in amber asks the player for the same hand twice, or for a third stroke at once. A warning, not a block.',
                 }),
@@ -141,7 +156,7 @@ export function HelpSheet() {
                 }),
                 m(Row, {
                   label: 'Drag a tile',
-                  desc: 'Reorder within a row, or move to another row of the same part.',
+                  desc: 'Reorder within a row, or move to another row of the same part. On a player’s drums, where you drop it is when it sounds.',
                 }),
               ]),
 

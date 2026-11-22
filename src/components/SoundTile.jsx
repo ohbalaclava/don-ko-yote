@@ -264,6 +264,10 @@ export function SoundEditor() {
       const showSkin = piece.skinsForLane(lineId) === 2 && !!sound.hand;
       const showDuration = !sound.implicit;
       const maxDuration = time;
+      // Set lanes only: the division this strike can move back to so the player
+      // hits it together with their previous strike on another drum. Null — and so
+      // no button — for an independent part, a rest, or when there is no room.
+      const alignTo = piece.alignTargetFor(lineId, sound.id);
 
       return [
         m('div', {
@@ -421,6 +425,17 @@ export function SoundEditor() {
                   onclick: () => piece.updateSound(lineId, sound.id, { ligature: undefined }),
                 },
                 'Auto'
+              ),
+            alignTo != null &&
+              m(
+                'button',
+                {
+                  class:
+                    'mt-1 text-xs rounded border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 px-2 py-1 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors',
+                  title: 'Strike this together with the previous strike on the player’s other drum',
+                  onclick: () => piece.alignSound(lineId, sound.id),
+                },
+                '⇤ Align'
               ),
             m(
               'button',

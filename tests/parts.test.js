@@ -578,6 +578,40 @@ describe('editing a set lane', () => {
     expect(starts(lane(0, 1))).toEqual([4]);
   });
 
+  it('aligns a strike onto the other drum’s previous strike', () => {
+    const l = lane(0, 1);
+    expect(piece.alignSound(l.id, l.sounds[0].id)).toBe(true);
+    expect(starts(lane(0, 1))).toEqual([0, 12]); // only this sound moved
+    expect(starts(lane(0, 0))).toEqual([0, 8]); // the other drum stayed put
+    expect(laneDur(lane(0, 1))).toBe(16);
+  });
+
+  it('keeps the set cursor when the aligned strike is the lane’s tail', () => {
+    const l = lane(0, 1);
+    piece.alignSound(l.id, l.sounds[1].id);
+    expect(starts(lane(0, 1))).toEqual([4, 8]);
+    expect(piece.alignTargetFor(l.id, l.sounds[1].id)).toBe(null); // nothing left to align to
+  });
+
+  it('refuses to align an independent part’s sound', () => {
+    piece.addPart();
+    const l = lane(0, 2);
+    piece.addSound(l.id, KEN());
+    expect(piece.alignSound(l.id, lane(0, 2).sounds[0].id)).toBe(false);
+    expect(lane(0, 2).sounds[0].gap).toBeUndefined();
+  });
+
+  it('round-trips an align through undo/redo', () => {
+    const l = lane(0, 1);
+    const before = starts(l);
+    piece.alignSound(l.id, l.sounds[0].id);
+    const after = starts(lane(0, 1));
+    piece.undo();
+    expect(starts(lane(0, 1))).toEqual(before);
+    piece.redo();
+    expect(starts(lane(0, 1))).toEqual(after);
+  });
+
   it('round-trips a gap edit through undo/redo', () => {
     const before = starts(lane(0, 1));
     piece.addSound(lane(0, 0).id, TEN());
@@ -591,6 +625,122 @@ describe('editing a set lane', () => {
   it('preserves gaps when a system is duplicated', () => {
     piece.duplicateLine(piece.lines[0].id);
     expect(starts(lane(1, 1))).toEqual([4, 12]);
+  });
+});
+
+// A drop names a division, not an index: these cover the `*AtDiv` mutators the
+// drag-and-drop layer uses on a set lane.
+describe('dropping at a division on a set lane', () => {
+  beforeEach(() => {
+    piece.reset({ taiko: 'Shime', jiuchi: 'Gobu Gobu', beatsPerLine: 8, parts: 2 });
+    linkSet(0, 1);
+    // One player alternating: lane 0 on beats 1 and 3, lane 1 on beats 2 and 4.
+    for (let i = 0; i < 4; i++) {
+      piece.addSound(lane(0, i % 2).id, i % 2 ? KEN() : TEN());
+    }
+  });
+
+  it('lands a sound in the blank space it was dropped in', () => {
+    piece.addSoundAtDiv(lane(0, 0).id, KEN(), 4);
+    expect(starts(lane(0, 0))).toEqual([0, 4, 8]);
+    expect(starts(lane(0, 1))).toEqual([4, 12]);
+  });
+
+  it('opens the same time in every lane of the set when the drop does not fit', () => {
+    piece.addSoundAtDiv(lane(0, 0).id, KEN(), 6);
+    expect(starts(lane(0, 0))).toEqual([0, 6, 10]);
+    expect(starts(lane(0, 1))).toEqual([4, 14]);
+  });
+
+  it('snaps a drop on a tile to that tile’s nearer edge', () => {
+    piece.addSoundAtDiv(lane(0, 0).id, KEN(), 9);
+    expect(lane(0, 0).sounds.map((s) => s.name)).toEqual(['TEN', 'KEN', 'TEN']);
+    expect(starts(lane(0, 0))).toEqual([0, 8, 12]);
+  });
+
+  it('reports the trailing blank a sparse lane has, and accepts a drop in it', () => {
+    expect(piece.blankTailFor(lane(0, 0).id)).toBe(4);
+    piece.addSoundAtDiv(lane(0, 0).id, KEN(), 12);
+    expect(starts(lane(0, 0))).toEqual([0, 8, 12]);
+    expect(laneDur(lane(0, 0))).toBe(16);
+    expect(starts(lane(0, 1))).toEqual([4, 12]);
+  });
+
+  it('has no trailing blank on an independent part', () => {
+    piece.assignPartToSet(piece.parts[0].id, null);
+    expect(piece.blankTailFor(lane(0, 0).id)).toBe(0);
+  });
+
+  it('moves a sound to the division it was dropped on, within its lane', () => {
+    const l = lane(0, 1);
+    piece.moveSoundToDiv(l.id, l.sounds[1].id, l.id, 8);
+    expect(starts(lane(0, 1))).toEqual([4, 8]);
+    expect(starts(lane(0, 0))).toEqual([0, 8]);
+  });
+
+  it('lands a move past the set’s music on the set’s cursor, leaving no hole', () => {
+    const l = lane(0, 1);
+    piece.moveSoundToDiv(l.id, l.sounds[1].id, l.id, 20);
+    expect(starts(lane(0, 1))).toEqual([4, 12]); // not 20: 12-20 played by nobody
+  });
+
+  it('closes the blank a move leaves behind, across every lane of the set', () => {
+    const l = lane(0, 1);
+    piece.moveSoundToDiv(l.id, l.sounds[0].id, l.id, 16);
+    // The vacated beat 2 is gone, so the whole set's later music comes back a beat.
+    expect(starts(lane(0, 0))).toEqual([0, 4]);
+    expect(starts(lane(0, 1))).toEqual([8, 12]);
+  });
+
+  it('keeps a rest’s silence when the move is elsewhere in the set', () => {
+    piece.addSound(lane(0, 0).id, sym('SU', null, 4)); // authored silence at beat 5
+    piece.addSound(lane(0, 1).id, KEN());
+    const l = lane(0, 1);
+    piece.moveSoundToDiv(l.id, l.sounds[2].id, l.id, 24);
+    expect(starts(lane(0, 0))).toEqual([0, 8, 16]);
+    expect(starts(lane(0, 1))).toEqual([4, 12, 20]);
+  });
+
+  it('leaves an independent part’s move alone', () => {
+    piece.assignPartToSet(piece.parts[1].id, null);
+    const l = lane(0, 1);
+    const n = l.sounds.length;
+    piece.moveSoundToDiv(l.id, l.sounds[0].id, l.id, 20);
+    expect(lane(0, 1).sounds).toHaveLength(n);
+    expect(starts(lane(0, 1))[0]).toBe(0); // contiguous, as an ordinary lane is
+  });
+
+  it('moves a sound to another drum of the set, keeping what is left in place', () => {
+    const from = lane(0, 1);
+    piece.moveSoundToDiv(from.id, from.sounds[0].id, lane(0, 0).id, 4);
+    expect(lane(0, 0).sounds.map((s) => s.name)).toEqual(['TEN', 'KEN', 'TEN']);
+    expect(starts(lane(0, 0))).toEqual([0, 4, 8]);
+    expect(starts(lane(0, 1))).toEqual([12]);
+  });
+
+  it('drops a pattern at a division as its own contiguous rhythm', () => {
+    piece.addGroupAtDiv(lane(0, 0).id, { sounds: [{ ...KEN(), gap: 12 }, TEN()] }, 12);
+    expect(starts(lane(0, 0))).toEqual([0, 8, 12, 16]);
+    expect(laneDur(lane(0, 0))).toBe(20);
+  });
+
+  it('round-trips a division drop through undo/redo', () => {
+    const before = starts(lane(0, 0));
+    piece.addSoundAtDiv(lane(0, 0).id, KEN(), 4);
+    const after = starts(lane(0, 0));
+    piece.undo();
+    expect(starts(lane(0, 0))).toEqual(before);
+    piece.redo();
+    expect(starts(lane(0, 0))).toEqual(after);
+  });
+
+  it('keeps an independent part’s drop contiguous, the division only ordering it', () => {
+    piece.assignPartToSet(piece.parts[0].id, null);
+    const l = lane(0, 0);
+    const n = l.sounds.length;
+    piece.addSoundAtDiv(l.id, KEN(), 2);
+    expect(lane(0, 0).sounds.length).toBe(n + 1);
+    expect(starts(lane(0, 0))[0]).toBe(0);
   });
 });
 
