@@ -330,9 +330,10 @@ export function System() {
                       {
                         // 1.75rem of gutter: the badge, the lane's beat count, and
                         // the play button on the selected lane, stacked so the
-                        // column's width never grows. The set bracket is a border,
-                        // so linking a player's drums costs no width either; the
-                        // player's name lives in the part sheet with the rest.
+                        // column's width never grows. The set bracket is drawn in
+                        // this cell's left edge, so linking a player's drums costs
+                        // no width either; the player's name lives in the part
+                        // sheet with the rest.
                         // `left-8` clears the 1.5rem handle column plus the row's
                         // 0.5rem gap, so the two sticky columns sit side by side.
                         // The right-hand edge of the sticky gutter, so it carries the
@@ -340,42 +341,61 @@ export function System() {
                         // rather than as a clipping bug. `-my-1` bleeds the cell back
                         // over the lane row's padding, so consecutive cells still
                         // abut: the opaque backdrop stays unbroken and a set's
-                        // bracket draws as one line down its run.
-                        class: `part-label sticky left-8 z-10 shrink-0 self-stretch -my-1 w-7 ${gutterBase} shadow-[3px_0_5px_-2px_rgba(0,0,0,0.2)] ${
-                          run
-                            ? `border-l-2 border-l-purple-400 dark:border-l-purple-500 ${run.first ? 'rounded-tl' : ''} ${run.last ? 'rounded-bl' : ''}`
-                            : 'border-l-2 border-l-transparent'
-                        }`,
+                        // bracket draws as one unbroken line down its run.
+                        // The bracket itself is an overlay (below), so the border
+                        // here is only the 2px of width it is drawn in — kept
+                        // transparent-but-present on every lane so a set's lanes
+                        // and an independent part's line their badges up.
+                        class: `part-label relative sticky left-8 z-10 shrink-0 self-stretch -my-1 w-7 ${gutterBase} shadow-[3px_0_5px_-2px_rgba(0,0,0,0.2)] border-l-2 border-l-transparent`,
                       },
-                      // Three stacked layers, because the cell has to end up the
-                      // exact colour the rest of its lane composites to: the opaque
-                      // page ground above, then the row tint, then the zebra stripe
-                      // (`app.css` paints `.part-label-stripe` from the same
-                      // :nth-child rule as the lane row itself). `py-1` puts back
-                      // what the cell's `-my-1` bleed took off, so the badge still
-                      // lines up with its lane's tiles while every layer keeps
-                      // covering the padding.
-                      m(
-                        'div',
-                        { class: `h-full ${gutterTint}` },
+                      [
+                        // Three stacked layers, because the cell has to end up the
+                        // exact colour the rest of its lane composites to: the opaque
+                        // page ground above, then the row tint, then the zebra stripe
+                        // (`app.css` paints `.part-label-stripe` from the same
+                        // :nth-child rule as the lane row itself). `py-1` puts back
+                        // what the cell's `-my-1` bleed took off, so the badge still
+                        // lines up with its lane's tiles while every layer keeps
+                        // covering the padding.
                         m(
                           'div',
-                          {
-                            class: 'part-label-stripe h-full flex flex-col items-center py-1',
-                          },
-                          [
-                            m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
-                            m(
-                              'span',
-                              {
-                                class: 'text-[9px] leading-tight text-gray-400 dark:text-gray-500',
-                              },
-                              `${laneBeatLabel(lane)}b`
-                            ),
-                            isSel ? playButton(lane, 'w-6 h-6') : null,
-                          ]
-                        )
-                      )
+                          { class: `h-full ${gutterTint}` },
+                          m(
+                            'div',
+                            {
+                              class: 'part-label-stripe h-full flex flex-col items-center py-1',
+                            },
+                            [
+                              m('div', { class: 'pt-1' }, partBadge(part, lane, isSel)),
+                              m(
+                                'span',
+                                {
+                                  class:
+                                    'text-[9px] leading-tight text-gray-400 dark:text-gray-500',
+                                },
+                                `${laneBeatLabel(lane)}b`
+                              ),
+                              isSel ? playButton(lane, 'w-6 h-6') : null,
+                            ]
+                          )
+                        ),
+                        // A real `[`, drawn over the gutter's layers rather than as
+                        // the cell's own border: a bare vertical line said nothing
+                        // about where one player's drums start and stop, and the arms
+                        // are what make a run of lanes read as braced together. It
+                        // sits in the 2px border strip plus 5px of the cell's padding,
+                        // so it still costs the music no width, and
+                        // `pointer-events-none` keeps the lane's own click target.
+                        run
+                          ? m('div', {
+                              class: `absolute inset-y-0 -left-0.5 w-[6px] pointer-events-none border-l-2 border-l-purple-400 dark:border-l-purple-400 ${
+                                run.first
+                                  ? 'border-t-2 border-t-purple-400 dark:border-t-purple-400'
+                                  : ''
+                              } ${run.last ? 'border-b-2 border-b-purple-400 dark:border-b-purple-400' : ''}`,
+                            })
+                          : null,
+                      ]
                     ),
                     m(Lane, {
                       lane,

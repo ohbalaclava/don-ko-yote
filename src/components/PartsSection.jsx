@@ -1,6 +1,6 @@
 import m from 'mithril';
 import { piece } from '../data/piece.js';
-import { taikoGroupsForTime } from '../data/symbolSets.js';
+import { familyForSounds, taikoGroupsForTime } from '../data/symbolSets.js';
 import { player } from '../audio/player.js';
 import { showToast } from './Toast.jsx';
 
@@ -58,6 +58,16 @@ function removePart(part) {
  */
 export function partRow(part, idx) {
   const last = idx === piece.parts.length - 1;
+  // Once the part has sounds its syllables are family-specific (ten/ken for high
+  // drums vs don/kon for low) with no mapping between families, so only that
+  // family's taikos stay offered — the same rule a jiuchi section follows. The
+  // family comes from the authored names, not the current taiko, so a part
+  // stranded on the wrong family still offers the way back; an empty part (or one
+  // holding only rests and kakegoe) picks freely.
+  const family = familyForSounds(piece.partSoundNames(part.id));
+  const taikoGroups = taikoGroupsForTime(piece.time).filter(
+    (g) => !family || g.label.toLowerCase() === family
+  );
   return m('div', { key: part.id, class: 'py-3 border-b border-gray-200 dark:border-gray-700' }, [
     m('div', { class: 'flex items-center gap-2' }, [
       m('span', { class: 'w-4 text-xs text-gray-400 dark:text-gray-500 tabular-nums' }, idx + 1),
@@ -122,15 +132,15 @@ export function partRow(part, idx) {
       ),
     ]),
 
-    m(
-      'div',
-      { class: 'flex flex-wrap items-center gap-1 mt-2 pl-6' },
-      taikoGroupsForTime(piece.time).flatMap((group) =>
+    m('div', { class: 'flex flex-wrap items-center gap-1 mt-2 pl-6' }, [
+      ...taikoGroups.flatMap((group) =>
         group.taikos.map((t) =>
           m(
             'button',
             {
-              key: t.name,
+              // Deliberately unkeyed: the hint below shares this fragment, and
+              // Mithril forbids mixing keyed and unkeyed siblings. The list is
+              // positional and never reordered, so keys bought nothing.
               class: `rounded border px-1.5 py-0.5 text-xs font-medium ${
                 part.taiko === t.name
                   ? 'bg-indigo-600 text-white border-indigo-600'
@@ -141,8 +151,17 @@ export function partRow(part, idx) {
             t.name
           )
         )
-      )
-    ),
+      ),
+      // Without this the other family's drums have simply vanished, which reads
+      // as a bug rather than as a consequence of what the part already plays.
+      family
+        ? m(
+            'span',
+            { class: 'text-[10px] text-gray-400 dark:text-gray-500' },
+            `${family === 'high' ? 'High' : 'Low'} drums only — this part's sounds`
+          )
+        : null,
+    ]),
 
     m('div', { class: 'flex items-center gap-2 mt-2 pl-6' }, [
       m(
