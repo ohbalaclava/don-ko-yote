@@ -93,8 +93,16 @@ export function HelpSheet() {
                   desc: 'Drop it onto any line to add it there — any part’s line, not only the selected one. A drum whose vocabulary has no such sound says so instead of taking it.',
                 }),
                 m(Row, {
+                  label: 'Rest tiles',
+                  desc: '— is a numbered rest: one beat of silence, numbered by where it falls in the line. T is a blank beat for an instruction with no strike.',
+                }),
+                m(Row, {
                   label: 'Tap a pattern',
                   desc: "Adds the pattern's tiles to the selected line.",
+                }),
+                m(Row, {
+                  label: 'Patterns button',
+                  desc: 'The stock patterns written for the selected drum — tap one to add it. Patterns you save yourself sit in the palette itself.',
                 }),
               ]),
 
@@ -109,11 +117,19 @@ export function HelpSheet() {
               m(Section, { title: 'Parts (several drums)' }, [
                 m(Row, {
                   label: 'Add a part',
-                  desc: "Score settings ♩ → Parts, or + part at the foot of the score. Each part is one drum on its own row, read down the page like a conductor's score.",
+                  desc: "Score settings ♩ → Parts, or + part at the foot of the score. Each part is one drum with its own lane in every row, read down the page like a conductor's score.",
                 }),
                 m(Row, {
-                  label: 'Taiko set',
-                  desc: 'Give two or more neighbouring parts the same player in Parts and a bracket links them — one person playing several drums.',
+                  label: 'Part badges',
+                  desc: 'Each lane is labelled with a two-letter badge — the part name’s initials, or its drum. Tap one to edit that part: name, drum, player, volume, mute, solo, order and remove. A muted part is struck through in amber, a soloed one is green.',
+                }),
+                m(Row, {
+                  label: 'Changing the drum',
+                  desc: 'Once a part has sounds, only drums of the same family are offered: the high drums speak ten/ken and the low ones don/kon, so there is no sound to carry across. Clear the part to move it between families.',
+                }),
+                m(Row, {
+                  label: 'Player (taiko set)',
+                  desc: 'Give two or more neighbouring parts the same player in Parts and a purple [ bracket links their lanes — one person playing several drums. The player’s name is in each part’s badge sheet and on the printed score.',
                 }),
                 m(Row, {
                   label: 'A set is one path',
@@ -132,12 +148,16 @@ export function HelpSheet() {
                   desc: 'Two of the player’s drums struck at once: add the second strike as usual (it lands after the first), then tap it and ⇤ Align to pull it back onto the previous strike. Use different hands — the same hand twice is marked amber.',
                 }),
                 m(Row, {
-                  label: 'Amber underline',
-                  desc: 'Two hands only: a strike underlined in amber asks the player for the same hand twice, or for a third stroke at once. A warning, not a block.',
+                  label: 'Amber bar',
+                  desc: 'Two hands only: a strike with an amber bar along its foot asks the player for the same hand twice, or for a third stroke at once. A warning, not a block.',
+                }),
+                m(Row, {
+                  label: 'Leaving a set',
+                  desc: 'Take a part out of a set and its blanks are filled back in as rest tiles, so it becomes an ordinary part playing exactly the same timing.',
                 }),
                 m(Row, {
                   label: 'Beats line up',
-                  desc: 'Every part shares one tempo and beat grid, so beat 3 of one part sits above beat 3 of the next. Scroll sideways; the part names stay put.',
+                  desc: 'Every part shares one tempo and beat grid, so beat 3 of one part sits above beat 3 of the next. Lanes never wrap — scroll sideways and the part badges stay pinned to the left.',
                 }),
                 m(Row, {
                   label: 'M / S',
@@ -148,7 +168,7 @@ export function HelpSheet() {
               m(Section, { title: 'Tiles' }, [
                 m(Row, {
                   label: 'Tap a tile',
-                  desc: 'Opens the inline editor: hand (L/B/R), instruction text, accent, volume, duration, ligature join, and remove.',
+                  desc: 'Opens the inline editor: hand (L/B/R), instruction text, accent, volume, duration, ligature join, back skin where the drum has one, ⇤ Align on a player’s drums, and remove.',
                 }),
                 m(Row, {
                   label: 'Long-press',
@@ -163,7 +183,7 @@ export function HelpSheet() {
               m(Section, { title: 'Editor' }, [
                 m(Row, {
                   label: '⌫',
-                  desc: 'Delete the last tile on the selected line. Backspace does the same (or deletes the tile selection) when focus is not in a text field.',
+                  desc: 'Beside the Sounds heading: deletes the last tile on the selected line. Backspace does the same (or deletes the tile selection) when focus is not in a text field.',
                 }),
                 m(Row, { label: '↺ / ↻', desc: 'Undo and redo (Ctrl+Z / Ctrl+Y).' }),
                 m(Row, { label: '− / +', desc: 'Nudge the tempo by 5 BPM for practice.' }),
@@ -197,29 +217,6 @@ export function HelpSheet() {
                 m(Row, {
                   label: 'Ctrl+S · + / − · ?',
                   desc: 'Save · nudge BPM · open this help.',
-                }),
-              ]),
-
-              m(Section, { title: 'Parts' }, [
-                m(Row, {
-                  label: 'Add a part',
-                  desc: 'Score settings ♩ → Parts. Each part is one drum and gets its own lane in every row, with beats aligned across the parts.',
-                }),
-                m(Row, {
-                  label: 'Part badges',
-                  desc: 'In an ensemble each lane is labelled with a two-letter badge — the part name’s initials, or its drum. Tap one to edit that part: name, drum, player, volume, mute, solo, order and remove. A muted part is struck through in amber, a soloed one is green.',
-                }),
-                m(Row, {
-                  label: 'Player (taiko set)',
-                  desc: 'Give two or more parts the same player to mark a taiko set — one person on several drums. Their lanes are linked by a purple bracket in the gutter; the player’s name is in each part’s badge sheet and on the printed score.',
-                }),
-                m(Row, {
-                  label: 'Set lanes are sparse',
-                  desc: 'The drums of one set share a single cursor and are left blank where they are not played; unlinking a part fills its blanks back in as numbered rest tiles, so the timing is unchanged.',
-                }),
-                m(Row, {
-                  label: 'Sideways scroll',
-                  desc: 'Lanes never wrap once there are several parts; the part labels stay pinned to the left as the music scrolls.',
                 }),
               ]),
 
@@ -352,12 +349,16 @@ export function HelpSheet() {
 
               m(Section, { title: 'Score settings ♩' }, [
                 m(Row, {
-                  label: 'Taiko / Jiuchi',
-                  desc: 'The drum and base rhythm chosen when the score was created (shown for reference).',
+                  label: 'Parts',
+                  desc: 'The list of parts: name, drum, player, volume, mute, solo, order and remove, plus + Add part. A one-drum score sets its drum here too.',
+                }),
+                m(Row, {
+                  label: 'Jiuchi',
+                  desc: 'The base rhythm chosen when the score was created (shown for reference).',
                 }),
                 m(Row, {
                   label: 'Beats per line',
-                  desc: 'Maximum beats per line — overflowing sounds wrap to the next line automatically.',
+                  desc: 'Maximum beats per line. A one-drum score wraps the overflow onto the next row; with several parts the lanes scroll sideways instead, so the beats stay in line.',
                 }),
                 m(Row, { label: 'BPM', desc: 'Tempo used for playback.' }),
                 m(Row, {
@@ -372,7 +373,7 @@ export function HelpSheet() {
               m(Section, { title: 'App settings ⚙' }, [
                 m(Row, {
                   label: 'Proportional tiles',
-                  desc: 'Tile width reflects its beat duration.',
+                  desc: 'Tile width reflects its beat duration. A score with several parts is always proportional, so the parts keep their columns.',
                 }),
                 m(Row, {
                   label: 'Font',
