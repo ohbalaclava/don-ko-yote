@@ -102,6 +102,51 @@ export function setStream(system, parts, setId) {
   return out.map(({ _lane, ...rest }) => rest);
 }
 
+/**
+ * The division a set lane's strike should start at so the player strikes it
+ * *together* with the set's previous strike on another of their drums — the
+ * "align to cursor" target. Authoring appends to the set's shared cursor, which
+ * is what keeps a set reading as one path, so simultaneity is never a by-product
+ * of adding a sound: this is how the author asks for it afterwards.
+ *
+ * The target is the latest strike on another of the set's lanes that starts
+ * before this one and no earlier than the end of this lane's own previous sound
+ * — a lane is sequential, so a sound cannot move back past its neighbour. Null
+ * when there is no such strike (nothing to pair with, or no room), when the
+ * sound already starts with one, or when it is not a strike at all.
+ * @param {object} system
+ * @param {Array} parts - `piece.parts`.
+ * @param {string} laneId
+ * @param {string} soundId
+ * @returns {number|null} Divisions from the start of the system.
+ */
+export function alignDiv(system, parts, laneId, soundId) {
+  const lane = lanesOf(system).find((l) => l.id === laneId);
+  const setId = lane ? setIdForLane(parts, lane) : null;
+  if (!setId) return null;
+
+  let prevEnd = 0;
+  let start = null;
+  for (const s of lane.sounds ?? []) {
+    const at = prevEnd + (s.gap ?? 0);
+    if (s.id === soundId) {
+      if (!isStrike(s)) return null;
+      start = at;
+      break;
+    }
+    prevEnd = at + s.duration;
+  }
+  if (start == null) return null;
+
+  let best = null;
+  for (const st of setStream(system, parts, setId)) {
+    if (st.partId === lane.partId) continue;
+    if (st.startDiv >= start || st.startDiv < prevEnd) continue;
+    if (best == null || st.startDiv > best) best = st.startDiv;
+  }
+  return best;
+}
+
 /** The hands a strike occupies. `'B'` (both sticks together — `KI`/`ki`) occupies
  *  both, so it is fine alone and conflicts with anything else sounding. */
 function handsOf(strike) {
@@ -220,4 +265,40 @@ export function restsForGap(symbolSet, startDiv, divs, time) {
 
   if (left > 0) out.push(...fillWithRests(symbolSet, left));
   return out;
+}
+
+/**
+ * The holes in a set's combined timeline: spans of one system where **no** lane of
+ * the set plays anything at all.
+ *
+ * Silence inside a set is never authored as blank — a blank lane means *this drum is
+ * not being struck here, another one is*, and real silence is a rest sound, which
+ * occupies its span. So a span the whole set is blank through is a hole left by an
+ * edit rather than music, and `piece`'s move mutators close it. Trailing silence past
+ * the set's last sound is not a hole: it has no representation, and it is where the
+ * player's next strike lands.
+ * @param {object} system
+ * @param {Array} parts - `piece.parts`.
+ * @param {string} setId
+ * @returns {Array<{ startDiv: number, divs: number }>} Ordered, non-adjacent spans;
+ *   empty for a set with no music.
+ */
+export function setBlankSpans(system, parts, setId) {
+  const spans = [];
+  const occupied = [];
+  for (const lane of setLanes(system, parts, setId)) {
+    let pos = 0;
+    for (const s of lane.sounds ?? []) {
+      pos += s.gap ?? 0;
+      occupied.push([pos, pos + s.duration]);
+      pos += s.duration;
+    }
+  }
+  occupied.sort((a, b) => a[0] - b[0]);
+  let end = 0;
+  for (const [start, stop] of occupied) {
+    if (start > end) spans.push({ startDiv: end, divs: start - end });
+    end = Math.max(end, stop);
+  }
+  return spans;
 }

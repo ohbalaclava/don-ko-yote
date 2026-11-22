@@ -1,6 +1,6 @@
 import m from 'mithril';
 import Sortable from 'sortablejs';
-import { piece, laneDur } from '../data/piece.js';
+import { piece, laneDur, findLane } from '../data/piece.js';
 import { patternStore } from '../data/patterns.js';
 import { settings } from '../data/settings.js';
 import { SoundTile, SUBDIV_WIDTH_REM, NONPROP_TILE_WIDTH_REM } from './SoundTile.jsx';
@@ -9,6 +9,7 @@ import { packIntoTracks, groupSoundsForDisplay, formatBeats } from '../util.js';
 import { feedbackClick } from '../audio/feedback.js';
 import { anim } from '../anim.js';
 import { touchDragDelay } from '../drag.js';
+import { showToast } from './Toast.jsx';
 
 /**
  * The SortableJS group a lane's sounds belong to. A solo score keeps the single
@@ -22,6 +23,29 @@ import { touchDragDelay } from '../drag.js';
 export function laneGroupName(lane) {
   if (piece.parts.length <= 1) return 'sounds';
   return 'sounds-' + (lane?.partId ?? 'ji');
+}
+
+/** The SortableJS group every palette clone source drags from. */
+export const PALETTE_GROUP = 'palette';
+
+/**
+ * A lane's SortableJS group config: its own name, so an in-score sound still only
+ * moves between lanes of the same part, plus a `put` predicate that also accepts
+ * the palette — a palette tile may be dropped on **any** lane, whatever part is
+ * selected, and `handlePaletteDrop` translates the symbol into the lane's own
+ * vocabulary.
+ * @param {{ partId: string|null }} lane
+ * @returns {object} Sortable group option.
+ */
+function laneGroup(lane) {
+  const name = laneGroupName(lane);
+  return {
+    name,
+    put: (to, from) => {
+      const g = from.options.group?.name;
+      return g === PALETTE_GROUP || g === name;
+    },
+  };
 }
 
 /** Beat-count label for a lane, e.g. `7-2`. */
@@ -49,12 +73,94 @@ function domIndexToDataIndex(container, domIndex) {
 }
 
 /**
+ * Start and end division of each of a lane's sounds, keyed by sound id. Gap-aware
+ * like every reader, so these are absolute positions within the system.
+ * @param {{ sounds: Array }} lane
+ * @returns {Map<string, { start: number, end: number }>}
+ */
+function soundSpans(lane) {
+  const spans = new Map();
+  let pos = 0;
+  for (const s of lane.sounds) {
+    const start = pos + (s.gap ?? 0);
+    spans.set(s.id, { start, end: start + s.duration });
+    pos = start + s.duration;
+  }
+  return spans;
+}
+
+/**
+ * The span of a lane child that occupies time — a tile, a ligature, a blank cell —
+ * in divisions from the start of the system, or null for one that occupies none
+ * (a beat marker, the repeat counter).
+ * @param {HTMLElement} el
+ * @param {Map<string, { start: number, end: number }>} spans - From `soundSpans`.
+ * @returns {{ start: number, end: number }|null}
+ */
+function childSpan(el, spans) {
+  const ds = el.dataset;
+  if (ds.soundId) return spans.get(ds.soundId) ?? null;
+  if (ds.ligatureIds) {
+    const ids = ds.ligatureIds.split(',');
+    const a = spans.get(ids[0]);
+    const b = spans.get(ids[ids.length - 1]);
+    return a && b ? { start: a.start, end: b.end } : null;
+  }
+  if (ds.startPos != null) return { start: +ds.startPos, end: +ds.startPos + +ds.divs };
+  return null;
+}
+
+/**
+ * The division a drop lands on, read off the **drop indicator**: the translucent
+ * tile SortableJS parks among the lane's children as the drag moves over it. A set
+ * lane is mostly blank, so a drop index alone cannot say *when* the sound should
+ * play — this is the division `piece.addSoundAtDiv` and friends take.
+ *
+ * It is the start of the first timed sibling *after* the indicator — where the
+ * indicator was shown, in the lane's own divisions — and the end of the music when
+ * the indicator is parked at the lane's end. The indicator is the one landing place
+ * the author can see, so taking the division from anywhere else is what made it look
+ * like it was lying: the pointer sits up to a tile's width from the slot on show,
+ * and the indicator's own rect is no better, since the tiles it has pushed aside are
+ * not where the data says they are.
+ *
+ * Siblings are read in **data** divisions rather than from geometry, which is why
+ * this holds in both layouts and for a move within one lane: the sound is taken out
+ * before the insert and a set lane absorbs that span (`removeFromLane`), so the
+ * sounds after it keep the positions the indicator was shown between.
+ *
+ * Call it **before** the drop handler reverts SortableJS's DOM change, while the
+ * indicator is still parked in the lane.
+ * @param {{ sounds: Array }} lane - The target lane.
+ * @param {HTMLElement} item - SortableJS's `evt.item`, the parked indicator.
+ * @returns {number} Divisions from the start of the system.
+ */
+function indicatorDiv(lane, item) {
+  const spans = soundSpans(lane);
+  for (let el = item.nextElementSibling; el; el = el.nextElementSibling) {
+    const span = childSpan(el, spans);
+    if (span) return span.start;
+  }
+  // Nothing timed after it: the indicator is at the end of the lane, so the drop
+  // appends to whatever is last — the music, or the trailing blank's last cell.
+  for (let el = item.previousElementSibling; el; el = el.previousElementSibling) {
+    const span = childSpan(el, spans);
+    if (span) return span.end;
+  }
+  return 0;
+}
+
+/**
  * SortableJS `onAdd` handler for a lane's sounds-container. Only acts on clones
  * dragged from the palette (`evt.pullMode === 'clone'`); in-score cross-lane moves
  * are left to the source lane's `onEnd`. Reads the palette tile's `data-palette-*`
  * attributes to resolve a symbol or pattern, removes the clone SortableJS inserted
- * (so Mithril's vdom stays authoritative), then commits the insertion at the drop
- * index. The commit calls `m.redraw()`, which repaints both the lane and the palette.
+ * (so Mithril's vdom stays authoritative), then commits the insertion — at the drop
+ * index on an ordinary lane, at the indicator's division on a set lane
+ * (`indicatorDiv`, which must be read before the clone is put back).
+ * The lane may belong to any part, so the symbol is resolved in **its** vocabulary
+ * and a drum that has no such symbol is reported rather than silently refused.
+ * The commit calls `m.redraw()`, which repaints both the lane and the palette.
  * @param {Sortable.SortableEvent} evt
  */
 function handlePaletteDrop(evt) {
@@ -62,6 +168,10 @@ function handlePaletteDrop(evt) {
   const toLineId = evt.to.dataset.lineId;
   const toIndex = domIndexToDataIndex(evt.to, evt.newIndex);
   const ds = evt.item.dataset;
+  const toLane = findLane(piece.lines, toLineId)?.lane;
+  // Read while the indicator is still parked in the lane; the swap below removes it.
+  const div =
+    toLane && piece.setIdForLane(toLineId) != null ? indicatorDiv(toLane, evt.item) : null;
   // Restore the palette's Mithril-owned DOM. With pull:'clone', SortableJS moved the
   // original tile (evt.item, which Mithril still tracks) into this lane and left a
   // non-Mithril clone (evt.clone) in the palette. Put the original back in the
@@ -73,17 +183,33 @@ function handlePaletteDrop(evt) {
   } else {
     evt.item.remove();
   }
+  if (!toLane) return;
+  // A set lane is placed in time rather than in order: its blank space is where
+  // most drops land, and the division is the only thing that says when the strike
+  // sounds. An ordinary lane is contiguous, so its drop index is enough.
+  const addAt = (sym) =>
+    div == null ? piece.addSound(toLineId, sym, toIndex) : piece.addSoundAtDiv(toLineId, sym, div);
+
   if (ds.palettePattern != null) {
     const pattern = patternStore.items.find((p) => p.id === ds.palettePattern);
-    if (pattern) piece.addGroup(toLineId, pattern, toIndex);
+    if (!pattern) return;
+    if (div == null) piece.addGroup(toLineId, pattern, toIndex);
+    else piece.addGroupAtDiv(toLineId, pattern, div);
   } else if (ds.paletteImplicit != null) {
-    piece.addSound(toLineId, { name: '—', duration: piece.time, implicit: true }, toIndex);
+    addAt({ name: '—', duration: piece.time, implicit: true });
   } else if (ds.paletteSilent != null) {
-    piece.addSound(toLineId, { name: '', duration: piece.time, silent: true }, toIndex);
+    addAt({ name: '', duration: piece.time, silent: true });
   } else if (ds.paletteSound != null) {
-    // The dropped-on lane's part decides the symbol set, not the score's primary one.
+    // The dropped-on lane's part decides the symbol set, not the score's primary
+    // one — and a tile may be dropped on any lane, so the drum under the pointer
+    // need not have the symbol the author picked up. Say so: the palette is still
+    // showing the selected lane's vocabulary, so a silent no-op reads as a bug.
     const sym = piece.symbolSetForLane(toLineId).symbols.find((s) => s.name === ds.paletteSound);
-    if (sym) piece.addSound(toLineId, sym, toIndex);
+    if (!sym) {
+      showToast(`${piece.taikoForLane(toLineId)} has no ${ds.paletteSound}`);
+      return;
+    }
+    addAt(sym);
   }
   feedbackClick('drop'); // higher click on a successful landing in a lane
 }
@@ -93,6 +219,8 @@ const INSTR_LINE_HEIGHT = 18;
 const DEFAULT_ROW_GAP = 16; // matches former gap-y-4 (1rem)
 
 const MIN_GAP_WIDTH_REM = 0.5; // a sub-beat blank still has to be visible
+
+const MIN_GAP_CELL_REM = 0.5; // narrower than this and a blank cell cannot be aimed at
 
 /**
  * On-screen width of a lane's blank space, in rem.
@@ -111,6 +239,58 @@ const MIN_GAP_WIDTH_REM = 0.5; // a sub-beat blank still has to be visible
 function gapWidthRem(divs, proportional, time) {
   if (proportional) return divs * SUBDIV_WIDTH_REM;
   return Math.max(MIN_GAP_WIDTH_REM, (divs / time) * NONPROP_TILE_WIDTH_REM);
+}
+
+/**
+ * Blank space in a taiko set's lane: this drum is silent while the player works on
+ * another of their drums. Not a sound, so a cell carries no `data-sound-id` and
+ * `domIndexToDataIndex` skips it — but it does carry its position, which is what
+ * lets a drop land inside it. The total width is in whichever
+ * currency the lane's tiles use (see `gapWidthRem`).
+ *
+ * The blank is drawn as **several cells** — one per division wherever the layout is
+ * wide enough to aim at one — rather than as a single span, and the cells take
+ * pointer events. Both are for the drop indicator: SortableJS parks it between two
+ * children of the lane, so a blank that is one inert child cannot hold it, and the
+ * indicator used to sit at a stale slot for as long as the drag was over blank
+ * space. Cells give it somewhere to land every division or so, which is also the
+ * resolution of the committed drop, since `indicatorDiv` reads the division off the
+ * indicator's own slot.
+ * @param {string|null} key - Mithril key prefix, for the blanks that sit among the
+ *   keyed tiles. Null for the trailing blank, which is a sibling of the **unkeyed**
+ *   children (the tiles are one nested fragment of their own, the repeat counter
+ *   is unkeyed) — a fragment may not mix keyed and unkeyed vnodes.
+ * @param {number} startPos - Division the blank starts at.
+ * @param {number} divs - Divisions of silence.
+ * @param {boolean} proportional
+ * @param {number} time - Divisions per beat.
+ * @returns {Array} One vnode per cell; splice them into the lane's children with
+ *   `flatMap`, never nest them, so each keyed cell stays a sibling of the tiles.
+ */
+function gapCells(key, startPos, divs, proportional, time) {
+  const totalRem = gapWidthRem(divs, proportional, time);
+  // A non-proportional lane measures a blank in tile slots, so one division there
+  // can be a few px wide: widen the cell until it can be hit.
+  const step = Math.max(1, Math.ceil((MIN_GAP_CELL_REM * divs) / totalRem));
+  const cells = [];
+  for (let d = 0; d < divs; d += step) {
+    const n = Math.min(step, divs - d);
+    const attrs = {
+      class: 'lane-gap self-stretch flex items-center select-none',
+      style: `width:${(totalRem * n) / divs}rem`,
+      'data-start-pos': startPos + d,
+      'data-divs': n,
+    };
+    if (key != null) attrs.key = `${key}-${d}`;
+    cells.push(
+      m(
+        'span',
+        attrs,
+        m('span', { class: 'w-full border-t border-dotted border-gray-300 dark:border-gray-600' })
+      )
+    );
+  }
+  return cells;
 }
 
 /**
@@ -308,16 +488,16 @@ export function Lane() {
       }
       return;
     }
-    const group = laneGroupName(lane);
+    const group = laneGroup(lane);
     if (sortable) {
       // Adding or removing a part moves this lane between drop groups.
-      if (group !== sortableGroup) {
+      if (group.name !== sortableGroup) {
         sortable.option('group', group);
-        sortableGroup = group;
+        sortableGroup = group.name;
       }
       return;
     }
-    sortableGroup = group;
+    sortableGroup = group.name;
     sortable = Sortable.create(container, {
       group,
       filter: '.beat-marker-divider, .repeat-counter, .lane-gap',
@@ -337,6 +517,12 @@ export function Lane() {
         const fromLineId = evt.from.dataset.lineId;
         const toLineId = evt.to.dataset.lineId;
         const toDataIndex = domIndexToDataIndex(evt.to, evt.newIndex);
+        const toLane = findLane(piece.lines, toLineId)?.lane;
+        // Read while the indicator is still parked; the revert below removes it.
+        const div =
+          toLane && !ligatureIds && piece.setIdForLane(toLineId) != null
+            ? indicatorDiv(toLane, evt.item)
+            : null;
         // Undo SortableJS's physical DOM mutation before touching the data model.
         // SortableJS moves the dragged node directly in the DOM (across containers
         // for cross-lane drags), which desyncs Mithril's virtual DOM and corrupts
@@ -347,6 +533,9 @@ export function Lane() {
         evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
         if (ligatureIds) {
           piece.moveSounds(fromLineId, ligatureIds.split(','), toLineId, toDataIndex);
+        } else if (div != null) {
+          // On a set lane the drop's division is the edit — see `indicatorDiv`.
+          piece.moveSoundToDiv(fromLineId, evt.item.dataset.soundId, toLineId, div);
         } else {
           piece.moveSound(fromLineId, evt.item.dataset.soundId, toLineId, toDataIndex);
         }
@@ -440,7 +629,7 @@ export function Lane() {
                 onpointerleave: lpEnd,
               },
               [
-                groupSoundsForDisplay(lane.sounds, proportional, time).map((item) => {
+                groupSoundsForDisplay(lane.sounds, proportional, time).flatMap((item) => {
                   if (item.type === 'beat-marker') {
                     return m(
                       'span',
@@ -460,22 +649,12 @@ export function Lane() {
                     );
                   }
                   if (item.type === 'gap') {
-                    // Blank space in a taiko set's lane: this drum is silent while
-                    // the player works on another of their drums. Not a sound, so it
-                    // carries no data-sound-id and `domIndexToDataIndex` skips it.
-                    // Its width is in whichever currency the lane's tiles use — see
-                    // `gapWidthRem`.
-                    return m(
-                      'span',
-                      {
-                        key: 'gap-' + item.startPos,
-                        class:
-                          'lane-gap self-stretch flex items-center pointer-events-none select-none',
-                        style: `width:${gapWidthRem(item.divs, proportional, time)}rem`,
-                      },
-                      m('span', {
-                        class: 'w-full border-t border-dotted border-gray-300 dark:border-gray-600',
-                      })
+                    return gapCells(
+                      'gap-' + item.startPos,
+                      item.startPos,
+                      item.divs,
+                      proportional,
+                      time
                     );
                   }
                   if (item.sounds) {
@@ -497,6 +676,14 @@ export function Lane() {
                     isSelected: selectionIds ? selectionIds.has(s.id) : false,
                   });
                 }),
+                // Trailing silence has no `gap` to render it (the set's cursor is
+                // its last note), so the lane asks `piece` for what is left of its
+                // system: without it a sparse lane simply stops, and there is
+                // nowhere to drop a strike under the drums the player is busy with.
+                (() => {
+                  const tail = piece.blankTailFor(lane.id);
+                  return tail > 0 && gapCells(null, laneDur(lane), tail, proportional, time);
+                })(),
                 singleRepeat &&
                   m(
                     'div',

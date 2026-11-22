@@ -6,11 +6,13 @@ const mockSettings = vi.hoisted(() => ({ set: vi.fn() }));
 vi.mock('../src/data/settings.js', () => ({ settings: mockSettings }));
 
 import {
+  alignDiv,
   setIdForLane,
   setLanes,
   setCursor,
   setStream,
   setConflicts,
+  setBlankSpans,
   restsForGap,
 } from '../src/data/sets.js';
 import { HIGH_STRAIGHT } from '../src/data/symbols-high-straight.js';
@@ -170,6 +172,68 @@ describe('setStream', () => {
   });
 });
 
+// ── Aligning to the cursor ────────────────────────────────────────────────────
+
+describe('alignDiv', () => {
+  const ps = parts([
+    ['p1', 'A'],
+    ['p2', 'A'],
+    ['p3', null],
+  ]);
+  /** The lane of part `p` in a system built by `system()`. */
+  const laneOf = (sys, p) => sys.lanes.find((l) => l.partId === p);
+
+  it('targets the other drum’s previous strike', () => {
+    const b = s('KEN', 'L', 4, 4);
+    const sys = system({ p1: [s('TEN', 'R', 4)], p2: [b], p3: [] });
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, b.id)).toBe(0);
+  });
+
+  it('takes the latest strike before it, not the first', () => {
+    const b = s('KEN', 'L', 4, 8);
+    const sys = system({ p1: [s('TEN', 'R', 4), s('TEN', 'R', 4)], p2: [b], p3: [] });
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, b.id)).toBe(4);
+  });
+
+  it('never moves a sound back past its own lane’s previous sound', () => {
+    // p1 strikes on 0 and 8; p2 plays 0-4 then 8-12, so the second p2 sound could
+    // only align to 8 — which is where it already is.
+    const b = s('KEN', 'L', 4, 4);
+    const sys = system({
+      p1: [s('TEN', 'R', 4), s('TEN', 'R', 4, 4)],
+      p2: [s('KEN', 'L', 4), b],
+      p3: [],
+    });
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, b.id)).toBe(null);
+  });
+
+  it('returns null when the only earlier strike is inside its own lane', () => {
+    const b = s('KEN', 'L', 4);
+    const sys = system({ p1: [], p2: [s('TEN', 'R', 4), b], p3: [] });
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, b.id)).toBe(null);
+  });
+
+  it('returns null for an already aligned strike, a rest and an independent part', () => {
+    const together = s('KEN', 'L', 4);
+    const rest = s('SU', null, 4, 4);
+    const solo = s('KEN', 'L', 4);
+    const sys = system({
+      p1: [s('TEN', 'R', 4)],
+      p2: [together, rest],
+      p3: [solo],
+    });
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, together.id)).toBe(null);
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, rest.id)).toBe(null);
+    expect(alignDiv(sys, ps, laneOf(sys, 'p3').id, solo.id)).toBe(null);
+  });
+
+  it('returns null for an unknown lane or sound', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4)], p2: [s('KEN', 'L', 4, 4)], p3: [] });
+    expect(alignDiv(sys, ps, 'nope', 'nope')).toBe(null);
+    expect(alignDiv(sys, ps, laneOf(sys, 'p2').id, 'nope')).toBe(null);
+  });
+});
+
 // ── Two hands ─────────────────────────────────────────────────────────────────
 
 describe('setConflicts', () => {
@@ -256,6 +320,45 @@ describe('setConflicts', () => {
 });
 
 // ── Materialising blanks ──────────────────────────────────────────────────────
+
+describe('setBlankSpans', () => {
+  const ps = parts([
+    ['p1', 'A'],
+    ['p2', 'A'],
+    ['p3', null],
+  ]);
+
+  it('finds no hole in a set whose lanes interlock', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4), s('TEN', 'R', 4, 4)], p2: [s('KEN', 'L', 4, 4)] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([]);
+  });
+
+  it('reports a span no lane of the set plays through', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4)], p2: [s('KEN', 'L', 4, 12)] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([{ startDiv: 4, divs: 8 }]);
+  });
+
+  it('reports a set that starts late as a hole at the head', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4, 8)], p2: [] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([{ startDiv: 0, divs: 8 }]);
+  });
+
+  it('excludes trailing silence — the cursor is the set’s last sound', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4)], p2: [s('KEN', 'L', 4, 4)] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([]);
+  });
+
+  it('counts a rest as played: authored silence is not a hole', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4), s('SU', null, 8)], p2: [s('KEN', 'L', 4, 12)] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([]);
+  });
+
+  it('ignores lanes outside the set, and has nothing to say about no set', () => {
+    const sys = system({ p1: [s('TEN', 'R', 4)], p2: [], p3: [s('TEN', 'R', 4, 12)] });
+    expect(setBlankSpans(sys, ps, 'A')).toEqual([]);
+    expect(setBlankSpans(sys, ps, null)).toEqual([]);
+  });
+});
 
 describe('restsForGap', () => {
   const names = (out) => out.map((x) => x.name);
